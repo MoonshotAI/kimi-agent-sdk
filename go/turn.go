@@ -3,6 +3,7 @@ package kimi
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/MoonshotAI/kimi-agent-sdk/go/wire"
@@ -134,6 +135,8 @@ func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
 					}
 				}
 			}
+		default:
+			panic(fmt.Sprintf("unexpected message type: %T", x))
 		}
 	}
 }
