@@ -22,7 +22,6 @@ import (
 
 var (
 	tpname = reflect.TypeOf((*transport.Transport)(nil)).Elem().Name()
-	title  = cases.Title(language.English)
 )
 
 func NewSession(options ...Option) (*Session, error) {
@@ -31,7 +30,8 @@ func NewSession(options ...Option) (*Session, error) {
 		args = append(args, f(args)...)
 	}
 	args = append(args, "--wire")
-	cmd := exec.CommandContext(context.Background(), args[0], args[1:]...)
+	ctx, cancel := context.WithCancel(context.Background())
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -48,40 +48,46 @@ func NewSession(options ...Option) (*Session, error) {
 			return strings.ToLower(strings.TrimPrefix(method, tpname+"."))
 		})),
 		jsonrpc2.ServerMethodRenamer(jsonrpc2.RenamerFunc(func(method string) string {
-			return tpname + "." + title.String(method)
+			return tpname + "." + cases.Title(language.English).String(method)
 		})),
 	)
 	session := &Session{
+		ctx:   ctx,
 		cmd:   cmd,
 		codec: codec,
-		msgs:  new(atomic.Pointer[chan wire.Message]),
-		usrc:  new(atomic.Pointer[chan wire.RequestResponse]),
 		tp:    transport.NewTransportClient(rpc.NewClientWithCodec(codec)),
 	}
-	go session.serve()
+	responder := transport.NewTransportServer(&Responder{
+		rwlock: &session.rwlock,
+		msgs:   &session.msgs,
+		usrc:   &session.usrc,
+	})
+	go session.serve(responder)
 	watch := func() {
 		cmd.Wait()
 		stdin.Close()
 		stdout.Close()
+		cancel()
 	}
 	go watch()
 	return session, nil
 }
 
 type Session struct {
-	cmd   *exec.Cmd
-	codec *jsonrpc2.Codec
-	msgs  *atomic.Pointer[chan wire.Message]
-	usrc  *atomic.Pointer[chan wire.RequestResponse]
-	tp    transport.Transport
+	ctx    context.Context
+	cmd    *exec.Cmd
+	codec  *jsonrpc2.Codec
+	rwlock sync.RWMutex
+	msgs   chan wire.Message
+	usrc   chan wire.RequestResponse
+	tp     transport.Transport
 }
 
-func (c *Session) serve() {
-	responder := transport.NewTransportServer(&Responder{msgs: c.msgs, usrc: c.usrc})
+func (s *Session) serve(responder *transport.TransportServer) {
 	server := rpc.NewServer()
 	server.RegisterName(tpname, responder)
 	for {
-		if err := server.ServeRequest(c.codec); err != nil {
+		if err := server.ServeRequest(s.codec); err != nil {
 			return
 		}
 	}
@@ -97,7 +103,7 @@ func wait(codec *jsonrpc2.Codec) {
 	}
 }
 
-func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, error) {
+func (s *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, error) {
 	var (
 		bg     sync.WaitGroup
 		msgs   = make(chan wire.Message)
@@ -110,8 +116,10 @@ func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 	defer close(errc1)
 	defer close(errc2)
 	defer close(resc)
-	c.msgs.Store(&msgs)
-	c.usrc.Store(&usrc)
+	s.rwlock.Lock()
+	s.msgs = msgs
+	s.usrc = usrc
+	s.rwlock.Unlock()
 	bg.Go(func() {
 		msg0 := <-msgs
 		if _, ok := msg0.(wire.TurnBegin); !ok {
@@ -121,10 +129,17 @@ func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 		resc <- struct{}{}
 	})
 	bg.Go(func() {
-		defer close(msgs)
-		defer wait(c.codec)
+		cleanup := func() {
+			wait(s.codec)
+			s.rwlock.Lock()
+			s.msgs = nil
+			s.usrc = nil
+			s.rwlock.Unlock()
+			close(msgs)
+		}
+		defer cleanup()
 		result.Store(&wire.PromptResult{Status: wire.PromptResultStatusPending})
-		rpcresult, err := c.tp.Prompt(&wire.PromptParams{
+		rpcresult, err := s.tp.Prompt(&wire.PromptParams{
 			UserInput: content,
 		})
 		if err != nil {
@@ -137,8 +152,12 @@ func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 		for range msgs {
 		}
 		bg.Wait()
-		if state := c.cmd.ProcessState; state.ExitCode() > 0 {
-			return errors.New(state.String())
+		select {
+		case <-s.ctx.Done():
+			if state := s.cmd.ProcessState; state.ExitCode() > 0 {
+				return errors.New(state.String())
+			}
+		default:
 		}
 		if err != nil {
 			return err
@@ -147,7 +166,7 @@ func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 	}
 	select {
 	case <-resc:
-		return turnBegin(ctx, c.tp, result, msgs, usrc, exit), nil
+		return turnBegin(ctx, s.tp, result, msgs, usrc, exit), nil
 	case err := <-errc1:
 		return nil, exit(err)
 	case err := <-errc2:
@@ -159,48 +178,49 @@ func (c *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 
 type Responder struct {
 	transport.Transport
-	msgs *atomic.Pointer[chan wire.Message]
-	usrc *atomic.Pointer[chan wire.RequestResponse]
+	rwlock *sync.RWMutex
+	msgs   *chan wire.Message
+	usrc   *chan wire.RequestResponse
 }
 
 func (r *Responder) Event(event *wire.EventParams) (*wire.EventResult, error) {
-	msgs := r.msgs.Load()
-	if msgs == nil {
-		return &wire.EventResult{}, nil
+	r.rwlock.RLock()
+	defer r.rwlock.RUnlock()
+	if *r.msgs != nil {
+		*r.msgs <- event.Payload
 	}
-	*msgs <- event.Payload
 	return &wire.EventResult{}, nil
 }
 
 func (r *Responder) Request(request *wire.RequestParams) (*wire.RequestResult, error) {
-	msgs := r.msgs.Load()
-	if msgs == nil {
+	r.rwlock.RLock()
+	defer r.rwlock.RUnlock()
+	if *r.msgs == nil || *r.usrc == nil {
 		return &wire.RequestResult{
 			RequestID: request.Payload.RequestID(),
 			Response:  wire.RequestResponseReject,
 		}, nil
 	}
-	usrc := *r.usrc.Load()
 	var wr wire.Request
 	switch payload := request.Payload.(type) {
 	case wire.ApprovalRequest:
 		payload.Responder = ResponderFunc(func(rr wire.RequestResponse) error {
-			usrc <- rr
+			*r.usrc <- rr
 			return nil
 		})
 		wr = payload
 	}
-	*msgs <- wr
+	*r.msgs <- wr
 	return &wire.RequestResult{
 		RequestID: request.Payload.RequestID(),
-		Response:  <-*r.usrc.Load(),
+		Response:  <-*r.usrc,
 	}, nil
 }
 
-func (c *Session) Close() error {
+func (s *Session) Close() error {
 	return errors.Join(
-		c.codec.Close(),
-		c.cmd.Cancel(),
+		s.codec.Close(),
+		s.cmd.Cancel(),
 	)
 }
 

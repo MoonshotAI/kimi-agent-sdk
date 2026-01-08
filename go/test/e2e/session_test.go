@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -43,16 +44,16 @@ func TestE2E_RealKimiCLI(t *testing.T) {
 	}
 
 	// Collect all messages
-	var textContent string
+	var textContent strings.Builder
 	for step := range turn.Steps {
 		for msg := range step.Messages {
 			if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-				textContent += cp.Text
+				textContent.WriteString(cp.Text)
 			}
 		}
 	}
 
-	t.Logf("Response: %s", textContent)
+	t.Logf("Response: %s", textContent.String())
 
 	result := turn.Result()
 	if result.Status != wire.PromptResultStatusFinished {
@@ -78,14 +79,13 @@ func TestE2E_ContextTimeout(t *testing.T) {
 	}
 	defer session.Close()
 
-	// Very short timeout to trigger cancellation
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
+	// Cancel the context directly to trigger cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
 
 	_, err = session.RoundTrip(ctx, wire.NewStringUserInput("Write a 1000 word essay about AI."))
 	if err == nil {
-		t.Log("Note: request completed before timeout")
-	} else {
-		t.Logf("Request cancelled as expected: %v", err)
+		t.Errorf("request completed before cancellation")
 	}
+	t.Logf("Request cancelled as expected: %v", err)
 }

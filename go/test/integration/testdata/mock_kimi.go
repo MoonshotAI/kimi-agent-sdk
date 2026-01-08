@@ -3,7 +3,12 @@
 
 // mock_kimi is a mock implementation of the kimi CLI for testing purposes.
 // Build: go build -o mock_kimi mock_kimi.go
-// Usage: ./mock_kimi --wire
+// Usage: ./mock_kimi --wire [--mode <mode>]
+//
+// Modes:
+//   normal (default) - standard behavior
+//   deadlock - sends ApprovalRequest then immediately completes prompt
+//   flood - sends many events rapidly
 
 package main
 
@@ -15,7 +20,10 @@ import (
 	"sync/atomic"
 )
 
-var requestID atomic.Uint64
+var (
+	requestID atomic.Uint64
+	mode      string
+)
 
 type Payload struct {
 	Version string          `json:"jsonrpc"`
@@ -31,11 +39,16 @@ type PromptParams struct {
 }
 
 func main() {
-	// Check for --wire flag
+	// Parse arguments
 	hasWire := false
-	for _, arg := range os.Args[1:] {
-		if arg == "--wire" {
+	for i, arg := range os.Args[1:] {
+		switch arg {
+		case "--wire":
 			hasWire = true
+		case "--mode":
+			if i+1 < len(os.Args)-1 {
+				mode = os.Args[i+2]
+			}
 		}
 	}
 	if !hasWire {
@@ -54,7 +67,14 @@ func main() {
 
 		switch req.Method {
 		case "prompt":
-			handlePrompt(encoder, req.ID)
+			switch mode {
+			case "deadlock":
+				handlePromptDeadlock(encoder, req.ID)
+			case "flood":
+				handlePromptFlood(encoder, req.ID)
+			default:
+				handlePrompt(encoder, req.ID)
+			}
 		case "cancel":
 			handleCancel(encoder, req.ID)
 		}
@@ -119,3 +139,79 @@ func sendEvent(encoder *json.Encoder, eventType string, payload any) {
 		Params:  paramsJSON,
 	})
 }
+
+func sendRequest(encoder *json.Encoder, requestType string, payload any) {
+	payloadJSON, _ := json.Marshal(payload)
+	paramsJSON, _ := json.Marshal(map[string]any{
+		"type":    requestType,
+		"payload": json.RawMessage(payloadJSON),
+	})
+
+	id := requestID.Add(1)
+	encoder.Encode(Payload{
+		Version: "2.0",
+		ID:      fmt.Sprintf("req-%d", id),
+		Method:  "request",
+		Params:  paramsJSON,
+	})
+}
+
+// handlePromptDeadlock sends an ApprovalRequest then immediately completes the prompt
+// This tests whether Request method holding RLock while waiting for usrc can deadlock
+// with cleanup trying to acquire write lock
+func handlePromptDeadlock(encoder *json.Encoder, reqID string) {
+	// Send TurnBegin event
+	sendEvent(encoder, "TurnBegin", map[string]any{
+		"user_input": "test",
+	})
+
+	// Send StepBegin event
+	sendEvent(encoder, "StepBegin", map[string]any{
+		"n": 1,
+	})
+
+	// Send ApprovalRequest - this will cause Request method to hold RLock and wait for usrc
+	sendRequest(encoder, "ApprovalRequest", map[string]any{
+		"request_id":       "approval-1",
+		"tool_name":        "test_tool",
+		"tool_input":       map[string]any{"arg": "value"},
+		"tool_description": "A test tool",
+	})
+
+	// Immediately send prompt response WITHOUT waiting for approval response
+	// This triggers cleanup which needs write lock, but Request still holds RLock
+	encoder.Encode(Payload{
+		Version: "2.0",
+		ID:      reqID,
+		Result:  json.RawMessage(`{"status":"finished","steps":1}`),
+	})
+}
+
+// handlePromptFlood sends many events rapidly to test Event blocking with RLock
+func handlePromptFlood(encoder *json.Encoder, reqID string) {
+	// Send TurnBegin event
+	sendEvent(encoder, "TurnBegin", map[string]any{
+		"user_input": "test",
+	})
+
+	// Send StepBegin event
+	sendEvent(encoder, "StepBegin", map[string]any{
+		"n": 1,
+	})
+
+	// Flood with many events - if msgs channel blocks, Event will hold RLock
+	for i := 0; i < 100; i++ {
+		sendEvent(encoder, "ContentPart", map[string]any{
+			"type": "text",
+			"text": fmt.Sprintf("Message %d", i),
+		})
+	}
+
+	// Send prompt response
+	encoder.Encode(Payload{
+		Version: "2.0",
+		ID:      reqID,
+		Result:  json.RawMessage(`{"status":"finished","steps":1}`),
+	})
+}
+

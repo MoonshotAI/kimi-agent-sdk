@@ -57,11 +57,16 @@ type Turn struct {
 
 func (t *Turn) watch(parent context.Context) {
 	defer t.stop()
-	<-parent.Done()
+	select {
+	case <-t.current.Done():
+		return
+	case <-parent.Done():
+	}
 	t.tp.Cancel(&wire.CancelParams{})
 }
 
 func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
+	defer t.Cancel()
 	defer close(t.usrc)
 	defer close(steps)
 	var outgoing chan wire.Message
@@ -137,6 +142,7 @@ func (t *Turn) Usage() *Usage {
 
 func (t *Turn) Cancel() error {
 	t.cancel()
+	<-t.current.Done()
 	return t.exit(nil)
 }
 

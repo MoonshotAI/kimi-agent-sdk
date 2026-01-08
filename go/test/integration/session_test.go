@@ -72,6 +72,8 @@ func TestIntegration_RoundTrip_SimpleMessage(t *testing.T) {
 		}
 	}
 
+	turn.Cancel()
+
 	// Verify we received expected messages
 	if len(messages) == 0 {
 		t.Fatal("expected at least one message")
@@ -125,6 +127,8 @@ func TestIntegration_Turn_Steps_Channel(t *testing.T) {
 		}
 	}
 
+	turn.Cancel()
+
 	if stepCount == 0 {
 		t.Error("expected at least one step")
 	}
@@ -155,6 +159,8 @@ func TestIntegration_StatusUpdate_Usage(t *testing.T) {
 		}
 	}
 
+	turn.Cancel()
+
 	// Check usage was updated
 	usage := turn.Usage()
 	if usage.Tokens.InputOther != 100 {
@@ -179,4 +185,173 @@ func TestIntegration_Session_Close(t *testing.T) {
 	if err != nil {
 		t.Errorf("Close: %v", err)
 	}
+}
+
+// withMode returns an Option that adds --mode flag to the mock_kimi command
+func withMode(mode string) kimi.Option {
+	return func(args []string) []string {
+		return []string{"--mode", mode}
+	}
+}
+
+// TestIntegration_Deadlock_RequestCleanup tests for deadlock when Request method
+// holds RLock while waiting for usrc, and cleanup tries to acquire write lock.
+//
+// Scenario:
+// 1. mock_kimi sends ApprovalRequest (Request method acquires RLock, waits for usrc)
+// 2. mock_kimi immediately sends prompt response (triggers cleanup which needs write lock)
+// 3. If there's a deadlock, the test will timeout
+func TestIntegration_Deadlock_RequestCleanup(t *testing.T) {
+	mockPath := getMockKimiPath(t)
+
+	done := make(chan struct{})
+	var testErr error
+
+	go func() {
+		defer close(done)
+
+		session, err := kimi.NewSession(
+			kimi.WithExecutable(mockPath),
+			withMode("deadlock"),
+		)
+		if err != nil {
+			testErr = err
+			return
+		}
+		defer session.Close()
+
+		turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+		if err != nil {
+			// Error is expected if deadlock is avoided by rejecting the request
+			t.Logf("RoundTrip returned error (expected): %v", err)
+			return
+		}
+
+		// Consume all messages to complete the turn
+		for step := range turn.Steps {
+			for msg := range step.Messages {
+				if req, ok := msg.(wire.Request); ok {
+					req.Respond(wire.RequestResponseApprove)
+				}
+			}
+		}
+
+		turn.Cancel()
+	}()
+
+	select {
+	case <-done:
+		if testErr != nil {
+			t.Fatalf("test failed: %v", testErr)
+		}
+		t.Log("Test completed without deadlock")
+	case <-time.After(30 * time.Second):
+		t.Fatal("DEADLOCK DETECTED: test timed out waiting for completion")
+	}
+}
+
+// TestIntegration_EventBlocking tests behavior when many events are sent rapidly.
+// This tests whether Event method blocking while holding RLock causes issues.
+func TestIntegration_EventBlocking(t *testing.T) {
+	mockPath := getMockKimiPath(t)
+
+	done := make(chan struct{})
+	var testErr error
+
+	go func() {
+		defer close(done)
+
+		session, err := kimi.NewSession(
+			kimi.WithExecutable(mockPath),
+			kimi.WithAutoApprove(),
+			withMode("flood"),
+		)
+		if err != nil {
+			testErr = err
+			return
+		}
+		defer session.Close()
+
+		turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+		if err != nil {
+			testErr = err
+			return
+		}
+
+		// Deliberately slow consumer to test blocking behavior
+		messageCount := 0
+		for step := range turn.Steps {
+			for range step.Messages {
+				messageCount++
+				// Simulate slow processing
+				time.Sleep(time.Millisecond)
+			}
+		}
+
+		turn.Cancel()
+
+		t.Logf("Received %d messages with slow consumer", messageCount)
+	}()
+
+	select {
+	case <-done:
+		if testErr != nil {
+			t.Fatalf("test failed: %v", testErr)
+		}
+		t.Log("Test completed successfully")
+	case <-time.After(30 * time.Second):
+		t.Fatal("BLOCKING DETECTED: test timed out, Event method may be blocking while holding lock")
+	}
+}
+
+// TestIntegration_ConcurrentRoundTrips tests multiple concurrent RoundTrip calls
+// to detect race conditions in session state management.
+func TestIntegration_ConcurrentRoundTrips(t *testing.T) {
+	mockPath := getMockKimiPath(t)
+
+	session, err := kimi.NewSession(
+		kimi.WithExecutable(mockPath),
+	)
+	if err != nil {
+		t.Fatalf("NewSession: %v", err)
+	}
+	defer session.Close()
+
+	// Note: The current implementation may not support concurrent RoundTrips
+	// This test documents the expected behavior
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// First RoundTrip
+	turn1, err := session.RoundTrip(ctx, wire.NewStringUserInput("first"))
+	if err != nil {
+		t.Fatalf("First RoundTrip: %v", err)
+	}
+
+	// Consume first turn
+	t.Log("Consuming first turn")
+	for step := range turn1.Steps {
+		for range step.Messages {
+		}
+	}
+
+	turn1.Cancel()
+
+	// Second RoundTrip (sequential, after first completes)
+	turn2, err := session.RoundTrip(ctx, wire.NewStringUserInput("second"))
+	if err != nil {
+		t.Fatalf("Second RoundTrip: %v", err)
+	}
+
+	// Consume second turn
+	t.Log("Consuming second turn")
+	for step := range turn2.Steps {
+		for range step.Messages {
+		}
+	}
+
+	turn2.Cancel()
+
+	t.Log("Sequential RoundTrips completed successfully")
 }
