@@ -70,6 +70,10 @@ func TestIntegration_RoundTrip_SimpleMessage(t *testing.T) {
 		}
 	}
 
+	if turn.Err() != nil {
+		t.Fatalf("RoundTrip: %v", turn.Err())
+	}
+
 	turn.Cancel()
 
 	// Verify we received expected messages
@@ -120,6 +124,10 @@ func TestIntegration_Turn_Steps_Channel(t *testing.T) {
 		// Drain messages
 		for range step.Messages {
 		}
+	}
+
+	if err := turn.Err(); err != nil {
+		t.Fatalf("RoundTrip: %v", err)
 	}
 
 	turn.Cancel()
@@ -185,9 +193,7 @@ func TestIntegration_Session_Close(t *testing.T) {
 
 // withMode returns an Option that adds --mode flag to the mock_kimi command
 func withMode(mode string) kimi.Option {
-	return func(args []string) []string {
-		return []string{"--mode", mode}
-	}
+	return kimi.WithArgs("--mode", mode)
 }
 
 // TestIntegration_Deadlock_RequestCleanup tests for deadlock when Request method
@@ -230,6 +236,10 @@ func TestIntegration_Deadlock_RequestCleanup(t *testing.T) {
 					req.Respond(wire.RequestResponseApprove)
 				}
 			}
+		}
+
+		if err := turn.Err(); err != nil {
+			t.Logf("RoundTrip error: %v", err)
 		}
 
 		turn.Cancel()
@@ -284,6 +294,11 @@ func TestIntegration_EventBlocking(t *testing.T) {
 			}
 		}
 
+		if err := turn.Err(); err != nil {
+			testErr = err
+			return
+		}
+
 		turn.Cancel()
 
 		t.Logf("Received %d messages with slow consumer", messageCount)
@@ -331,13 +346,13 @@ func TestIntegration_Turn_Err_PromptError(t *testing.T) {
 		}
 	}
 
-	turn.Cancel()
-
 	// Check that turn.Err() contains the JSONRPC error
 	turnErr := turn.Err()
 	if turnErr == nil {
 		t.Fatal("expected turn.Err() to return an error, got nil")
 	}
+
+	turn.Cancel()
 
 	// Verify the error message contains expected content
 	if !strings.Contains(turnErr.Error(), "simulated prompt error") {
@@ -376,6 +391,10 @@ func TestIntegration_ConcurrentRoundTrips(t *testing.T) {
 		}
 	}
 
+	if err := turn1.Err(); err != nil {
+		t.Fatalf("First RoundTrip: %v", err)
+	}
+
 	turn1.Cancel()
 
 	// Second RoundTrip (sequential, after first completes)
@@ -389,6 +408,10 @@ func TestIntegration_ConcurrentRoundTrips(t *testing.T) {
 	for step := range turn2.Steps {
 		for range step.Messages {
 		}
+	}
+
+	if err := turn2.Err(); err != nil {
+		t.Fatalf("Second RoundTrip: %v", err)
 	}
 
 	turn2.Cancel()

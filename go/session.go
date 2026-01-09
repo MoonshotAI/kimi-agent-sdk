@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/rpc"
+	"os"
 	"os/exec"
 	"reflect"
 	"strings"
@@ -25,13 +26,19 @@ var (
 )
 
 func NewSession(options ...Option) (*Session, error) {
-	args := []string{"kimi"}
-	for _, f := range options {
-		args = append(args, f(args)...)
+	opt := &option{
+		exec: "kimi",
+		args: []string{"--wire"},
+		envs: os.Environ(),
 	}
-	args = append(args, "--wire")
+	for _, f := range options {
+		if f != nil {
+			f(opt)
+		}
+	}
 	ctx, cancel := context.WithCancel(context.Background())
-	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd := exec.CommandContext(ctx, opt.exec, opt.args...)
+	cmd.Env = append(cmd.Env, opt.envs...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		cancel()
