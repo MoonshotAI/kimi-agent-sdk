@@ -26,6 +26,7 @@ func turnBegin(
 ) *Turn {
 	parent, cancel := context.WithCancel(ctx)
 	current, stop := context.WithCancel(context.Background())
+	result.CompareAndSwap(nil, &wire.PromptResult{Status: wire.PromptResultStatusPending})
 	steps := make(chan *Step)
 	turn := &Turn{
 		id:      id,
@@ -82,6 +83,18 @@ func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
 			close(outgoing)
 		}
 	}()
+	select {
+	case msg, ok := <-incoming:
+		if !ok {
+			return
+		}
+		if _, is := msg.(wire.TurnBegin); !is {
+			t.err.Store(&ErrTurnNotFound)
+			return
+		}
+	case <-t.current.Done():
+		return
+	}
 	for msg := range incoming {
 		switch x := msg.(type) {
 		case wire.Request:
@@ -139,6 +152,10 @@ func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
 			panic(fmt.Sprintf("unexpected message type: %T", x))
 		}
 	}
+}
+
+func (t *Turn) ID() uint64 {
+	return t.id
 }
 
 func (t *Turn) Err() error {

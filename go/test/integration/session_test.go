@@ -57,7 +57,7 @@ func TestIntegration_RoundTrip_SimpleMessage(t *testing.T) {
 	}
 	defer session.Close()
 
-	turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test input"))
+	turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test input"))
 	if err != nil {
 		t.Fatalf("RoundTrip: %v", err)
 	}
@@ -112,7 +112,7 @@ func TestIntegration_Turn_Steps_Channel(t *testing.T) {
 	}
 	defer session.Close()
 
-	turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+	turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 	if err != nil {
 		t.Fatalf("RoundTrip: %v", err)
 	}
@@ -148,7 +148,7 @@ func TestIntegration_StatusUpdate_Usage(t *testing.T) {
 	}
 	defer session.Close()
 
-	turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+	turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 	if err != nil {
 		t.Fatalf("RoundTrip: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestIntegration_Deadlock_RequestCleanup(t *testing.T) {
 		}
 		defer session.Close()
 
-		turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+		turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 		if err != nil {
 			// Error is expected if deadlock is avoided by rejecting the request
 			t.Logf("RoundTrip returned error (expected): %v", err)
@@ -278,7 +278,7 @@ func TestIntegration_EventBlocking(t *testing.T) {
 		}
 		defer session.Close()
 
-		turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+		turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 		if err != nil {
 			testErr = err
 			return
@@ -335,7 +335,7 @@ func TestIntegration_Turn_Err_PromptError(t *testing.T) {
 	defer session.Close()
 
 	// RoundTrip should return a turn (since TurnBegin is sent before the error)
-	turn, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("test"))
+	turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 	if err != nil {
 		t.Fatalf("RoundTrip: expected turn to be returned, got error: %v", err)
 	}
@@ -379,7 +379,7 @@ func TestIntegration_ConcurrentRoundTrips(t *testing.T) {
 	// This test documents the expected behavior
 
 	// First RoundTrip
-	turn1, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("first"))
+	turn1, err := session.Prompt(context.Background(), wire.NewStringUserInput("first"))
 	if err != nil {
 		t.Fatalf("First RoundTrip: %v", err)
 	}
@@ -398,7 +398,7 @@ func TestIntegration_ConcurrentRoundTrips(t *testing.T) {
 	turn1.Cancel()
 
 	// Second RoundTrip (sequential, after first completes)
-	turn2, err := session.RoundTrip(context.Background(), wire.NewStringUserInput("second"))
+	turn2, err := session.Prompt(context.Background(), wire.NewStringUserInput("second"))
 	if err != nil {
 		t.Fatalf("Second RoundTrip: %v", err)
 	}

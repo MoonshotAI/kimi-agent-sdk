@@ -68,9 +68,10 @@ func NewSession(options ...Option) (*Session, error) {
 		tp:    transport.NewTransportClient(rpc.NewClientWithCodec(codec)),
 	}
 	responder := transport.NewTransportServer(&Responder{
-		rwlock: &session.rwlock,
-		msgs:   &session.msgs,
-		usrc:   &session.usrc,
+		rwlock:                  &session.rwlock,
+		pending:                 &session.pending,
+		wireMessageBridge:       &session.wireMessageBridge,
+		wireRequestResponseChan: &session.wireRequestResponseChan,
 	})
 	go session.serve(responder)
 	watch := func() {
@@ -84,15 +85,16 @@ func NewSession(options ...Option) (*Session, error) {
 }
 
 type Session struct {
-	ctx    context.Context
-	cmd    *exec.Cmd
-	codec  *jsonrpc2.Codec
-	rwlock sync.RWMutex
-	seq    uint64
-	turns  []*Turn
-	msgs   chan wire.Message
-	usrc   chan wire.RequestResponse
-	tp     transport.Transport
+	ctx                     context.Context
+	cmd                     *exec.Cmd
+	codec                   *jsonrpc2.Codec
+	pending                 atomic.Int64
+	rwlock                  sync.RWMutex
+	seq                     uint64
+	cancellers              []Canceller
+	wireMessageBridge       chan wire.Message
+	wireRequestResponseChan chan wire.RequestResponse
+	tp                      transport.Transport
 }
 
 func (s *Session) serve(responder *transport.TransportServer) {
@@ -109,92 +111,100 @@ func (s *Session) waitForDataExchange() {
 	for {
 		pending := s.codec.PendingRequests()
 		if pending == 0 {
-			return
+			break
+		}
+		time.Sleep(time.Duration(pending) * time.Second)
+	}
+	for {
+		pending := s.pending.Load()
+		if pending == 0 {
+			break
 		}
 		time.Sleep(time.Duration(pending) * time.Second)
 	}
 }
 
-func (s *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, error) {
+func (s *Session) Prompt(ctx context.Context, content wire.Content) (*Turn, error) {
+	return roundtrip(ctx, s, &turnConstructor{s.tp, content})
+}
+
+func roundtrip[T any, R any, I interface {
+	Cargo[R]
+	*T
+}](ctx context.Context, s *Session, constructor Constructor[T, R]) (*T, error) {
 	var (
-		bg     sync.WaitGroup
-		id     = atomic.AddUint64(&s.seq, 1)
-		msgs   = make(chan wire.Message)
-		usrc   = make(chan wire.RequestResponse)
-		errc1  = make(chan error)
-		errc2  = make(chan error)
-		resc   = make(chan struct{})
-		result = new(atomic.Pointer[wire.PromptResult])
+		bg                      sync.WaitGroup
+		id                      = atomic.AddUint64(&s.seq, 1)
+		wireMessageBridge       = make(chan wire.Message)
+		wireRequestResponseChan = make(chan wire.RequestResponse)
+		rpcErrorChan            = make(chan error)
+		cargoAvailableChan      = make(chan struct{})
+		errorPointer            = new(atomic.Pointer[error])
+		resultPointer           = new(atomic.Pointer[R])
+		wireMessageChan         = make(chan wire.Message)
 	)
 	s.rwlock.Lock()
-	s.msgs = msgs
-	s.usrc = usrc
+	s.wireMessageBridge = wireMessageBridge
+	s.wireRequestResponseChan = wireRequestResponseChan
 	s.rwlock.Unlock()
 	bg.Go(func() {
-		defer close(resc)
-		defer close(errc1)
-		msg0, ok := <-msgs
-		if !ok {
-			return
-		}
-		if _, ok = msg0.(wire.TurnBegin); !ok {
+		defer close(cargoAvailableChan)
+		defer close(wireMessageChan)
+		var once sync.Once
+		for msg := range wireMessageBridge {
+			once.Do(func() {
+				select {
+				case cargoAvailableChan <- struct{}{}:
+				case <-rpcErrorChan:
+				case <-ctx.Done():
+				}
+			})
 			select {
-			case errc1 <- ErrTurnNotFound:
+			case wireMessageChan <- msg:
 			case <-ctx.Done():
+				return
 			}
-			return
-		}
-		select {
-		case resc <- struct{}{}:
-		case <-errc2:
-		case <-ctx.Done():
 		}
 	})
-	var (
-		ok = make(chan struct{})
-		ep atomic.Pointer[error]
-	)
+	var deliveredSignal = make(chan struct{})
 	bg.Go(func() {
 		cleanup := func() {
 			s.waitForDataExchange()
 			s.rwlock.Lock()
-			s.msgs = nil
-			s.usrc = nil
+			s.wireMessageBridge = nil
+			s.wireRequestResponseChan = nil
 			s.rwlock.Unlock()
-			close(msgs)
-			close(errc2)
+			close(wireMessageBridge)
+			close(rpcErrorChan)
 		}
 		defer cleanup()
-		result.Store(&wire.PromptResult{Status: wire.PromptResultStatusPending})
-		rpcresult, err := s.tp.Prompt(&wire.PromptParams{
-			UserInput: content,
-		})
+		rpcresult, err := constructor.RPCRequest()
 		if err != nil {
 			select {
-			case errc2 <- err:
-				close(ok)
-			case <-ok:
-				ep.Store(&err)
+			case rpcErrorChan <- err:
+				close(deliveredSignal)
+			case <-deliveredSignal:
+				errorPointer.Store(&err)
 			case <-ctx.Done():
 			}
 			return
 		}
 		select {
-		case <-ok:
+		case <-deliveredSignal:
 		case <-ctx.Done():
 			return
 		}
-		result.Store(rpcresult)
+		resultPointer.Store(rpcresult)
 	})
 	exit := func(err error) error {
-		for range msgs {
+		for range wireMessageBridge {
 		}
 		bg.Wait()
 		s.rwlock.Lock()
-		for i, turn := range s.turns {
-			if turn.id == id {
-				s.turns[i] = s.turns[len(s.turns)-1]
-				s.turns = s.turns[:len(s.turns)-1]
+		for i, canceller := range s.cancellers {
+			if lastidx := len(s.cancellers) - 1; canceller.ID() == id {
+				s.cancellers[i] = s.cancellers[lastidx]
+				s.cancellers = s.cancellers[:lastidx]
 				break
 			}
 		}
@@ -212,16 +222,23 @@ func (s *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 		return nil
 	}
 	select {
-	case <-resc:
-		close(ok)
-		turn := turnBegin(ctx, id, s.tp, &ep, result, msgs, usrc, exit)
+	case <-cargoAvailableChan:
+		close(deliveredSignal)
+		value := constructor.Construct(
+			ctx,
+			id,
+			s.tp,
+			errorPointer,
+			resultPointer,
+			wireMessageChan,
+			wireRequestResponseChan,
+			exit,
+		)
 		s.rwlock.Lock()
-		s.turns = append(s.turns, turn)
+		s.cancellers = append(s.cancellers, I(value))
 		s.rwlock.Unlock()
-		return turn, nil
-	case err := <-errc1:
-		return nil, exit(err)
-	case err := <-errc2:
+		return value, nil
+	case err := <-rpcErrorChan:
 		return nil, exit(err)
 	case <-ctx.Done():
 		return nil, exit(ctx.Err())
@@ -230,24 +247,29 @@ func (s *Session) RoundTrip(ctx context.Context, content wire.Content) (*Turn, e
 
 type Responder struct {
 	transport.Transport
-	rwlock *sync.RWMutex
-	msgs   *chan wire.Message
-	usrc   *chan wire.RequestResponse
+	rwlock                  *sync.RWMutex
+	pending                 *atomic.Int64
+	wireMessageBridge       *chan wire.Message
+	wireRequestResponseChan *chan wire.RequestResponse
 }
 
 func (r *Responder) Event(event *wire.EventParams) (*wire.EventResult, error) {
+	r.pending.Add(1)
+	defer r.pending.Add(-1)
 	r.rwlock.RLock()
 	defer r.rwlock.RUnlock()
-	if *r.msgs != nil {
-		*r.msgs <- event.Payload
+	if *r.wireMessageBridge != nil {
+		*r.wireMessageBridge <- event.Payload
 	}
 	return &wire.EventResult{}, nil
 }
 
 func (r *Responder) Request(request *wire.RequestParams) (*wire.RequestResult, error) {
+	r.pending.Add(1)
+	defer r.pending.Add(-1)
 	r.rwlock.RLock()
 	defer r.rwlock.RUnlock()
-	if *r.msgs == nil || *r.usrc == nil {
+	if *r.wireMessageBridge == nil || *r.wireRequestResponseChan == nil {
 		return &wire.RequestResult{
 			RequestID: request.Payload.RequestID(),
 			Response:  wire.RequestResponseReject,
@@ -257,26 +279,26 @@ func (r *Responder) Request(request *wire.RequestParams) (*wire.RequestResult, e
 	switch payload := request.Payload.(type) {
 	case wire.ApprovalRequest:
 		payload.Responder = ResponderFunc(func(rr wire.RequestResponse) error {
-			*r.usrc <- rr
+			*r.wireRequestResponseChan <- rr
 			return nil
 		})
 		wr = payload
 	}
-	*r.msgs <- wr
+	*r.wireMessageBridge <- wr
 	return &wire.RequestResult{
 		RequestID: request.Payload.RequestID(),
-		Response:  <-*r.usrc,
+		Response:  <-*r.wireRequestResponseChan,
 	}, nil
 }
 
 func (s *Session) Close() error {
 	defer s.codec.Close()
 	s.rwlock.Lock()
-	cancels := make([]func() error, len(s.turns))
-	for i, turn := range s.turns {
-		cancels[i] = turn.Cancel
+	cancels := make([]func() error, len(s.cancellers))
+	for i, canceller := range s.cancellers {
+		cancels[i] = canceller.Cancel
 	}
-	s.turns = nil
+	s.cancellers = nil
 	s.rwlock.Unlock()
 	for _, cancel := range cancels {
 		cancel() //nolint:errcheck
@@ -300,4 +322,62 @@ type ResponderFunc func(wire.RequestResponse) error
 
 func (f ResponderFunc) Respond(r wire.RequestResponse) error {
 	return f(r)
+}
+
+type Canceller interface {
+	ID() uint64
+	Cancel() error
+}
+
+type Cargo[R any] interface {
+	Err() error
+	Result() R
+	Canceller
+}
+
+type Constructor[T any, R any] interface {
+	RPCRequest() (*R, error)
+	Construct(
+		ctx context.Context,
+		id uint64,
+		stdioTransport transport.Transport,
+		errorPointer *atomic.Pointer[error],
+		resultPointer *atomic.Pointer[R],
+		wireMessageChan <-chan wire.Message,
+		wireRequestResponseChan chan<- wire.RequestResponse,
+		exit func(error) error,
+	) *T
+}
+
+type turnConstructor struct {
+	transport transport.Transport
+	content   wire.Content
+}
+
+func (tc *turnConstructor) RPCRequest() (*wire.PromptResult, error) {
+	return tc.transport.Prompt(&wire.PromptParams{
+		UserInput: tc.content,
+	})
+}
+
+func (tc *turnConstructor) Construct(
+	ctx context.Context,
+	id uint64,
+	stdioTransport transport.Transport,
+	errorPointer *atomic.Pointer[error],
+	resultPointer *atomic.Pointer[wire.PromptResult],
+	wireMessageChan <-chan wire.Message,
+	wireRequestResponseChan chan<- wire.RequestResponse,
+	exit func(error) error,
+) *Turn {
+	return turnBegin(
+		ctx,
+		id,
+		tc.transport,
+		errorPointer,
+		resultPointer,
+		wireMessageChan,
+		wireRequestResponseChan,
+		exit,
+	)
 }

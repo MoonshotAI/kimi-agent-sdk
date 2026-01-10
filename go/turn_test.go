@@ -150,6 +150,9 @@ func TestTurn_traverse_StepBegin(t *testing.T) {
 	turn, _, msgs, cancel, cleanup := setupTurn(t)
 	defer cleanup()
 
+	// Send TurnBegin first (required by traverse)
+	msgs <- wire.TurnBegin{}
+
 	// Send StepBegin event
 	msgs <- wire.StepBegin{N: 1}
 
@@ -168,6 +171,9 @@ func TestTurn_traverse_StepBegin(t *testing.T) {
 func TestTurn_traverse_ContentPart(t *testing.T) {
 	turn, _, msgs, cancel, cleanup := setupTurn(t)
 	defer cleanup()
+
+	// Send TurnBegin first (required by traverse)
+	msgs <- wire.TurnBegin{}
 
 	// Send StepBegin first to create a step
 	msgs <- wire.StepBegin{N: 1}
@@ -208,6 +214,9 @@ func TestTurn_traverse_StatusUpdate_ContextUsage(t *testing.T) {
 	turn, _, msgs, _, cleanup := setupTurn(t)
 	defer cleanup()
 
+	// Send TurnBegin first (required by traverse)
+	msgs <- wire.TurnBegin{}
+
 	// Send StatusUpdate with ContextUsage
 	msgs <- wire.StatusUpdate{
 		ContextUsage: wire.Optional[float64]{Valid: true, Value: 0.75},
@@ -225,6 +234,9 @@ func TestTurn_traverse_StatusUpdate_ContextUsage(t *testing.T) {
 func TestTurn_traverse_StatusUpdate_TokenUsage(t *testing.T) {
 	turn, _, msgs, _, cleanup := setupTurn(t)
 	defer cleanup()
+
+	// Send TurnBegin first (required by traverse)
+	msgs <- wire.TurnBegin{}
 
 	// Send first StatusUpdate with TokenUsage
 	msgs <- wire.StatusUpdate{

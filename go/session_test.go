@@ -3,6 +3,7 @@ package kimi
 import (
 	"io"
 	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/MoonshotAI/kimi-agent-sdk/go/wire"
@@ -13,7 +14,7 @@ func TestResponder_Event(t *testing.T) {
 	usrc := make(chan wire.RequestResponse, 1)
 
 	var rwlock sync.RWMutex
-	responder := &Responder{rwlock: &rwlock, msgs: &msgs, usrc: &usrc}
+	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	event := &wire.EventParams{
 		Type: wire.EventTypeContentPart,
@@ -49,7 +50,7 @@ func TestResponder_Event_NilMsgs(t *testing.T) {
 	var msgs chan wire.Message
 	usrc := make(chan wire.RequestResponse, 1)
 	var rwlock sync.RWMutex
-	responder := &Responder{rwlock: &rwlock, msgs: &msgs, usrc: &usrc}
+	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	event := &wire.EventParams{
 		Type: wire.EventTypeContentPart,
@@ -74,7 +75,7 @@ func TestResponder_Request_ApprovalRequest(t *testing.T) {
 	usrc := make(chan wire.RequestResponse, 1)
 
 	var rwlock sync.RWMutex
-	responder := &Responder{rwlock: &rwlock, msgs: &msgs, usrc: &usrc}
+	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	approvalRequest := wire.ApprovalRequest{
 		ID:          "req-123",
@@ -132,7 +133,7 @@ func TestResponder_Request_NilMsgs(t *testing.T) {
 	var msgs chan wire.Message
 	usrc := make(chan wire.RequestResponse, 1)
 	var rwlock sync.RWMutex
-	responder := &Responder{rwlock: &rwlock, msgs: &msgs, usrc: &usrc}
+	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	approvalRequest := wire.ApprovalRequest{
 		ID:          "req-123",

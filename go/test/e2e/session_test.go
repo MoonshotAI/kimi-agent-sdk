@@ -38,7 +38,7 @@ func TestE2E_RealKimiCLI(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	turn, err := session.RoundTrip(ctx, wire.NewStringUserInput("Say 'Hello, test!' and nothing else."))
+	turn, err := session.Prompt(ctx, wire.NewStringUserInput("Say 'Hello, test!' and nothing else."))
 	if err != nil {
 		t.Fatalf("RoundTrip: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestE2E_ContextTimeout(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err = session.RoundTrip(ctx, wire.NewStringUserInput("Write a 1000 word essay about AI."))
+	_, err = session.Prompt(ctx, wire.NewStringUserInput("Write a 1000 word essay about AI."))
 	if err == nil {
 		t.Errorf("request completed before cancellation")
 	}
