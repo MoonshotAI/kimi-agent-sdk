@@ -122,9 +122,9 @@ func TestTurn_Cancel(t *testing.T) {
 	msgs := make(chan wire.Message, 10)
 	usrc := make(chan wire.RequestResponse, 1)
 
-	exitCalled := false
+	var exitCalled atomic.Bool
 	exit := func(err error) error {
-		exitCalled = true
+		exitCalled.Store(true)
 		return err
 	}
 
@@ -136,7 +136,7 @@ func TestTurn_Cancel(t *testing.T) {
 	if err != nil {
 		t.Errorf("Cancel() returned error: %v", err)
 	}
-	if !exitCalled {
+	if !exitCalled.Load() {
 		t.Errorf("exit function should have been called")
 	}
 
