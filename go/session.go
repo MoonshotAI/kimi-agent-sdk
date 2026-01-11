@@ -147,6 +147,7 @@ func roundtrip[T any, R any, I interface {
 	s.wireMessageBridge = wireMessageBridge
 	s.wireRequestResponseChan = wireRequestResponseChan
 	s.rwlock.Unlock()
+	var rpcErrorSignal = make(chan struct{})
 	bg.Go(func() {
 		defer close(cargoAvailableChan)
 		defer close(wireMessageChan)
@@ -155,12 +156,13 @@ func roundtrip[T any, R any, I interface {
 			once.Do(func() {
 				select {
 				case cargoAvailableChan <- struct{}{}:
-				case <-rpcErrorChan:
+				case <-rpcErrorSignal:
 				case <-ctx.Done():
 				}
 			})
 			select {
 			case wireMessageChan <- msg:
+			case <-rpcErrorSignal:
 			case <-ctx.Done():
 			}
 		}
@@ -186,6 +188,7 @@ func roundtrip[T any, R any, I interface {
 				errorPointer.Store(&err)
 			case <-ctx.Done():
 			}
+			close(rpcErrorSignal)
 			return
 		}
 		select {
