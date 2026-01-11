@@ -78,6 +78,11 @@ type Codec struct {
 	dec *json.Decoder
 	err atomic.Value
 
+	// inflight counts decoded requests that have not yet been registered in srvreqids.
+	// This closes a race window between recv() delivering a request and ReadRequestHeader()
+	// adding it to srvreqids.
+	inflight atomic.Int64
+
 	srvlock   sync.Mutex
 	seq       uint64
 	srvreqids map[uint64]string
@@ -134,9 +139,11 @@ func (c *Codec) recv() {
 			return
 		}
 		if payload.Method != "" {
+			c.inflight.Add(1)
 			select {
 			case c.inreqs <- &payload:
 			case <-c.donectx.Done():
+				c.inflight.Add(-1)
 				return
 			}
 		} else {
@@ -168,6 +175,7 @@ func (c *Codec) ReadRequestHeader(r *rpc.Request) error {
 	c.seq++
 	c.srvreqids[c.seq] = c.thisreq.GetID()
 	r.Seq = c.seq
+	c.inflight.Add(-1)
 	c.srvlock.Unlock()
 	return nil
 }
@@ -305,7 +313,11 @@ func (c *Codec) PendingClientRequests() int {
 }
 
 func (c *Codec) PendingRequests() int {
-	return c.PendingServerRequests() + c.PendingClientRequests()
+	pending := c.PendingServerRequests() + c.PendingClientRequests()
+	if inflight := c.inflight.Load(); inflight > 0 {
+		pending += int(inflight)
+	}
+	return pending
 }
 
 func (c *Codec) Close() error {

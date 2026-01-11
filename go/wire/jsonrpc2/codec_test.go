@@ -471,3 +471,102 @@ func TestCodec_ShutdownTimeout_DefaultValue(t *testing.T) {
 		t.Fatalf("Close took too long: %v, expected quick close with no pending requests", elapsed)
 	}
 }
+
+func TestCodec_PendingRequests_IncludesInflightServerRequest(t *testing.T) {
+	c1, c2 := net.Pipe()
+	started := make(chan struct{})
+	release := make(chan struct{})
+
+	codec := NewCodec(
+		c1,
+		ServerMethodRenamer(RenamerFunc(func(method string) string {
+			// Block ReadRequestHeader right after it has received the request,
+			// but before it registers the request into srvreqids.
+			//
+			// This reproduces the "pending == 0" blind spot that can cause callers
+			// to incorrectly assume there is no more data exchange.
+			close(started)
+			<-release
+			return method
+		})),
+	)
+	defer codec.Close()
+	defer c2.Close()
+
+	// Drain responses written by codec to avoid blocking its send goroutine.
+	drained := make(chan struct{})
+	go func() {
+		defer close(drained)
+		dec := json.NewDecoder(c2)
+		for {
+			var p Payload
+			if err := dec.Decode(&p); err != nil {
+				return
+			}
+		}
+	}()
+
+	hdr := make(chan rpc.Request, 1)
+	hdrErr := make(chan error, 1)
+	go func() {
+		var r rpc.Request
+		if err := codec.ReadRequestHeader(&r); err != nil {
+			hdrErr <- err
+			return
+		}
+		hdr <- r
+	}()
+
+	params, err := json.Marshal(map[string]any{"x": 1})
+	if err != nil {
+		t.Fatalf("Marshal params: %v", err)
+	}
+	enc := json.NewEncoder(c2)
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "req-1",
+		Method:  "event",
+		Params:  params,
+	}); err != nil {
+		t.Fatalf("Encode request: %v", err)
+	}
+
+	select {
+	case <-started:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for serverMethodRenamer to run")
+	}
+
+	if got := codec.PendingRequests(); got != 1 {
+		t.Fatalf("expected PendingRequests=1 while request is in-flight, got %d", got)
+	}
+
+	close(release)
+
+	var req rpc.Request
+	select {
+	case req = <-hdr:
+	case err := <-hdrErr:
+		t.Fatalf("ReadRequestHeader: %v", err)
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for ReadRequestHeader to return")
+	}
+
+	if err := codec.ReadRequestBody(nil); err != nil {
+		t.Fatalf("ReadRequestBody: %v", err)
+	}
+	if err := codec.WriteResponse(&rpc.Response{Seq: req.Seq}, &struct{}{}); err != nil {
+		t.Fatalf("WriteResponse: %v", err)
+	}
+
+	waitUntil(t, 1*time.Second, func() bool {
+		return codec.PendingRequests() == 0
+	})
+
+	_ = c2.Close()
+	select {
+	case <-drained:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for drain goroutine to exit")
+	}
+}
