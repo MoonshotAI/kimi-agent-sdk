@@ -1,6 +1,7 @@
 package jsonrpc2
 
 import (
+	"container/list"
 	"context"
 	"encoding/json"
 	"errors"
@@ -17,17 +18,21 @@ const JSONRPC2Version = "2.0"
 func NewCodec(rwc io.ReadWriteCloser, options ...CodecOption) *Codec {
 	donectx, cancel := context.WithCancel(context.Background())
 	codec := &Codec{
-		donectx:   donectx,
-		cancel:    cancel,
-		rwc:       rwc,
-		enc:       json.NewEncoder(rwc),
-		dec:       json.NewDecoder(rwc),
-		srvreqids: make(map[uint64]string),
-		clireqids: make(map[string]uint64),
-		reqmeth:   make(map[string]string),
-		outpls:    make(chan *Payload),
-		inreqs:    make(chan Request),
-		inress:    make(chan Response),
+		donectx:       donectx,
+		cancel:        cancel,
+		rwc:           rwc,
+		enc:           json.NewEncoder(rwc),
+		dec:           json.NewDecoder(rwc),
+		srvreqids:     make(map[uint64]string),
+		clireqids:     make(map[string]uint64),
+		reqmeth:       make(map[string]string),
+		outpls:        make(chan *Payload),
+		inreqs:        make(chan Request),
+		inress:        make(chan Response),
+		senders:       make(map[string]<-chan json.RawMessage),
+		senderwaker:   make(chan string),
+		receivers:     make(map[string]chan<- json.RawMessage),
+		receiverwaker: make(chan string),
 	}
 	for _, apply := range options {
 		apply(codec)
@@ -97,6 +102,13 @@ type Codec struct {
 	outpls      chan *Payload
 	txcloseonce sync.Once
 
+	senderlock    sync.RWMutex
+	senders       map[string]<-chan json.RawMessage
+	senderwaker   chan string
+	receiverlock  sync.RWMutex
+	receivers     map[string]chan<- json.RawMessage
+	receiverwaker chan string
+
 	inreqs chan Request
 	inress chan Response
 }
@@ -117,7 +129,44 @@ func (c *Codec) loadOrFallbackErr(fallback error) error {
 }
 
 func (c *Codec) send() {
-	for payload := range c.outpls {
+	for {
+		var payload *Payload
+		select {
+		case senderid := <-c.senderwaker:
+			c.senderlock.RLock()
+			sender, ok := c.senders[senderid]
+			c.senderlock.RUnlock()
+			if !ok {
+				continue
+			}
+			select {
+			case data, ok := <-sender:
+				if !ok {
+					c.senderlock.Lock()
+					delete(c.senders, senderid)
+					c.senderlock.Unlock()
+					payload = &Payload{
+						Version: JSONRPC2Version,
+						ID:      senderid,
+						Stream:  StreamClose,
+					}
+				} else {
+					payload = &Payload{
+						Version: JSONRPC2Version,
+						ID:      senderid,
+						Stream:  StreamOpen,
+						Data:    data,
+					}
+				}
+			case <-c.donectx.Done():
+				return
+			}
+		case out, ok := <-c.outpls:
+			if !ok {
+				return
+			}
+			payload = out
+		}
 		if err := c.enc.Encode(payload); err != nil {
 			c.cancel()
 			c.err.CompareAndSwap(nil, &wraperror{err})
@@ -131,26 +180,100 @@ func (c *Codec) recv() {
 		close(c.inreqs)
 		close(c.inress)
 	})
+	var (
+		pendingstreams = list.New()
+		pendinglock    sync.RWMutex
+	)
+	fdelement := func(id string) *list.Element {
+		pendinglock.RLock()
+		defer pendinglock.RUnlock()
+		for element := pendingstreams.Front(); element != nil; element = element.Next() {
+			payload := element.Value.(*Payload)
+			if payload.ID == id {
+				return element
+			}
+		}
+		return nil
+	}
+	rmelement := func(element *list.Element) {
+		pendinglock.Lock()
+		defer pendinglock.Unlock()
+		pendingstreams.Remove(element)
+	}
+	enqueue := func(payload *Payload) {
+		pendinglock.Lock()
+		defer pendinglock.Unlock()
+		pendingstreams.PushBack(payload)
+	}
+	requeue := func(receiverid string) {
+		pendinglock.RLock()
+		n := pendingstreams.Len()
+		pendinglock.RUnlock()
+		time.Sleep(time.Duration(max(n, 1)) * time.Second)
+		select {
+		case c.receiverwaker <- receiverid:
+		case <-c.donectx.Done():
+			return
+		}
+	}
+	consumependings := func() {
+		for {
+			select {
+			case receiverid := <-c.receiverwaker:
+				if element := fdelement(receiverid); element != nil {
+					payload := element.Value.(*Payload)
+					c.receiverlock.RLock()
+					receiver, ok := c.receivers[payload.ID]
+					c.receiverlock.RUnlock()
+					if ok {
+						if payload.Stream == StreamClose {
+							c.receiverlock.Lock()
+							close(receiver)
+							delete(c.receivers, payload.ID)
+							c.receiverlock.Unlock()
+							rmelement(element)
+						} else {
+							select {
+							case receiver <- payload.Data:
+								rmelement(element)
+							case <-c.donectx.Done():
+								return
+							}
+						}
+					}
+				} else {
+					go requeue(receiverid)
+				}
+			case <-c.donectx.Done():
+				return
+			}
+		}
+	}
+	go consumependings()
 	for {
-		var payload Payload
+		var payload *Payload
 		if err := c.dec.Decode(&payload); err != nil {
 			c.cancel()
 			c.err.CompareAndSwap(nil, &wraperror{err})
 			return
 		}
-		if payload.Method != "" {
-			c.inflight.Add(1)
-			select {
-			case c.inreqs <- &payload:
-			case <-c.donectx.Done():
-				c.inflight.Add(-1)
-				return
-			}
-		} else {
-			select {
-			case c.inress <- &payload:
-			case <-c.donectx.Done():
-				return
+		if payload != nil {
+			if payload.Stream != StreamDisable {
+				enqueue(payload)
+			} else if payload.Method != "" {
+				c.inflight.Add(1)
+				select {
+				case c.inreqs <- payload:
+				case <-c.donectx.Done():
+					c.inflight.Add(-1)
+					return
+				}
+			} else {
+				select {
+				case c.inress <- payload:
+				case <-c.donectx.Done():
+					return
+				}
 			}
 		}
 	}
@@ -187,6 +310,17 @@ func (c *Codec) ReadRequestBody(x any) error {
 	if err := json.Unmarshal(c.thisreq.GetParams(), x); err != nil {
 		return c.loadOrFallbackErr(err)
 	}
+	reqid := c.thisreq.GetID()
+	if receiver, ok := x.(StreamReceiver); ok {
+		c.receiverlock.Lock()
+		c.receivers[reqid] = receiver.Receiver(func() {
+			select {
+			case c.receiverwaker <- reqid:
+			case <-c.donectx.Done():
+			}
+		})
+		c.receiverlock.Unlock()
+	}
 	return nil
 }
 
@@ -200,6 +334,16 @@ func (c *Codec) WriteResponse(r *rpc.Response, x any) error {
 	reqid := c.srvreqids[r.Seq]
 	c.srvlock.Unlock()
 	if reqid != "" {
+		if sender, ok := x.(StreamSender); ok {
+			c.senderlock.Lock()
+			c.senders[reqid] = sender.Sender(func() {
+				select {
+				case c.senderwaker <- reqid:
+				case <-c.donectx.Done():
+				}
+			})
+			c.senderlock.Unlock()
+		}
 		if r.Error == "" {
 			result, err := json.Marshal(x)
 			if err != nil {
@@ -248,6 +392,16 @@ func (c *Codec) WriteRequest(r *rpc.Request, x any) error {
 	c.clireqids[reqid] = r.Seq
 	c.reqmeth[reqid] = r.ServiceMethod
 	c.clilock.Unlock()
+	if sender, ok := x.(StreamSender); ok {
+		c.senderlock.Lock()
+		c.senders[reqid] = sender.Sender(func() {
+			select {
+			case c.senderwaker <- reqid:
+			case <-c.donectx.Done():
+			}
+		})
+		c.senderlock.Unlock()
+	}
 	var method string
 	if renamer := c.clientMethodRenamer; renamer != nil {
 		method = renamer.Rename(r.ServiceMethod)
@@ -296,6 +450,17 @@ func (c *Codec) ReadResponseBody(x any) error {
 	}
 	if err := json.Unmarshal(c.thisres.GetResult(), x); err != nil {
 		return c.loadOrFallbackErr(err)
+	}
+	resid := c.thisres.GetID()
+	if receiver, ok := x.(StreamReceiver); ok {
+		c.receiverlock.Lock()
+		c.receivers[resid] = receiver.Receiver(func() {
+			select {
+			case c.receiverwaker <- resid:
+			case <-c.donectx.Done():
+			}
+		})
+		c.receiverlock.Unlock()
 	}
 	return nil
 }
@@ -357,6 +522,8 @@ type Payload struct {
 	Version string          `json:"jsonrpc"`
 	ID      string          `json:"id"`
 	Method  string          `json:"method,omitempty"`
+	Stream  int             `json:"stream,omitempty"`
+	Data    json.RawMessage `json:"data,omitempty"`
 	Params  json.RawMessage `json:"params,omitempty"`
 	Result  json.RawMessage `json:"result,omitempty"`
 	Error   json.RawMessage `json:"error,omitempty"`
@@ -364,6 +531,7 @@ type Payload struct {
 
 func (p *Payload) GetID() string              { return p.ID }
 func (p *Payload) GetMethod() string          { return p.Method }
+func (p *Payload) GetData() json.RawMessage   { return p.Data }
 func (p *Payload) GetParams() json.RawMessage { return p.Params }
 func (p *Payload) GetResult() json.RawMessage { return p.Result }
 func (p *Payload) GetError() json.RawMessage  { return p.Error }
@@ -380,6 +548,11 @@ type Response interface {
 	GetError() json.RawMessage
 }
 
+type Stream interface {
+	GetID() string
+	GetData() json.RawMessage
+}
+
 type (
 	Renamer              interface{ Rename(string) string }
 	RenamerFunc          func(string) string
@@ -389,3 +562,17 @@ type (
 
 func (f RenamerFunc) Rename(s string) string { return f(s) }
 func (f GeneratorFunc[T]) Generate() T       { return f() }
+
+const (
+	StreamDisable = 0
+	StreamOpen    = 1
+	StreamClose   = -1
+)
+
+type StreamSender interface {
+	Sender(wake func()) <-chan json.RawMessage
+}
+
+type StreamReceiver interface {
+	Receiver(wake func()) chan<- json.RawMessage
+}

@@ -39,6 +39,7 @@ func newTestCodec(rwc io.ReadWriteCloser) *Codec {
 		JSONIDGenerator(GeneratorFunc[string](func() string {
 			return strconv.FormatUint(seq.Add(1), 10)
 		})),
+		ShutdownTimeout(200*time.Millisecond),
 	)
 }
 
@@ -568,5 +569,406 @@ func TestCodec_PendingRequests_IncludesInflightServerRequest(t *testing.T) {
 	case <-drained:
 	case <-time.After(1 * time.Second):
 		t.Fatalf("timeout waiting for drain goroutine to exit")
+	}
+}
+
+type testStreamSender struct {
+	ch   chan json.RawMessage
+	wake func()
+}
+
+func newTestStreamSender() *testStreamSender {
+	return &testStreamSender{ch: make(chan json.RawMessage, 16)}
+}
+
+func (s *testStreamSender) Sender(wake func()) <-chan json.RawMessage {
+	s.wake = wake
+	return s.ch
+}
+
+func (s *testStreamSender) Send(data json.RawMessage) {
+	s.ch <- data
+	s.wake()
+}
+
+func (s *testStreamSender) Close() {
+	close(s.ch)
+	s.wake()
+}
+
+func (s *testStreamSender) Wake() {
+	s.wake()
+}
+
+type testStreamReceiver struct {
+	ch   chan json.RawMessage
+	wake func()
+}
+
+func newTestStreamReceiver(buf int) *testStreamReceiver {
+	return &testStreamReceiver{ch: make(chan json.RawMessage, buf)}
+}
+
+func (r *testStreamReceiver) Receiver(wake func()) chan<- json.RawMessage {
+	r.wake = wake
+	return r.ch
+}
+
+func (r *testStreamReceiver) Wake() {
+	r.wake()
+}
+
+func TestCodec_StreamSender_WriteRequest_SendsOpenAndCloseFrames(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	dec := json.NewDecoder(c2)
+
+	sender := newTestStreamSender()
+	if err := codec.WriteRequest(&rpc.Request{ServiceMethod: "Transport.Prompt", Seq: 1}, sender); err != nil {
+		t.Fatalf("WriteRequest: %v", err)
+	}
+
+	var req Payload
+	if err := dec.Decode(&req); err != nil {
+		t.Fatalf("Decode request: %v", err)
+	}
+	if req.Method != "prompt" {
+		t.Fatalf("unexpected request method: %q", req.Method)
+	}
+	if req.ID != "1" {
+		t.Fatalf("unexpected request id: %q", req.ID)
+	}
+	if req.Stream != StreamDisable {
+		t.Fatalf("unexpected request stream: %d", req.Stream)
+	}
+	if got, want := string(req.Params), "{}"; got != want {
+		t.Fatalf("unexpected request params: got %q want %q", got, want)
+	}
+
+	sender.Send(json.RawMessage(`"one"`))
+	var p1 Payload
+	if err := dec.Decode(&p1); err != nil {
+		t.Fatalf("Decode stream open 1: %v", err)
+	}
+	if p1.ID != "1" || p1.Stream != StreamOpen {
+		t.Fatalf("unexpected stream open 1: %+v", p1)
+	}
+	if got, want := string(p1.Data), `"one"`; got != want {
+		t.Fatalf("unexpected stream data 1: got %q want %q", got, want)
+	}
+
+	sender.Send(json.RawMessage(`"two"`))
+	var p2 Payload
+	if err := dec.Decode(&p2); err != nil {
+		t.Fatalf("Decode stream open 2: %v", err)
+	}
+	if p2.ID != "1" || p2.Stream != StreamOpen {
+		t.Fatalf("unexpected stream open 2: %+v", p2)
+	}
+	if got, want := string(p2.Data), `"two"`; got != want {
+		t.Fatalf("unexpected stream data 2: got %q want %q", got, want)
+	}
+
+	sender.Close()
+	var eof Payload
+	if err := dec.Decode(&eof); err != nil {
+		t.Fatalf("Decode stream close: %v", err)
+	}
+	if eof.ID != "1" || eof.Stream != StreamClose {
+		t.Fatalf("unexpected stream close: %+v", eof)
+	}
+
+	// Wake after the sender is removed should not emit any payload.
+	sender.Wake()
+	_ = c2.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	var extra Payload
+	err := dec.Decode(&extra)
+	if err == nil {
+		t.Fatalf("expected no extra payload, got: %+v", extra)
+	}
+	if ne, ok := err.(net.Error); !ok || !ne.Timeout() {
+		t.Fatalf("expected timeout, got: %T %v", err, err)
+	}
+}
+
+func TestCodec_StreamSender_WriteResponse_SendsOpenAndCloseFrames(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	codec.srvlock.Lock()
+	codec.srvreqids[42] = "rid"
+	codec.srvlock.Unlock()
+
+	dec := json.NewDecoder(c2)
+
+	sender := newTestStreamSender()
+	if err := codec.WriteResponse(&rpc.Response{Seq: 42}, sender); err != nil {
+		t.Fatalf("WriteResponse: %v", err)
+	}
+
+	var resp Payload
+	if err := dec.Decode(&resp); err != nil {
+		t.Fatalf("Decode response: %v", err)
+	}
+	if resp.ID != "rid" || resp.Stream != StreamDisable {
+		t.Fatalf("unexpected response payload: %+v", resp)
+	}
+	if got, want := string(resp.Result), "{}"; got != want {
+		t.Fatalf("unexpected response result: got %q want %q", got, want)
+	}
+
+	sender.Send(json.RawMessage(`"x"`))
+	var p1 Payload
+	if err := dec.Decode(&p1); err != nil {
+		t.Fatalf("Decode stream open: %v", err)
+	}
+	if p1.ID != "rid" || p1.Stream != StreamOpen {
+		t.Fatalf("unexpected stream open: %+v", p1)
+	}
+	if got, want := string(p1.Data), `"x"`; got != want {
+		t.Fatalf("unexpected stream data: got %q want %q", got, want)
+	}
+
+	sender.Close()
+	var eof Payload
+	if err := dec.Decode(&eof); err != nil {
+		t.Fatalf("Decode stream close: %v", err)
+	}
+	if eof.ID != "rid" || eof.Stream != StreamClose {
+		t.Fatalf("unexpected stream close: %+v", eof)
+	}
+}
+
+func TestCodec_StreamReceiver_Request_EarlyFramesDeliveredAfterRegisterAndWake(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	enc := json.NewEncoder(c2)
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Method:  "prompt",
+		Params:  json.RawMessage("{}"),
+	}); err != nil {
+		t.Fatalf("Encode request: %v", err)
+	}
+
+	var req rpc.Request
+	if err := codec.ReadRequestHeader(&req); err != nil {
+		t.Fatalf("ReadRequestHeader: %v", err)
+	}
+	if req.ServiceMethod != "Transport.Prompt" {
+		t.Fatalf("unexpected ServiceMethod: %q", req.ServiceMethod)
+	}
+
+	// Stream frames arrive before receiver is registered (ReadRequestBody).
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Stream:  StreamOpen,
+		Data:    json.RawMessage(`"hello"`),
+	}); err != nil {
+		t.Fatalf("Encode stream open: %v", err)
+	}
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Stream:  StreamClose,
+	}); err != nil {
+		t.Fatalf("Encode stream close: %v", err)
+	}
+
+	receiver := newTestStreamReceiver(1)
+	if err := codec.ReadRequestBody(receiver); err != nil {
+		t.Fatalf("ReadRequestBody: %v", err)
+	}
+
+	receiver.Wake()
+	select {
+	case got := <-receiver.ch:
+		if string(got) != `"hello"` {
+			t.Fatalf("unexpected stream data: %q", string(got))
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for stream data")
+	}
+
+	receiver.Wake()
+	select {
+	case _, ok := <-receiver.ch:
+		if ok {
+			t.Fatalf("expected receiver channel to be closed")
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for receiver channel close")
+	}
+
+	codec.receiverlock.RLock()
+	_, ok := codec.receivers["1"]
+	codec.receiverlock.RUnlock()
+	if ok {
+		t.Fatalf("expected receiver to be removed")
+	}
+}
+
+func TestCodec_StreamReceiver_Request_WakeBeforeFrame_RequeueEventuallyDelivers(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	enc := json.NewEncoder(c2)
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Method:  "prompt",
+		Params:  json.RawMessage("{}"),
+	}); err != nil {
+		t.Fatalf("Encode request: %v", err)
+	}
+
+	var req rpc.Request
+	if err := codec.ReadRequestHeader(&req); err != nil {
+		t.Fatalf("ReadRequestHeader: %v", err)
+	}
+
+	receiver := newTestStreamReceiver(1)
+	if err := codec.ReadRequestBody(receiver); err != nil {
+		t.Fatalf("ReadRequestBody: %v", err)
+	}
+
+	// Wake before any stream frame arrives.
+	receiver.Wake()
+
+	time.Sleep(100 * time.Millisecond)
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Stream:  StreamOpen,
+		Data:    json.RawMessage(`"late"`),
+	}); err != nil {
+		t.Fatalf("Encode stream open: %v", err)
+	}
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Stream:  StreamClose,
+	}); err != nil {
+		t.Fatalf("Encode stream close: %v", err)
+	}
+
+	select {
+	case got := <-receiver.ch:
+		if string(got) != `"late"` {
+			t.Fatalf("unexpected stream data: %q", string(got))
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("timeout waiting for requeue delivery")
+	}
+
+	receiver.Wake()
+	select {
+	case _, ok := <-receiver.ch:
+		if ok {
+			t.Fatalf("expected receiver channel to be closed")
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for receiver channel close")
+	}
+}
+
+func TestCodec_StreamReceiver_Response_EarlyFramesDeliveredAfterRegisterAndWake(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	codec.clilock.Lock()
+	codec.reqmeth["rid"] = "Transport.Prompt"
+	codec.clireqids["rid"] = 42
+	codec.clilock.Unlock()
+
+	enc := json.NewEncoder(c2)
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "rid",
+		Result:  json.RawMessage("{}"),
+	}); err != nil {
+		t.Fatalf("Encode response: %v", err)
+	}
+
+	var r rpc.Response
+	if err := codec.ReadResponseHeader(&r); err != nil {
+		t.Fatalf("ReadResponseHeader: %v", err)
+	}
+	if r.ServiceMethod != "Transport.Prompt" || r.Seq != 42 {
+		t.Fatalf("unexpected response header: %+v", r)
+	}
+
+	// Stream frames arrive before receiver is registered (ReadResponseBody).
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "rid",
+		Stream:  StreamOpen,
+		Data:    json.RawMessage(`"r1"`),
+	}); err != nil {
+		t.Fatalf("Encode stream open: %v", err)
+	}
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "rid",
+		Stream:  StreamClose,
+	}); err != nil {
+		t.Fatalf("Encode stream close: %v", err)
+	}
+
+	receiver := newTestStreamReceiver(1)
+	if err := codec.ReadResponseBody(receiver); err != nil {
+		t.Fatalf("ReadResponseBody: %v", err)
+	}
+
+	receiver.Wake()
+	select {
+	case got := <-receiver.ch:
+		if string(got) != `"r1"` {
+			t.Fatalf("unexpected stream data: %q", string(got))
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for stream data")
+	}
+
+	receiver.Wake()
+	select {
+	case _, ok := <-receiver.ch:
+		if ok {
+			t.Fatalf("expected receiver channel to be closed")
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for receiver channel close")
+	}
+}
+
+func TestCodec_Stream_NullPayload_IsIgnored(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	_, _ = io.WriteString(c2, "null\n")
+	_, _ = io.WriteString(c2, "{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"prompt\",\"params\":{}}\n")
+
+	var req rpc.Request
+	if err := codec.ReadRequestHeader(&req); err != nil {
+		t.Fatalf("ReadRequestHeader: %v", err)
+	}
+	if req.ServiceMethod != "Transport.Prompt" {
+		t.Fatalf("unexpected ServiceMethod: %q", req.ServiceMethod)
 	}
 }
