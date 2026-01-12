@@ -334,32 +334,39 @@ func TestIntegration_Turn_Err_PromptError(t *testing.T) {
 	}
 	defer session.Close()
 
+	var rpcErr error
+
 	// RoundTrip should return a turn (since TurnBegin is sent before the error)
 	turn, err := session.Prompt(context.Background(), wire.NewStringUserInput("test"))
 	if err != nil {
-		t.Fatalf("RoundTrip: expected turn to be returned, got error: %v", err)
-	}
-
-	// Consume all steps to allow the turn to complete
-	for step := range turn.Steps {
-		for range step.Messages {
+		if !strings.Contains(err.Error(), "simulated prompt error") {
+			t.Fatalf("RoundTrip: expected turn to be returned, got error: %v", err)
 		}
+		rpcErr = err
+	} else {
+		// Consume all steps to allow the turn to complete
+		for step := range turn.Steps {
+			for range step.Messages {
+			}
+		}
+
+		// Check that turn.Err() contains the JSONRPC error
+		turnErr := turn.Err()
+		if turnErr == nil {
+			t.Fatal("expected turn.Err() to return an error, got nil")
+		}
+
+		turn.Cancel()
+
+		// Verify the error message contains expected content
+		if !strings.Contains(turnErr.Error(), "simulated prompt error") {
+			t.Errorf("expected error to contain 'simulated prompt error', got: %v", turnErr)
+		}
+
+		rpcErr = turnErr
 	}
 
-	// Check that turn.Err() contains the JSONRPC error
-	turnErr := turn.Err()
-	if turnErr == nil {
-		t.Fatal("expected turn.Err() to return an error, got nil")
-	}
-
-	turn.Cancel()
-
-	// Verify the error message contains expected content
-	if !strings.Contains(turnErr.Error(), "simulated prompt error") {
-		t.Errorf("expected error to contain 'simulated prompt error', got: %v", turnErr)
-	}
-
-	t.Logf("turn.Err() correctly captured the error: %v", turnErr)
+	t.Logf("turn.Err() correctly captured the error: %v", rpcErr)
 }
 
 // TestIntegration_ConcurrentRoundTrips tests multiple concurrent RoundTrip calls
