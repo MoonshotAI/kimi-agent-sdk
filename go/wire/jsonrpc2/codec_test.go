@@ -602,21 +602,27 @@ func (s *testStreamSender) Wake() {
 }
 
 type testStreamReceiver struct {
-	ch   chan json.RawMessage
-	wake func()
+	ch    chan json.RawMessage
+	wake  func()
+	close func()
 }
 
 func newTestStreamReceiver(buf int) *testStreamReceiver {
 	return &testStreamReceiver{ch: make(chan json.RawMessage, buf)}
 }
 
-func (r *testStreamReceiver) Receiver(wake func()) chan<- json.RawMessage {
+func (r *testStreamReceiver) Receiver(wake func(), close func()) chan<- json.RawMessage {
 	r.wake = wake
+	r.close = close
 	return r.ch
 }
 
 func (r *testStreamReceiver) Wake() {
 	r.wake()
+}
+
+func (r *testStreamReceiver) Close() {
+	r.close()
 }
 
 func TestCodec_StreamSender_WriteRequest_SendsOpenAndCloseFrames(t *testing.T) {
@@ -1091,4 +1097,137 @@ func TestCodec_Stream_NullPayload_IsIgnored(t *testing.T) {
 	if req.ServiceMethod != "Transport.Prompt" {
 		t.Fatalf("unexpected ServiceMethod: %q", req.ServiceMethod)
 	}
+}
+
+func TestCodec_StreamReceiver_Close_ProactivelyClosesStream(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	enc := json.NewEncoder(c2)
+
+	// Send a stream-enabled request.
+	encodeReqErr := make(chan error, 1)
+	go func() {
+		encodeReqErr <- enc.Encode(Payload{
+			Version: JSONRPC2Version,
+			ID:      "1",
+			Method:  "prompt",
+			Stream:  StreamOpen,
+			Params:  json.RawMessage("{}"),
+		})
+	}()
+
+	var req rpc.Request
+	if err := codec.ReadRequestHeader(&req); err != nil {
+		t.Fatalf("ReadRequestHeader: %v", err)
+	}
+
+	select {
+	case err := <-encodeReqErr:
+		if err != nil {
+			t.Fatalf("Encode request: %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for Encode request")
+	}
+
+	// Register the receiver.
+	receiver := newTestStreamReceiver(1)
+	if err := codec.ReadRequestBody(receiver); err != nil {
+		t.Fatalf("ReadRequestBody: %v", err)
+	}
+
+	// Verify receiver is registered.
+	codec.receiverlock.RLock()
+	_, ok := codec.receivers["1"]
+	codec.receiverlock.RUnlock()
+	if !ok {
+		t.Fatalf("expected receiver to be registered")
+	}
+
+	// Send a stream frame.
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Stream:  StreamSync,
+		Data:    json.RawMessage(`"data1"`),
+	}); err != nil {
+		t.Fatalf("Encode stream sync: %v", err)
+	}
+
+	// Proactively close the stream from receiver side.
+	receiver.Close()
+
+	// Verify receiver channel is closed and resources are cleaned up.
+	waitUntil(t, 2*time.Second, func() bool {
+		codec.receiverlock.RLock()
+		_, exists := codec.receivers["1"]
+		codec.receiverlock.RUnlock()
+		return !exists
+	})
+
+	// Verify the receiver channel is closed.
+	select {
+	case _, ok := <-receiver.ch:
+		if ok {
+			t.Fatalf("expected receiver channel to be closed")
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for receiver channel close")
+	}
+}
+
+func TestCodec_StreamReceiver_Close_Idempotent(t *testing.T) {
+	c1, c2 := net.Pipe()
+	codec := newTestCodec(c1)
+	defer codec.Close()
+	defer c2.Close()
+
+	enc := json.NewEncoder(c2)
+
+	// Send a stream-enabled request.
+	encodeReqErr := make(chan error, 1)
+	go func() {
+		encodeReqErr <- enc.Encode(Payload{
+			Version: JSONRPC2Version,
+			ID:      "1",
+			Method:  "prompt",
+			Stream:  StreamOpen,
+			Params:  json.RawMessage("{}"),
+		})
+	}()
+
+	var req rpc.Request
+	if err := codec.ReadRequestHeader(&req); err != nil {
+		t.Fatalf("ReadRequestHeader: %v", err)
+	}
+
+	select {
+	case err := <-encodeReqErr:
+		if err != nil {
+			t.Fatalf("Encode request: %v", err)
+		}
+	case <-time.After(1 * time.Second):
+		t.Fatalf("timeout waiting for Encode request")
+	}
+
+	receiver := newTestStreamReceiver(1)
+	if err := codec.ReadRequestBody(receiver); err != nil {
+		t.Fatalf("ReadRequestBody: %v", err)
+	}
+
+	// Call close multiple times - should not panic.
+	receiver.Close()
+	receiver.Close()
+	receiver.Close()
+
+	// Verify cleanup happened.
+	waitUntil(t, 2*time.Second, func() bool {
+		codec.receiverlock.RLock()
+		_, exists := codec.receivers["1"]
+		codec.receiverlock.RUnlock()
+		return !exists
+	})
 }

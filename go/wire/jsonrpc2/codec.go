@@ -18,22 +18,23 @@ const JSONRPC2Version = "2.0"
 func NewCodec(rwc io.ReadWriteCloser, options ...CodecOption) *Codec {
 	donectx, cancel := context.WithCancel(context.Background())
 	codec := &Codec{
-		donectx:       donectx,
-		cancel:        cancel,
-		rwc:           rwc,
-		enc:           json.NewEncoder(rwc),
-		dec:           json.NewDecoder(rwc),
-		srvreqids:     make(map[uint64]string),
-		clireqids:     make(map[string]uint64),
-		reqmeth:       make(map[string]string),
-		outpls:        make(chan *Payload),
-		inreqs:        make(chan Request),
-		inress:        make(chan Response),
-		senders:       make(map[string]<-chan json.RawMessage),
-		senderwaker:   make(chan string),
-		receivers:     make(map[string]chan<- json.RawMessage),
-		receiverwaker: make(chan string),
-		receivetime:   make(map[string]time.Time),
+		donectx:        donectx,
+		cancel:         cancel,
+		rwc:            rwc,
+		enc:            json.NewEncoder(rwc),
+		dec:            json.NewDecoder(rwc),
+		srvreqids:      make(map[uint64]string),
+		clireqids:      make(map[string]uint64),
+		reqmeth:        make(map[string]string),
+		outpls:         make(chan *Payload),
+		inreqs:         make(chan Request),
+		inress:         make(chan Response),
+		senders:        make(map[string]<-chan json.RawMessage),
+		senderwaker:    make(chan string),
+		receivers:      make(map[string]chan<- json.RawMessage),
+		receiverwaker:  make(chan string),
+		receivercloser: make(chan string),
+		receivetime:    make(map[string]time.Time),
 	}
 	for _, apply := range options {
 		apply(codec)
@@ -110,13 +111,14 @@ type Codec struct {
 	outpls      chan *Payload
 	txcloseonce sync.Once
 
-	senderlock    sync.RWMutex
-	senders       map[string]<-chan json.RawMessage
-	senderwaker   chan string
-	receiverlock  sync.RWMutex
-	receivers     map[string]chan<- json.RawMessage
-	receiverwaker chan string
-	receivetime   map[string]time.Time
+	senderlock     sync.RWMutex
+	senders        map[string]<-chan json.RawMessage
+	senderwaker    chan string
+	receiverlock   sync.RWMutex
+	receivers      map[string]chan<- json.RawMessage
+	receiverwaker  chan string
+	receivercloser chan string
+	receivetime    map[string]time.Time
 
 	inreqs chan Request
 	inress chan Response
@@ -139,12 +141,8 @@ func (c *Codec) loadOrFallbackErr(fallback error) error {
 
 func (c *Codec) watchidle(receiverid string) {
 	closereceiver := func() {
-		c.receiverlock.Lock()
-		delete(c.receivers, receiverid)
-		delete(c.receivetime, receiverid)
-		c.receiverlock.Unlock()
 		select {
-		case c.receiverwaker <- receiverid:
+		case c.receivercloser <- receiverid:
 		case <-c.donectx.Done():
 		}
 	}
@@ -299,10 +297,14 @@ func (c *Codec) recv() {
 					cleanup(receiverid)
 					continue
 				}
+				if receiver == nil {
+					panic("receiver is nil")
+				}
 				if payload.Stream == StreamClose {
 					c.receiverlock.Lock()
 					close(receiver)
 					delete(c.receivers, payload.ID)
+					delete(c.receivetime, payload.ID)
 					c.receiverlock.Unlock()
 				} else {
 					select {
@@ -315,6 +317,16 @@ func (c *Codec) recv() {
 					}
 				}
 				rmelement(element)
+			case receiverid := <-c.receivercloser:
+				c.receiverlock.Lock()
+				receiver, ok := c.receivers[receiverid]
+				if ok && receiver != nil {
+					close(receiver)
+				}
+				delete(c.receivers, receiverid)
+				delete(c.receivetime, receiverid)
+				c.receiverlock.Unlock()
+				cleanup(receiverid)
 			case <-c.donectx.Done():
 				return
 			}
@@ -398,12 +410,20 @@ func (c *Codec) ReadRequestBody(x any) error {
 	if receiver, ok := x.(StreamReceiver); ok {
 		c.receiverlock.Lock()
 		if c.thisreq.GetStream() == StreamOpen {
-			c.receivers[reqid] = receiver.Receiver(func() {
-				select {
-				case c.receiverwaker <- reqid:
-				case <-c.donectx.Done():
-				}
-			})
+			c.receivers[reqid] = receiver.Receiver(
+				func() {
+					select {
+					case c.receiverwaker <- reqid:
+					case <-c.donectx.Done():
+					}
+				},
+				func() {
+					select {
+					case c.receivercloser <- reqid:
+					case <-c.donectx.Done():
+					}
+				},
+			)
 		} else {
 			delete(c.receivers, reqid)
 		}
@@ -555,12 +575,20 @@ func (c *Codec) ReadResponseBody(x any) error {
 	if receiver, ok := x.(StreamReceiver); ok {
 		c.receiverlock.Lock()
 		if c.thisres.GetStream() == StreamOpen {
-			c.receivers[resid] = receiver.Receiver(func() {
-				select {
-				case c.receiverwaker <- resid:
-				case <-c.donectx.Done():
-				}
-			})
+			c.receivers[resid] = receiver.Receiver(
+				func() {
+					select {
+					case c.receiverwaker <- resid:
+					case <-c.donectx.Done():
+					}
+				},
+				func() {
+					select {
+					case c.receivercloser <- resid:
+					case <-c.donectx.Done():
+					}
+				},
+			)
 		} else {
 			delete(c.receivers, resid)
 		}
@@ -683,5 +711,5 @@ type StreamSender interface {
 }
 
 type StreamReceiver interface {
-	Receiver(wake func()) chan<- json.RawMessage
+	Receiver(wake func(), close func()) chan<- json.RawMessage
 }

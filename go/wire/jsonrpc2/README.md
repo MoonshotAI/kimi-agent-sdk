@@ -107,24 +107,29 @@ If the request params or response result value implements `StreamSender`, the co
 
 ```go
 type StreamReceiver interface {
-    Receiver(wake func()) chan<- json.RawMessage
+    Receiver(wake func(), close func()) chan<- json.RawMessage
 }
 ```
 
 If the request params or response result value implements `StreamReceiver`, the codec will:
 
-1. Only if the corresponding base request/response has `stream = StreamOpen`, call `Receiver(wake)` to obtain a write channel.
+1. Only if the corresponding base request/response has `stream = StreamOpen`, call `Receiver(wake, close)` to obtain a write channel.
 2. Register that channel in `receivers[id]`.
 3. When stream frames for that `id` arrive, the codec will deliver them **only when** the receiver calls `wake()`.
+4. If the receiver wants to **proactively close** the stream (e.g. cancel early), it can call `close()`.
 
 ### 4.2 Receiver contracts (must follow)
 
-- `Receiver(wake)` must return quickly.
-- `wake()` must **not** be called before `Receiver` returns.
+- `Receiver(wake, close)` must return quickly.
+- `wake()` and `close()` must **not** be called before `Receiver` returns.
 - `wake()` semantics: **the receiver is ready to receive exactly one data frame now**.
   - The codec may block sending into the receiver channel until it succeeds.
+- `close()` semantics: **the receiver wants to close the stream proactively**.
+  - The codec will close the receiver channel and clean up resources for this `id`.
+  - This is idempotent: calling `close()` multiple times is safe.
 - The receiver channel is **owned/closed by the codec**:
-  - On `StreamClose`, the codec will `close(receiver)` and remove the receiver mapping.
+  - On `StreamClose` from peer, the codec will `close(receiver)` and remove the receiver mapping.
+  - On `close()` from receiver, the codec will also `close(receiver)` and remove the mapping.
 
 ## 5. Pending queue and early/late arrival
 
