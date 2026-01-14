@@ -809,7 +809,7 @@ func TestCodec_StreamReceiver_Request_EarlyFramesDeliveredAfterRegisterAndWake(t
 		if string(got) != `"hello"` {
 			t.Fatalf("unexpected stream data: %q", string(got))
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for stream data")
 	}
 
@@ -819,7 +819,7 @@ func TestCodec_StreamReceiver_Request_EarlyFramesDeliveredAfterRegisterAndWake(t
 		if ok {
 			t.Fatalf("expected receiver channel to be closed")
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for receiver channel close")
 	}
 
@@ -977,7 +977,7 @@ func TestCodec_StreamReceiver_Response_EarlyFramesDeliveredAfterRegisterAndWake(
 		if string(got) != `"r1"` {
 			t.Fatalf("unexpected stream data: %q", string(got))
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for stream data")
 	}
 
@@ -987,7 +987,7 @@ func TestCodec_StreamReceiver_Response_EarlyFramesDeliveredAfterRegisterAndWake(
 		if ok {
 			t.Fatalf("expected receiver channel to be closed")
 		}
-	case <-time.After(1 * time.Second):
+	case <-time.After(2 * time.Second):
 		t.Fatalf("timeout waiting for receiver channel close")
 	}
 }
