@@ -368,9 +368,9 @@ type ApprovalRequest struct {
 type ApprovalRequestResponse string
 
 const (
-	RequestResponseApprove           ApprovalRequestResponse = "approve"
-	RequestResponseApproveForSession ApprovalRequestResponse = "approve_for_session"
-	RequestResponseReject            ApprovalRequestResponse = "reject"
+	ApprovalRequestResponseApprove           ApprovalRequestResponse = "approve"
+	ApprovalRequestResponseApproveForSession ApprovalRequestResponse = "approve_for_session"
+	ApprovalRequestResponseReject            ApprovalRequestResponse = "reject"
 )
 
 type ExternalToolCallRequest struct {

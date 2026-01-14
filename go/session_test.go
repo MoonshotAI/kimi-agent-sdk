@@ -110,7 +110,7 @@ func TestResponder_Request_ApprovalRequest(t *testing.T) {
 			t.Errorf("expected ID 'req-123', got %s", ar.ID)
 		}
 		// Respond with approve
-		ar.Respond(wire.RequestResponseApprove)
+		ar.Respond(wire.ApprovalRequestResponseApprove)
 	case <-done:
 		t.Fatal("request completed before message was received")
 	}
@@ -124,7 +124,7 @@ func TestResponder_Request_ApprovalRequest(t *testing.T) {
 	if result.RequestID != "req-123" {
 		t.Errorf("expected request_id 'req-123', got %s", result.RequestID)
 	}
-	if result.Response != wire.RequestResponseApprove {
+	if result.Response != wire.ApprovalRequestResponseApprove {
 		t.Errorf("expected response 'approve', got %s", result.Response)
 	}
 }
@@ -165,14 +165,14 @@ func TestResponderFunc(t *testing.T) {
 		return nil
 	})
 
-	err := f.Respond(wire.RequestResponseApprove)
+	err := f.Respond(wire.ApprovalRequestResponseApprove)
 	if err != nil {
 		t.Fatalf("Respond: %v", err)
 	}
 	if !called {
 		t.Error("ResponderFunc should have been called")
 	}
-	if receivedResponse != wire.RequestResponseApprove {
+	if receivedResponse != wire.ApprovalRequestResponseApprove {
 		t.Errorf("expected response 'approve', got %s", receivedResponse)
 	}
 }

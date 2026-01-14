@@ -233,7 +233,7 @@ func TestIntegration_Deadlock_RequestCleanup(t *testing.T) {
 		for step := range turn.Steps {
 			for msg := range step.Messages {
 				if req, ok := msg.(wire.Request); ok {
-					req.Respond(wire.RequestResponseApprove)
+					req.Respond(wire.ApprovalRequestResponseApprove)
 				}
 			}
 		}

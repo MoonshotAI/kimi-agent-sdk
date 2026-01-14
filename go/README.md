@@ -28,9 +28,9 @@ import (
 
 func main() {
     session, err := kimi.NewSession(
-        kimi.WithBaseURL("https://api.moonshot.cn/v1"),
+        kimi.WithBaseURL("https://api.moonshot.ai/v1"),
         kimi.WithAPIKey("your-api-key"),
-        kimi.WithModel("kimi-latest"),
+        kimi.WithModel("kimi-k2-thinking-turbo"),
     )
     if err != nil {
         panic(err)
@@ -74,8 +74,8 @@ for step := range turn.Steps {
     for msg := range step.Messages {
         if req, ok := msg.(wire.ApprovalRequest); ok {
             // Approve the request
-            req.Respond(wire.RequestResponseApprove)
-            // Or reject: req.Respond(wire.RequestResponseReject)
+            req.Respond(wire.ApprovalRequestResponseApprove)
+            // Or reject: req.Respond(wire.ApprovalRequestResponseReject)
         }
     }
 }

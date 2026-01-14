@@ -117,7 +117,7 @@ func TestTransportServer_Request(t *testing.T) {
 	mockImpl := NewMockTransport(ctrl)
 	mockImpl.EXPECT().Request(gomock.Any()).Return(&wire.RequestResult{
 		RequestID: "req-123",
-		Response:  wire.RequestResponseApprove,
+		Response:  wire.ApprovalRequestResponseApprove,
 	}, nil)
 
 	srv := NewTransportServer(mockImpl)
@@ -141,7 +141,7 @@ func TestTransportServer_Request(t *testing.T) {
 	if reply.RequestID != "req-123" {
 		t.Errorf("expected request_id 'req-123', got %s", reply.RequestID)
 	}
-	if reply.Response != wire.RequestResponseApprove {
+	if reply.Response != wire.ApprovalRequestResponseApprove {
 		t.Errorf("expected response 'approve', got %s", reply.Response)
 	}
 }

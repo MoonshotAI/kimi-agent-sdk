@@ -19,6 +19,7 @@ type ToolOption func(*toolOption)
 
 type toolOption struct {
 	name              string
+	schema            json.RawMessage
 	description       string
 	fieldDescriptions map[string]string
 }
@@ -27,6 +28,14 @@ type toolOption struct {
 func WithName(name string) ToolOption {
 	return func(opt *toolOption) {
 		opt.name = name
+	}
+}
+
+// WithSchema sets the JSON schema directly, bypassing automatic schema generation from the parameter type.
+// Use this when you need full control over the schema or when the automatic generation doesn't meet your needs.
+func WithSchema(schema json.RawMessage) ToolOption {
+	return func(opt *toolOption) {
+		opt.schema = schema
 	}
 }
 
@@ -64,27 +73,35 @@ func CreateTool[T any, U any](function func(T) (U, error), options ...ToolOption
 	if name == "" {
 		name = getFunctionName(function)
 	}
+	if name == "" {
+		return Tool{}, fmt.Errorf("unable to determine function name; use WithName() to set it explicitly")
+	}
 
-	// Get parameter type T and generate JSON schema
-	paramType := reflect.TypeFor[T]()
-	// Parameter type must be struct or map[string]T (JSON schema must be object)
-	switch paramType.Kind() {
-	case reflect.Struct:
-		// OK
-	case reflect.Map:
-		if paramType.Key().Kind() != reflect.String {
-			return Tool{}, fmt.Errorf("map key must be string, got %s", paramType.Key().Kind())
+	// Get JSON schema: use provided schema or generate from parameter type
+	var schemaJSON json.RawMessage
+	if opt.schema != nil {
+		schemaJSON = opt.schema
+	} else {
+		paramType := reflect.TypeFor[T]()
+		// Parameter type must be struct or map[string]T (JSON schema must be object)
+		switch paramType.Kind() {
+		case reflect.Struct:
+			// OK
+		case reflect.Map:
+			if paramType.Key().Kind() != reflect.String {
+				return Tool{}, fmt.Errorf("map key must be string, got %s", paramType.Key().Kind())
+			}
+		default:
+			return Tool{}, fmt.Errorf("parameter type must be struct or map, got %s", paramType.Kind())
 		}
-	default:
-		return Tool{}, fmt.Errorf("parameter type must be struct or map, got %s", paramType.Kind())
-	}
-	schema, err := generateSchema(paramType, opt.fieldDescriptions)
-	if err != nil {
-		return Tool{}, fmt.Errorf("generate schema: %w", err)
-	}
-	schemaJSON, err := json.Marshal(schema)
-	if err != nil {
-		return Tool{}, err
+		schema, err := generateSchema(paramType, opt.fieldDescriptions)
+		if err != nil {
+			return Tool{}, fmt.Errorf("generate schema: %w", err)
+		}
+		schemaJSON, err = json.Marshal(schema)
+		if err != nil {
+			return Tool{}, err
+		}
 	}
 
 	def := wire.ExternalTool{

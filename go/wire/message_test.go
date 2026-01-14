@@ -239,7 +239,7 @@ func TestEventParams_UnmarshalJSON_AllEventTypes(t *testing.T) {
 		{"ToolCallPart", EventTypeToolCallPart, ToolCallPart{ArgumentsPart: Optional[string]{Value: "x", Valid: true}}},
 		{"ToolResult", EventTypeToolResult, ToolResult{ToolCallID: "1", ReturnValue: ToolResultReturnValue{IsError: false, Output: NewStringContent("ok"), Message: "m"}}},
 		{"SubagentEvent", EventTypeSubagentEvent, sub},
-		{"ApprovalRequestResolved", EventTypeApprovalRequestResolved, ApprovalRequestResolved{RequestID: "rid", Response: RequestResponseApprove}},
+		{"ApprovalRequestResolved", EventTypeApprovalRequestResolved, ApprovalRequestResolved{RequestID: "rid", Response: ApprovalRequestResponseApprove}},
 	}
 
 	for _, tc := range cases {
