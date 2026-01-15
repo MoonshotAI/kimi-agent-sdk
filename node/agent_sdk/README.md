@@ -4,6 +4,8 @@ TypeScript SDK for interacting with Kimi Code CLI via wire protocol.
 
 ## Installation
 
+* This SDK is not yet published to npm, will be available soon.
+
 ```bash
 npm install @kimi-code/agent-sdk
 # or
