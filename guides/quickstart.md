@@ -126,7 +126,7 @@ Messages can be events or requests:
 
 **Requests** (require response):
 - `wire.ApprovalRequest` - Requires user approval
-- `wire.ExternalToolCallRequest` - External tool invocation (handled automatically)
+- `wire.ToolCall` (as Request) - External tool invocation (handled automatically by SDK)
 
 For a complete list of wire message types, see the [Wire Message Types](https://moonshotai.github.io/kimi-cli/en/customization/wire-mode.html#wire-message-types) documentation.
 

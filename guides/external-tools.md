@@ -194,10 +194,10 @@ These types will cause `CreateTool` to return an error:
 When the model calls your tool, the flow is:
 
 ```
-Model → CLI → SDK (ExternalToolCallRequest) → Your Function → SDK (ToolResult) → CLI → Model
+Model → CLI → SDK (ToolCall Request) → Your Function → SDK (ToolResult) → CLI → Model
 ```
 
-You don't need to handle `ExternalToolCallRequest` messages manually. The SDK intercepts them and calls your registered functions automatically.
+You don't need to handle external tool `ToolCall` requests manually. The SDK intercepts them and calls your registered functions automatically.
 
 ## Error Handling
 
