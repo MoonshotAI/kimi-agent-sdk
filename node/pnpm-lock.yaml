@@ -63,7 +63,7 @@ importers:
       '@fontsource-variable/inter':
         specifier: ^5.2.8
         version: 5.2.8
-      '@kimi-code/agent-sdk':
+      '@moonshot-ai/kimi-agent-sdk':
         specifier: workspace:*
         version: link:../../agent_sdk
       '@radix-ui/react-accordion':

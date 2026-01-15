@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock } from "@kimi-code/agent-sdk/schema";
+import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
 import * as Diff from "diff";
 

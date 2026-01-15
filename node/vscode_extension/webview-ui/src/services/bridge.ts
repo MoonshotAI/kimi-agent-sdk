@@ -1,5 +1,5 @@
 import { Methods, Events } from "shared/bridge";
-import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult } from "@kimi-code/agent-sdk";
+import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult } from "@moonshot-ai/kimi-agent-sdk";
 import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus } from "shared/types";
 import type { UIStreamEvent } from "shared/types";
 

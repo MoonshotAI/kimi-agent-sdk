@@ -30,7 +30,7 @@ import { useSettingsStore } from "@/stores";
 import { bridge } from "@/services";
 import { RECOMMENDED_MCP_SERVERS, recommendedToConfig, type RecommendedMCPServer } from "@/services/recommended-mcp";
 import { cn } from "@/lib/utils";
-import type { MCPServerConfig } from "@kimi-code/agent-sdk/schema";
+import type { MCPServerConfig } from "@moonshot-ai/kimi-agent-sdk/schema";
 
 type TransportType = "stdio" | "http";
 

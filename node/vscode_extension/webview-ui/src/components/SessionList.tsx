@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { bridge } from "@/services";
-import type { SessionInfo } from "@kimi-code/agent-sdk/schema";
+import type { SessionInfo } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores";
 

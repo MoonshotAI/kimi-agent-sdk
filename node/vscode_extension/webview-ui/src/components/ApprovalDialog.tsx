@@ -3,7 +3,7 @@ import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useApprovalStore } from "@/stores";
 import { DisplayBlocks } from "./DisplayBlocks";
 import { cn } from "@/lib/utils";
-import type { ApprovalResponse } from "@kimi-code/agent-sdk/schema";
+import type { ApprovalResponse } from "@moonshot-ai/kimi-agent-sdk/schema";
 
 export function ApprovalDialog() {
   const { pending, respondToRequest } = useApprovalStore();

@@ -11,7 +11,7 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "./src"),
       shared: resolve(__dirname, "../shared"),
-      "@kimi-code/agent-sdk": resolve(__dirname, "../../agent_sdk"),
+      "@moonshot-ai/kimi-agent-sdk": resolve(__dirname, "../../agent_sdk"),
     },
   },
   define: {

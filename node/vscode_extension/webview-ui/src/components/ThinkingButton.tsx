@@ -1,7 +1,7 @@
 import { IconBulb } from "@tabler/icons-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import type { ThinkingMode } from "@kimi-code/agent-sdk";
+import type { ThinkingMode } from "@moonshot-ai/kimi-agent-sdk";
 
 interface ThinkingButtonProps {
   mode: ThinkingMode;

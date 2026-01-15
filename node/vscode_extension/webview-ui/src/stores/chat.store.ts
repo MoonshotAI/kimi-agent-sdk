@@ -5,7 +5,7 @@ import { Content } from "@/lib/content";
 import { useApprovalStore } from "./approval.store";
 import { useSettingsStore } from "./settings.store";
 import { processEvent } from "./event-handlers";
-import type { StatusUpdate, ContentPart } from "@kimi-code/agent-sdk/schema";
+import type { StatusUpdate, ContentPart } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent } from "shared/types";
 
 const HANDSHAKE_TIMEOUT_MS = 30_000;
@@ -34,7 +34,7 @@ export type UIStepItem =
       type: "tool_use";
       id: string;
       call: UIToolCall;
-      result?: import("@kimi-code/agent-sdk/schema").ToolResult["return_value"];
+      result?: import("@moonshot-ai/kimi-agent-sdk/schema").ToolResult["return_value"];
       subagent_steps?: UIStep[];
     };
 

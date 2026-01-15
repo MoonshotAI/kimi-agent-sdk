@@ -1,5 +1,5 @@
 {
-  "name": "kimi-code",
+  "name": "moonshot-ai",
   "publisher": "kimi",
   "displayName": "Kimi Code",
   "description": "AI-powered coding assistant with Kimi Code",
@@ -193,7 +193,7 @@
       "editor/context": [
         {
           "command": "kimi.insertMention",
-          "group": "kimi-code",
+          "group": "moonshot-ai",
           "when": "editorTextFocus"
         }
       ]
@@ -204,7 +204,7 @@
     "dev": "node dev.js",
     "lint": "eslint src",
     "build": "pnpm run build:webview && pnpm run build:extension",
-    "build:webview": "pnpm --filter @kimi-code/vscode_extension-webview-ui build",
+    "build:webview": "pnpm --filter @moonshot-ai/vscode_extension-webview-ui build",
     "build:extension": "node esbuild.js --production",
     "package": "node esbuild.js --production && vsce package --no-dependencies"
   },

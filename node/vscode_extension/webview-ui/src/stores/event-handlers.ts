@@ -2,7 +2,7 @@ import { bridge } from "@/services";
 import { useApprovalStore } from "./approval.store";
 import { isPreflightError, getUserMessage, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
-import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@kimi-code/agent-sdk/schema";
+import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent, StreamError } from "shared/types";
 
 type EventHandler = (draft: ChatState, payload: any) => void;

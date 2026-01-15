@@ -18,8 +18,8 @@
     "paths": {
       "@/*": ["src/*"],
       "shared/*": ["../shared/*"],
-      "@kimi-code/agent-sdk": ["../../agent_sdk/index.ts"],
-      "@kimi-code/agent-sdk/*": ["../../agent_sdk/*"]
+      "@moonshot-ai/kimi-agent-sdk": ["../../agent_sdk/index.ts"],
+      "@moonshot-ai/kimi-agent-sdk/*": ["../../agent_sdk/*"]
     }
   },
   "include": ["src"]

@@ -1,4 +1,4 @@
-# @kimi-code/agent-sdk
+# @moonshot-ai/kimi-agent-sdk
 
 TypeScript SDK for interacting with Kimi Code CLI via wire protocol.
 
@@ -7,15 +7,15 @@ TypeScript SDK for interacting with Kimi Code CLI via wire protocol.
 * This SDK is not yet published to npm, will be available soon.
 
 ```bash
-npm install @kimi-code/agent-sdk
+npm install @moonshot-ai/kimi-agent-sdk
 # or
-pnpm add @kimi-code/agent-sdk
+pnpm add @moonshot-ai/kimi-agent-sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { createSession } from '@kimi-code/agent-sdk';
+import { createSession } from '@moonshot-ai/kimi-agent-sdk';
 
 const session = createSession({
   workDir: '/path/to/project',
@@ -94,7 +94,7 @@ interface Turn {
 One-shot prompt helper for simple use cases.
 
 ```typescript
-import { prompt } from '@kimi-code/agent-sdk';
+import { prompt } from '@moonshot-ai/kimi-agent-sdk';
 
 const { result, events } = await prompt('What does this code do?', {
   workDir: '/path/to/project',
@@ -437,7 +437,7 @@ console.log(result.status);  // 'cancelled'
 ### Multi-turn Conversation with Image Input
 
 ```typescript
-import { createSession, type ContentPart } from '@kimi-code/agent-sdk';
+import { createSession, type ContentPart } from '@moonshot-ai/kimi-agent-sdk';
 
 async function analyzeImage() {
   const session = createSession({
@@ -479,7 +479,7 @@ import {
   listSessions, 
   parseSessionEvents,
   type StreamEvent 
-} from '@kimi-code/agent-sdk';
+} from '@moonshot-ai/kimi-agent-sdk';
 
 async function resumeSession(workDir: string) {
   // List existing sessions

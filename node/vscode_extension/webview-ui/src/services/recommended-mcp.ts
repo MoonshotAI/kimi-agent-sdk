@@ -1,4 +1,4 @@
-import type { MCPServerConfig } from "@kimi-code/agent-sdk/schema";
+import type { MCPServerConfig } from "@moonshot-ai/kimi-agent-sdk/schema";
 
 export interface RecommendedMCPServer {
   id: string;

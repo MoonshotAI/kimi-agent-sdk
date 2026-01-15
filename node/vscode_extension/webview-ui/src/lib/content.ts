@@ -1,4 +1,4 @@
-import type { ContentPart } from "@kimi-code/agent-sdk/schema";
+import type { ContentPart } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cleanSystemTags } from "shared/utils";
 import { getMediaTypeFromDataUri } from "./media-utils";
 

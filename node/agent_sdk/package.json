@@ -1,5 +1,5 @@
 {
-  "name": "@kimi-code/agent-sdk",
+  "name": "@moonshot-ai/kimi-agent-sdk",
   "version": "0.1.0",
   "description": "SDK for interacting with Kimi Code CLI",
   "license": "MIT",

@@ -16,11 +16,11 @@ import {
 import { cn } from "@/lib/utils";
 import { FileLink, Markdown } from "./Markdown";
 import { DisplayBlocks } from "./DisplayBlocks";
-import { formatContentOutput } from "@kimi-code/agent-sdk/utils";
+import { formatContentOutput } from "@moonshot-ai/kimi-agent-sdk/utils";
 import { cleanSystemTags } from "shared/utils";
 import { ThinkingBlock } from "./ThinkingBlock";
 import type { UIToolCall, UIStep, UIStepItem } from "@/stores/chat.store";
-import type { ToolResult, DisplayBlock, TodoBlock } from "@kimi-code/agent-sdk/schema";
+import type { ToolResult, DisplayBlock, TodoBlock } from "@moonshot-ai/kimi-agent-sdk/schema";
 
 type ToolResultValue = ToolResult["return_value"];
 
