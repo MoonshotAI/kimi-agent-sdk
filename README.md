@@ -16,6 +16,7 @@ Kimi Agent SDK provides a programmatic interface to interact with the Kimi CLI, 
 | Language | Package | Status |
 |----------|---------|--------|
 | Go | [go/](./go) | Available |
+| Node.js | [node/](./node) | Coming Soon |
 
 ## Quick Start (Go)
 
