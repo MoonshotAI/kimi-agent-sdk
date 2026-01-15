@@ -131,6 +131,7 @@ session, err := kimi.NewSession(
 - `WithName(name)` - Set tool name (defaults to function name)
 - `WithDescription(desc)` - Set tool description
 - `WithFieldDescription(field, desc)` - Set description for a struct field (alternative to `description` tag)
+- `WithSchema(schema)` - Set JSON schema directly, bypassing automatic generation
 
 ### JSON Schema Generation
 
