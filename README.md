@@ -179,7 +179,3 @@ See the [guides](./guides) for detailed documentation:
 ```
 
 The SDK communicates with the Kimi CLI over stdio using JSON-RPC 2.0. The CLI handles all interactions with the Moonshot API, while the SDK provides a clean interface for your application.
-
-## License
-
-MIT
