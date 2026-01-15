@@ -4,12 +4,12 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'node/agent_sdk/**'
+      - 'node/**'
       - '.github/workflows/node.yml'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'node/agent_sdk/**'
+      - 'node/**'
       - '.github/workflows/node.yml'
   workflow_dispatch:
 
