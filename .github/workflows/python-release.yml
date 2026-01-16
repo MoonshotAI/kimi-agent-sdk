@@ -3,7 +3,7 @@ name: Release (kimi-agent-sdk)
 on:
   push:
     tags:
-      - "kimi-agent-sdk-*"
+      - "python-kimi-agent-sdk-*"
 
 permissions:
   contents: read
