@@ -1,0 +1,57 @@
+name: Python Agent SDK CI/CD
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - "python/**"
+      - ".github/workflows/python.yml"
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - "python/**"
+      - ".github/workflows/python.yml"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        working-directory: python
+        run: uv sync --group dev
+
+      - name: Run lint and type checks
+        working-directory: python
+        run: make check
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        working-directory: python
+        run: uv sync --group dev
+
+      - name: Run tests
+        working-directory: python
+        run: make test
