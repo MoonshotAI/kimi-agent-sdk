@@ -4,10 +4,30 @@ version = "0.0.1"
 description = "A Python SDK for Kimi Agent (Kimi CLI)."
 readme = "README.md"
 requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+keywords = ["kimi", "agent", "sdk", "coding-agents", "llm", "automation"]
+classifiers = [
+    "Typing :: Typed",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: Apache Software License",
+]
 dependencies = [
     "kimi-cli>=0.77,<0.78",
     "kosong>=0.38.0,<0.39.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/MoonshotAI/kimi-agent-sdk"
+Repository = "https://github.com/MoonshotAI/kimi-agent-sdk"
+Documentation = "https://github.com/MoonshotAI/kimi-agent-sdk/tree/main/README.md"
+Changelog = "https://github.com/MoonshotAI/kimi-agent-sdk/blob/main/python/CHANGELOG.md"
+Issues = "https://github.com/MoonshotAI/kimi-agent-sdk/issues"
 
 [dependency-groups]
 dev = [
