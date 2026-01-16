@@ -322,12 +322,12 @@ func main() {
             switch m := msg.(type) {
             case wire.ContentPart:
                 if m.Type == wire.ContentPartTypeText {
-                    fmt.Print(m.Text)
+                    fmt.Print(m.Text.Value)
                 }
             case wire.ToolCall:
                 fmt.Printf("\n[Tool called: %s]\n", m.Function.Name)
             case wire.ToolResult:
-                fmt.Printf("[Tool result: %s]\n", m.ReturnValue.Output.Text)
+                fmt.Printf("[Tool result: %s]\n", m.ReturnValue.Output.Text.Value)
             }
         }
     }

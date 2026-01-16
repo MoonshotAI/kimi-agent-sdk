@@ -206,7 +206,7 @@ func main() {
             switch m := msg.(type) {
             case wire.ContentPart:
                 if m.Type == wire.ContentPartTypeText {
-                    fmt.Print(m.Text)
+                    fmt.Print(m.Text.Value)
                 }
             case wire.ApprovalRequest:
                 fmt.Printf("\n\n--- Approval Required ---\n")

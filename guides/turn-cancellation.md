@@ -28,7 +28,7 @@ go func() {
     for step := range turn.Steps {
         for msg := range step.Messages {
             if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-                fmt.Print(cp.Text)
+                fmt.Print(cp.Text.Value)
             }
         }
     }
@@ -56,7 +56,7 @@ go func() {
     for step := range turn.Steps {
         for msg := range step.Messages {
             if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-                fmt.Print(cp.Text)
+                fmt.Print(cp.Text.Value)
             }
         }
     }
@@ -137,7 +137,7 @@ turn2, _ := session.Prompt(ctx, wire.NewStringContent("What is 2 + 2?"))
 for step := range turn2.Steps {
     for msg := range step.Messages {
         if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-            fmt.Print(cp.Text)
+            fmt.Print(cp.Text.Value)
         }
     }
 }
@@ -199,7 +199,7 @@ func main() {
     for step := range turn.Steps {
         for msg := range step.Messages {
             if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-                fmt.Print(cp.Text)
+                fmt.Print(cp.Text.Value)
             }
         }
     }
@@ -232,7 +232,7 @@ func main() {
     for step := range turn2.Steps {
         for msg := range step.Messages {
             if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-                fmt.Print(cp.Text)
+                fmt.Print(cp.Text.Value)
             }
         }
     }

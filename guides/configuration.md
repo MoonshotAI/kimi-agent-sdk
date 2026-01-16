@@ -322,7 +322,7 @@ func main() {
     for step := range turn.Steps {
         for msg := range step.Messages {
             if cp, ok := msg.(wire.ContentPart); ok {
-                fmt.Print(cp.Text)
+                fmt.Print(cp.Text.Value)
             }
         }
     }
