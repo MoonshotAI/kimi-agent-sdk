@@ -112,7 +112,7 @@ for step := range turn.Steps {
 
 ### Auto-Approve Mode
 
-For automated pipelines or when you trust the agent fully, use `WithAutoApprove()`:
+For automated pipelines or when you trust the agent fully, use `kimi.WithAutoApprove()`:
 
 ```go
 session, err := kimi.NewSession(

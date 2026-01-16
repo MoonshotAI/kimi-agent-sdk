@@ -6,21 +6,21 @@ This guide covers all configuration options available in the Kimi Agent SDK.
 
 | Option | Description |
 |--------|-------------|
-| `WithAPIKey(key)` | Set API key |
-| `WithBaseURL(url)` | Set API endpoint |
-| `WithModel(model)` | Set model name |
-| `WithExecutable(path)` | Set CLI executable path |
-| `WithWorkDir(dir)` | Set working directory |
-| `WithSession(id)` | Resume existing session |
-| `WithConfig(cfg)` | Provide configuration struct |
-| `WithConfigFile(path)` | Load configuration from file |
-| `WithMCPConfig(cfg)` | Set MCP configuration |
-| `WithMCPConfigFile(path)` | Load MCP config from file |
-| `WithAutoApprove()` | Auto-approve all requests |
-| `WithThinking(bool)` | Enable/disable thinking mode |
-| `WithSkillsDir(dir)` | Set skills directory |
-| `WithArgs(args...)` | Add custom CLI arguments |
-| `WithTools(tools...)` | Register external tools |
+| `kimi.WithAPIKey(key)` | Set API key |
+| `kimi.WithBaseURL(url)` | Set API endpoint |
+| `kimi.WithModel(model)` | Set model name |
+| `kimi.WithExecutable(path)` | Set CLI executable path |
+| `kimi.WithWorkDir(dir)` | Set working directory |
+| `kimi.WithSession(id)` | Resume existing session |
+| `kimi.WithConfig(cfg)` | Provide configuration struct |
+| `kimi.WithConfigFile(path)` | Load configuration from file |
+| `kimi.WithMCPConfig(cfg)` | Set MCP configuration |
+| `kimi.WithMCPConfigFile(path)` | Load MCP config from file |
+| `kimi.WithAutoApprove()` | Auto-approve all requests |
+| `kimi.WithThinking(bool)` | Enable/disable thinking mode |
+| `kimi.WithSkillsDir(dir)` | Set skills directory |
+| `kimi.WithArgs(args...)` | Add custom CLI arguments |
+| `kimi.WithTools(tools...)` | Register external tools |
 
 ## Basic Configuration
 
@@ -265,7 +265,7 @@ session, err := kimi.NewSession(
 
 When the same setting is specified in multiple places, the priority is:
 
-1. **SDK Options** (highest) - `WithXxx()` functions
+1. **SDK Options** (highest) - `kimi.WithXxx()` functions
 2. **Environment Variables**
 3. **Configuration File** (lowest)
 

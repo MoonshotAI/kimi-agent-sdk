@@ -106,7 +106,7 @@ Then run:
 
 4. **Ensure each iteration is valid**: Each iteration should pass tests. Broken code hamstrings future iterations.
 
-5. **Use auto-approve carefully**: The example uses `WithAutoApprove()` for autonomous operation. Review security implications for your use case.
+5. **Use auto-approve carefully**: The example uses `kimi.WithAutoApprove()` for autonomous operation. Review security implications for your use case.
 
 ## References
 

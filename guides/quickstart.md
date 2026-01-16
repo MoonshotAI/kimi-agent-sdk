@@ -185,6 +185,7 @@ if err := turn.Err(); err != nil {
 ## What's Next
 
 - [Configuration](configuration.md) - Learn about all available options
+- [Thinking](thinking.md) - Access the model's reasoning process
 - [Approval Requests](approval-requests.md) - Handle user approval flows
 - [External Tools](external-tools.md) - Register custom tools for the model to use
 - [Turn Cancellation](turn-cancellation.md) - Cancel turns and continue sessions

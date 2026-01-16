@@ -159,6 +159,7 @@ See the [guides](./guides) for detailed documentation:
 
 - [Quick Start](./guides/quickstart.md) - Get up and running
 - [Configuration](./guides/configuration.md) - All available options
+- [Thinking](./guides/thinking.md) - Access the model's reasoning process
 - [Approval Requests](./guides/approval-requests.md) - Handle permission flows
 - [External Tools](./guides/external-tools.md) - Register custom tools
 - [Turn Cancellation](./guides/turn-cancellation.md) - Cancel and continue sessions

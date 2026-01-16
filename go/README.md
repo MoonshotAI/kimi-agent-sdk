@@ -83,7 +83,7 @@ for step := range turn.Steps {
 
 ## External Tools
 
-You can register external tools that the model can call during a session. Use `CreateTool` to create a tool from a Go function, and `WithTools` to register them.
+You can register external tools that the model can call during a session. Use `kimi.CreateTool` to create a tool from a Go function, and `kimi.WithTools` to register them.
 
 > **Note**: External tools require `wire_protocol_version >= 2`. The SDK automatically detects the protocol version from the CLI. If your CLI version doesn't support protocol v2, external tools will be silently ignored.
 
@@ -128,10 +128,10 @@ session, err := kimi.NewSession(
 
 ### Tool Options
 
-- `WithName(name)` - Set tool name (defaults to function name)
-- `WithDescription(desc)` - Set tool description
-- `WithFieldDescription(field, desc)` - Set description for a struct field (alternative to `description` tag)
-- `WithSchema(schema)` - Set JSON schema directly, bypassing automatic generation
+- `kimi.WithName(name)` - Set tool name (defaults to function name)
+- `kimi.WithDescription(desc)` - Set tool description
+- `kimi.WithFieldDescription(field, desc)` - Set description for a struct field (alternative to `description` tag)
+- `kimi.WithSchema(schema)` - Set JSON schema directly, bypassing automatic generation
 
 ### JSON Schema Generation
 
@@ -140,7 +140,7 @@ The SDK automatically generates JSON schema from the argument struct:
 - Struct fields become object properties
 - Fields with `omitempty` or `omitzero` tag are optional
 - Pointer fields are always optional
-- Use `description` tag or `WithFieldDescription` to document fields
+- Use `description` tag or `kimi.WithFieldDescription` to document fields
 
 ### How It Works
 

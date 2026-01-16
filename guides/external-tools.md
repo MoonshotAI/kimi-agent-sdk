@@ -58,7 +58,7 @@ if err != nil {
 }
 ```
 
-> **Note**: The tool name is automatically derived from the function name. In this example, the tool will be named based on `getWeather`. Use `WithName()` only if you need to override the default name.
+> **Note**: The tool name is automatically derived from the function name. In this example, the tool will be named based on `getWeather`. Use `kimi.WithName()` only if you need to override the default name.
 
 ### Step 4: Register with Session
 
