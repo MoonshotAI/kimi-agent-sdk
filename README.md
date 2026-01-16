@@ -1,6 +1,6 @@
 # Kimi Agent SDK
 
-SDKs for programmatically controlling [Kimi Agent](https://github.com/MoonshotAI/kimi-cli) sessions.
+SDKs for programmatically controlling [Kimi CLI](https://github.com/MoonshotAI/kimi-cli).
 
 ## Overview
 
