@@ -1,5 +1,5 @@
 export const IMAGE_CONFIG = {
-  maxSizeBytes: 10 * 1024 * 1024,
+  maxSizeBytes: 5 * 1024 * 1024,
   maxDimension: 4096,
   compressThresholdBytes: 5 * 1024 * 1024,
   targetCompressedBytes: 2 * 1024 * 1024,
