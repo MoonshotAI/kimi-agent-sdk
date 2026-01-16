@@ -3,7 +3,7 @@ name: Release (kimi-agent-sdk)
 on:
   push:
     tags:
-      - "python-kimi-agent-sdk-*"
+      - "py-v*"
 
 permissions:
   contents: read
@@ -26,7 +26,7 @@ jobs:
         run: |
           python scripts/check_version_tag.py \
             --pyproject python/pyproject.toml \
-            --expected-version "${GITHUB_REF_NAME#kimi-agent-sdk-}"
+            --expected-version "${GITHUB_REF_NAME#py-v}"
 
   publish:
     runs-on: ubuntu-latest
