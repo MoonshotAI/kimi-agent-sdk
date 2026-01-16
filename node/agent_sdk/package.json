@@ -1,8 +1,8 @@
 {
   "name": "@moonshot-ai/kimi-agent-sdk",
-  "version": "0.0.1",
-  "description": "SDK for interacting with Kimi Code",
-  "license": "Apache-2.0",
+  "version": "0.1.0",
+  "description": "SDK for interacting with Kimi Code CLI",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MoonshotAI/kimi-agent-sdk.git",
@@ -39,11 +39,12 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "prepublishOnly": "pnpm run build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "pnpm run typecheck && pnpm run build",
+    "publish:npm": "pnpm publish --access public --no-git-checks"
   },
   "dependencies": {
     "toml": "^3.0.0",

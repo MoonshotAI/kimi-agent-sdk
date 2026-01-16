@@ -2,15 +2,15 @@ name: Node.js Agent SDK CI/CD
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
-      - 'node/**'
-      - '.github/workflows/node.yml'
+      - "node/**"
+      - ".github/workflows/node.yml"
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
     paths:
-      - 'node/**'
-      - '.github/workflows/node.yml'
+      - "node/**"
+      - ".github/workflows/node.yml"
   workflow_dispatch:
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: node/pnpm-lock.yaml
 
       - name: Install dependencies
@@ -73,22 +73,16 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'pnpm'
+          cache: "pnpm"
           cache-dependency-path: node/pnpm-lock.yaml
-          registry-url: 'https://registry.npmjs.org'
+          registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
         run: pnpm install
         working-directory: node/agent_sdk
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: node-agent-sdk-build
-          path: node/agent_sdk/
-
       - name: Publish to npm
-        run: pnpm publish --no-git-checks
+        run: pnpm run publish:npm
         working-directory: node/agent_sdk
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
