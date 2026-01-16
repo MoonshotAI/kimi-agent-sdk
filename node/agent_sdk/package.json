@@ -8,7 +8,14 @@
     "url": "git+https://github.com/MoonshotAI/kimi-agent-sdk.git",
     "directory": "node/agent_sdk"
   },
-  "keywords": ["kimi", "moonshot", "ai", "agent", "sdk", "cli"],
+  "keywords": [
+    "kimi",
+    "moonshot",
+    "ai",
+    "agent",
+    "sdk",
+    "cli"
+  ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",

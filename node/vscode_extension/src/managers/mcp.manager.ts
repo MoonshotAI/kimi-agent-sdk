@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { KimiPaths, authMCP, resetAuthMCP, testMCP, type MCPTestResult, type MCPServerConfig } from "../../../agent_sdk";
+import { KimiPaths, authMCP, resetAuthMCP, testMCP, type MCPTestResult, type MCPServerConfig } from "@moonshot-ai/kimi-agent-sdk";
 import { getCLIManager } from "./cli.manager";
 
 interface MCPConfigFile {
@@ -176,9 +176,9 @@ export const MCPManager = {
       async () => {
         const result = await testMCP(name, executable);
         if (result.success) {
-          vscode.window.showInformationMessage(`Kimi: "${name}" connected successfully (${result.tools?.length ?? 0} tools available)`);
+          vscode.window.showInformationMessage(`Kimi: "${name}" connected successfully, result:\n ${result.output}`);
         } else {
-          vscode.window.showErrorMessage(`Kimi: "${name}" connection failed: ${result.error}`);
+          vscode.window.showErrorMessage(`Kimi: "${name}" connection failed, error: ${result.output}`);
         }
         return result;
       },

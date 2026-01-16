@@ -1,15 +1,11 @@
 import { spawn } from "node:child_process";
 import { TransportError, CliError } from "../errors";
 
-// Types
 export interface MCPTestResult {
   success: boolean;
-  message?: string;
-  tools?: string[];
-  error?: string;
+  output: string;
 }
 
-// MCP Commands
 export async function authMCP(serverName: string, executable = "kimi"): Promise<void> {
   await runCliCommand(executable, ["mcp", "auth", serverName]);
 }
@@ -20,38 +16,21 @@ export async function resetAuthMCP(serverName: string, executable = "kimi"): Pro
 
 export async function testMCP(serverName: string, executable = "kimi"): Promise<MCPTestResult> {
   try {
-    const output = await runCliCommand(executable, ["mcp", "test", serverName, "--json"]);
-    const result = JSON.parse(output);
-    return {
-      success: result.success ?? true,
-      message: result.message,
-      tools: result.tools,
-    };
+    const output = await runCliCommand(executable, ["mcp", "test", serverName]);
+    return { success: true, output };
   } catch (err) {
-    return {
-      success: false,
-      error: err instanceof Error ? err.message : String(err),
-    };
+    return { success: false, output: err instanceof Error ? err.message : String(err) };
   }
 }
 
-// CLI Runner
 function runCliCommand(executable: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
-    const proc = spawn(executable, args, {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-
+    const proc = spawn(executable, args, { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
 
-    proc.stdout?.on("data", (data) => {
-      stdout += data.toString();
-    });
-
-    proc.stderr?.on("data", (data) => {
-      stderr += data.toString();
-    });
+    proc.stdout?.on("data", (data) => (stdout += data.toString()));
+    proc.stderr?.on("data", (data) => (stderr += data.toString()));
 
     proc.on("error", (err) => {
       reject(new TransportError("CLI_NOT_FOUND", `Failed to run CLI: ${err.message}`, err));

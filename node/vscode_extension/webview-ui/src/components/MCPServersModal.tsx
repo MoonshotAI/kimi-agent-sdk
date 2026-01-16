@@ -215,24 +215,13 @@ function ServerForm({
   );
 }
 
-function ServerItem({
-  server,
-  isLoading,
-  onTest,
-  onAuth,
-  onResetAuth,
-  onDelete,
-}: {
-  server: MCPServerConfig;
-  isLoading: boolean;
-  onTest: () => void;
-  onAuth: () => void;
-  onResetAuth: () => void;
-  onDelete: () => void;
-}) {
+function ServerItem({ server, onDelete }: { server: MCPServerConfig; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState(() => serverToForm(server));
+  const [testOutput, setTestOutput] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { setMCPServers } = useSettingsStore();
+
   const isHttp = server.transport === "http";
   const info = isHttp ? server.url : [server.command, ...(server.args || [])].join(" ");
 
@@ -241,10 +230,27 @@ function ServerItem({
       const servers = await bridge.updateMCPServer(formToConfig(form));
       setMCPServers(servers);
       setExpanded(false);
-    } catch (e) {
-      // Error handled by bridge
+    } catch {}
+  };
+
+  const handleAction = async (action: () => Promise<any>) => {
+    setIsLoading(true);
+    setTestOutput(null);
+    try {
+      await action();
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const handleTest = () =>
+    handleAction(async () => {
+      const result = await bridge.testMCP(server.name);
+      setTestOutput(result.output);
+    });
+
+  const handleAuth = () => handleAction(() => bridge.authMCP(server.name));
+  const handleResetAuth = () => handleAction(() => bridge.resetAuthMCP(server.name));
 
   return (
     <div className="rounded-md border border-border/60 bg-card/30">
@@ -262,15 +268,15 @@ function ServerItem({
         <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
           {server.auth === "oauth" && (
             <>
-              <Button variant="ghost" size="icon" className="size-6" onClick={onAuth} disabled={isLoading}>
+              <Button variant="ghost" size="icon" className="size-6" onClick={handleAuth} disabled={isLoading}>
                 <IconKey className="size-3" />
               </Button>
-              <Button variant="ghost" size="icon" className="size-6" onClick={onResetAuth} disabled={isLoading}>
+              <Button variant="ghost" size="icon" className="size-6" onClick={handleResetAuth} disabled={isLoading}>
                 <IconRefresh className="size-3" />
               </Button>
             </>
           )}
-          <Button variant="ghost" size="icon" className="size-6" onClick={onTest} disabled={isLoading}>
+          <Button variant="ghost" size="icon" className="size-6" onClick={handleTest} disabled={isLoading}>
             {isLoading ? <IconLoader2 className="size-3 animate-spin" /> : <IconPlugConnected className="size-3" />}
           </Button>
           <Button variant="ghost" size="icon" className="size-6 text-muted-foreground hover:text-destructive" onClick={onDelete} disabled={isLoading}>
@@ -279,8 +285,10 @@ function ServerItem({
         </div>
         <IconChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", expanded && "rotate-180")} />
       </div>
+
       {expanded && (
         <div className="px-2.5 pb-2.5">
+          {testOutput && <pre className="text-[10px] font-mono bg-muted/50 rounded p-2 mb-2 whitespace-pre-wrap max-h-48 overflow-auto">{testOutput}</pre>}
           <ServerForm data={form} onChange={setForm} onSubmit={handleUpdate} onCancel={() => setExpanded(false)} submitLabel="Update" />
         </div>
       )}
@@ -323,7 +331,6 @@ export function MCPServersModal() {
   const { mcpServers, mcpModalOpen, setMCPServers, setMCPModalOpen } = useSettingsStore();
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState<FormData>({ ...EMPTY_FORM });
-  const [loadingServer, setLoadingServer] = useState<string | null>(null);
   const [installingRecommended, setInstallingRecommended] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -363,18 +370,8 @@ export function MCPServersModal() {
       const config = recommendedToConfig(server);
       const servers = await bridge.addMCPServer(config);
       setMCPServers(servers);
-      await bridge.testMCP(server.id);
     } catch {}
     setInstallingRecommended(null);
-  };
-
-  const handleAction = async (name: string, action: () => Promise<any>) => {
-    setLoadingServer(name);
-    try {
-      await action();
-    } finally {
-      setLoadingServer(null);
-    }
   };
 
   if (!mcpModalOpen) return null;
@@ -413,15 +410,7 @@ export function MCPServersModal() {
             {mcpServers.length > 0 && (
               <div className="space-y-1.5">
                 {mcpServers.map((server) => (
-                  <ServerItem
-                    key={server.name}
-                    server={server}
-                    isLoading={loadingServer === server.name}
-                    onTest={() => handleAction(server.name, () => bridge.testMCP(server.name))}
-                    onAuth={() => handleAction(server.name, () => bridge.authMCP(server.name))}
-                    onResetAuth={() => handleAction(server.name, () => bridge.resetAuthMCP(server.name))}
-                    onDelete={() => setDeleteTarget(server.name)}
-                  />
+                  <ServerItem key={server.name} server={server} onDelete={() => setDeleteTarget(server.name)} />
                 ))}
               </div>
             )}
