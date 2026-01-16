@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 keywords = ["kimi", "agent", "sdk", "coding-agents", "llm", "automation"]
+authors = [{ name = "Moonshot AI", email = "team@moonshot.ai" }]
 classifiers = [
     "Typing :: Typed",
     "Intended Audience :: Developers",
