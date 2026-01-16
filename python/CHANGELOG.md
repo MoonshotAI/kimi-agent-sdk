@@ -2,4 +2,6 @@
 
 ## Unreleased
 
-- Initial release.
+## 0.0.1
+
+- Initial release of the Python SDK.
