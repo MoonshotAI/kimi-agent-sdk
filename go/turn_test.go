@@ -179,10 +179,7 @@ func TestTurn_traverse_ContentPart(t *testing.T) {
 	msgs <- wire.StepBegin{N: 1}
 
 	// Send ContentPart event
-	contentPart := wire.ContentPart{
-		Type: wire.ContentPartTypeText,
-		Text: "Hello, world!",
-	}
+	contentPart := wire.NewTextContentPart("Hello, world!")
 	msgs <- contentPart
 
 	// Verify step receives the content part
@@ -197,8 +194,8 @@ func TestTurn_traverse_ContentPart(t *testing.T) {
 			if !ok {
 				t.Fatalf("expected ContentPart, got %T", msg)
 			}
-			if cp.Text != "Hello, world!" {
-				t.Errorf("expected text 'Hello, world!', got %s", cp.Text)
+			if cp.Text.Value != "Hello, world!" {
+				t.Errorf("expected text 'Hello, world!', got %s", cp.Text.Value)
 			}
 		case <-time.After(time.Second):
 			cancel()

@@ -48,7 +48,7 @@ func TestE2E_RealKimiCLI(t *testing.T) {
 	for step := range turn.Steps {
 		for msg := range step.Messages {
 			if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-				textContent.WriteString(cp.Text)
+				textContent.WriteString(cp.Text.Value)
 			}
 		}
 	}

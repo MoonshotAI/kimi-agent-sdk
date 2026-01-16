@@ -85,7 +85,7 @@ func TestIntegration_RoundTrip_SimpleMessage(t *testing.T) {
 	foundContent := false
 	for _, msg := range messages {
 		if cp, ok := msg.(wire.ContentPart); ok {
-			if cp.Type == wire.ContentPartTypeText && cp.Text == "Hello from mock kimi!" {
+			if cp.Type == wire.ContentPartTypeText && cp.Text.Value == "Hello from mock kimi!" {
 				foundContent = true
 				break
 			}

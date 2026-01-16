@@ -36,6 +36,7 @@ var (
 	_ Event = ApprovalRequestResolved{}
 
 	_ Request = ApprovalRequest{}
+	_ Request = ToolCall{}
 )
 
 func TestEvent_EventTypeConstants(t *testing.T) {
@@ -84,13 +85,13 @@ func TestContent_JSONRoundTrip_Text(t *testing.T) {
 	if out.Type != ContentTypeText {
 		t.Fatalf("Type=%q, want %q", out.Type, ContentTypeText)
 	}
-	if out.Text != "hello" {
-		t.Fatalf("Text=%q, want %q", out.Text, "hello")
+	if out.Text.Value != "hello" {
+		t.Fatalf("Text=%q, want %q", out.Text.Value, "hello")
 	}
 }
 
 func TestContent_JSONRoundTrip_ContentParts(t *testing.T) {
-	in := NewContent([]ContentPart{{Type: ContentPartTypeText, Text: "hi"}})
+	in := NewContent(NewTextContentPart("hi"))
 	b, err := json.Marshal(in)
 	if err != nil {
 		t.Fatalf("Marshal: %v", err)
@@ -106,7 +107,7 @@ func TestContent_JSONRoundTrip_ContentParts(t *testing.T) {
 	if out.Type != ContentTypeContentParts {
 		t.Fatalf("Type=%q, want %q", out.Type, ContentTypeContentParts)
 	}
-	if len(out.ContentParts) != 1 || out.ContentParts[0].Text != "hi" || out.ContentParts[0].Type != ContentPartTypeText {
+	if len(out.ContentParts.Value) != 1 || out.ContentParts.Value[0].Text.Value != "hi" || out.ContentParts.Value[0].Type != ContentPartTypeText {
 		t.Fatalf("unexpected ContentParts: %+v", out.ContentParts)
 	}
 }
@@ -234,7 +235,7 @@ func TestEventParams_UnmarshalJSON_AllEventTypes(t *testing.T) {
 		{"CompactionBegin", EventTypeCompactionBegin, CompactionBegin{}},
 		{"CompactionEnd", EventTypeCompactionEnd, CompactionEnd{}},
 		{"StatusUpdate", EventTypeStatusUpdate, StatusUpdate{ContextUsage: Optional[float64]{Value: 0.5, Valid: true}}},
-		{"ContentPart", EventTypeContentPart, ContentPart{Type: ContentPartTypeText, Text: "hello"}},
+		{"ContentPart", EventTypeContentPart, NewTextContentPart("hello")},
 		{"ToolCall", EventTypeToolCall, ToolCall{Type: "function", ID: "1", Function: ToolCallFunction{Name: "f"}}},
 		{"ToolCallPart", EventTypeToolCallPart, ToolCallPart{ArgumentsPart: Optional[string]{Value: "x", Valid: true}}},
 		{"ToolResult", EventTypeToolResult, ToolResult{ToolCallID: "1", ReturnValue: ToolResultReturnValue{IsError: false, Output: NewStringContent("ok"), Message: "m"}}},

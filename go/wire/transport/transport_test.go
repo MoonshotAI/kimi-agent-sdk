@@ -6,8 +6,9 @@ import (
 	"net/rpc"
 	"testing"
 
-	"github.com/MoonshotAI/kimi-agent-sdk/go/wire"
 	"go.uber.org/mock/gomock"
+
+	"github.com/MoonshotAI/kimi-agent-sdk/go/wire"
 )
 
 func setupClientServer(t *testing.T, impl Transport) (Transport, func()) {
@@ -96,11 +97,8 @@ func TestTransportServer_Event(t *testing.T) {
 	srv := NewTransportServer(mockImpl)
 
 	arg := &wire.EventParams{
-		Type: wire.EventTypeContentPart,
-		Payload: wire.ContentPart{
-			Type: wire.ContentPartTypeText,
-			Text: "hello",
-		},
+		Type:    wire.EventTypeContentPart,
+		Payload: wire.NewTextContentPart("hello"),
 	}
 	reply := &wire.EventResult{}
 

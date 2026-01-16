@@ -223,17 +223,45 @@ var (
 	PromptResultStatusMaxStepsReached PromptResultStatus = "max_steps_reached"
 )
 
-func NewContent(contentParts []ContentPart) Content {
+func NewContent(contentParts ...ContentPart) Content {
 	return Content{
 		Type:         ContentTypeContentParts,
-		ContentParts: contentParts,
+		ContentParts: Optional[[]ContentPart]{Value: contentParts, Valid: true},
+	}
+}
+
+func NewTextContentPart(text string) ContentPart {
+	return ContentPart{
+		Type: ContentPartTypeText,
+		Text: Optional[string]{Value: text, Valid: true},
+	}
+}
+
+func NewImageContentPart(url string) ContentPart {
+	return ContentPart{
+		Type:     ContentPartTypeImageURL,
+		ImageURL: Optional[MediaURL]{Value: MediaURL{URL: url}, Valid: true},
+	}
+}
+
+func NewAudioContentPart(url string) ContentPart {
+	return ContentPart{
+		Type:     ContentPartTypeAudioURL,
+		AudioURL: Optional[MediaURL]{Value: MediaURL{URL: url}, Valid: true},
+	}
+}
+
+func NewVideoContentPart(url string) ContentPart {
+	return ContentPart{
+		Type:     ContentPartTypeVideoURL,
+		VideoURL: Optional[MediaURL]{Value: MediaURL{URL: url}, Valid: true},
 	}
 }
 
 func NewStringContent(text string) Content {
 	return Content{
 		Type: ContentTypeText,
-		Text: text,
+		Text: Optional[string]{Value: text, Valid: true},
 	}
 }
 
@@ -246,8 +274,8 @@ const (
 
 type Content struct {
 	Type         ContentType
-	Text         string
-	ContentParts []ContentPart
+	Text         Optional[string]
+	ContentParts Optional[[]ContentPart]
 }
 
 func (c Content) MarshalJSON() ([]byte, error) {
@@ -314,25 +342,22 @@ const (
 	ContentPartTypeThink    ContentPartType = "think"
 	ContentPartTypeImageURL ContentPartType = "image_url"
 	ContentPartTypeAudioURL ContentPartType = "audio_url"
+	ContentPartTypeVideoURL ContentPartType = "video_url"
 )
 
 type ContentPart struct {
-	Type      ContentPartType  `json:"type"`
-	Text      string           `json:"text,omitzero"`
-	Think     string           `json:"think,omitzero"`
-	Encrypted Optional[string] `json:"encrypted,omitzero"`
-	ImageURL  MediaURL         `json:"image_url,omitzero"`
-	AudioURL  MediaURL         `json:"audio_url,omitzero"`
+	Type      ContentPartType    `json:"type"`
+	Text      Optional[string]   `json:"text,omitzero"`
+	Think     Optional[string]   `json:"think,omitzero"`
+	Encrypted Optional[string]   `json:"encrypted,omitzero"`
+	ImageURL  Optional[MediaURL] `json:"image_url,omitzero"`
+	AudioURL  Optional[MediaURL] `json:"audio_url,omitzero"`
+	VideoURL  Optional[MediaURL] `json:"video_url,omitzero"`
 }
 
 type MediaURL struct {
 	ID  Optional[string] `json:"id,omitzero"`
 	URL string           `json:"url"`
-}
-
-type Optional[T any] struct {
-	Value T
-	Valid bool
 }
 
 type ToolCallType string
@@ -444,6 +469,11 @@ type ExternalTool struct {
 	Name        string          `json:"name"`
 	Description string          `json:"description"`
 	Parameters  json.RawMessage `json:"parameters"`
+}
+
+type Optional[T any] struct {
+	Value T
+	Valid bool
 }
 
 func (o Optional[T]) MarshalJSON() ([]byte, error) {

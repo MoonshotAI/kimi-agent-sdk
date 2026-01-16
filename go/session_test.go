@@ -17,11 +17,8 @@ func TestResponder_Event(t *testing.T) {
 	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	event := &wire.EventParams{
-		Type: wire.EventTypeContentPart,
-		Payload: wire.ContentPart{
-			Type: wire.ContentPartTypeText,
-			Text: "hello",
-		},
+		Type:    wire.EventTypeContentPart,
+		Payload: wire.NewTextContentPart("hello"),
 	}
 
 	result, err := responder.Event(event)
@@ -38,8 +35,8 @@ func TestResponder_Event(t *testing.T) {
 		if !ok {
 			t.Fatalf("expected ContentPart, got %T", msg)
 		}
-		if cp.Text != "hello" {
-			t.Errorf("expected text 'hello', got %s", cp.Text)
+		if cp.Text.Value != "hello" {
+			t.Errorf("expected text 'hello', got %s", cp.Text.Value)
 		}
 	default:
 		t.Fatal("expected message in channel")
@@ -53,11 +50,8 @@ func TestResponder_Event_NilMsgs(t *testing.T) {
 	responder := &Responder{rwlock: &rwlock, pending: new(atomic.Int64), wireMessageBridge: &msgs, wireRequestResponseChan: &usrc}
 
 	event := &wire.EventParams{
-		Type: wire.EventTypeContentPart,
-		Payload: wire.ContentPart{
-			Type: wire.ContentPartTypeText,
-			Text: "hello",
-		},
+		Type:    wire.EventTypeContentPart,
+		Payload: wire.NewTextContentPart("hello"),
 	}
 
 	result, err := responder.Event(event)
