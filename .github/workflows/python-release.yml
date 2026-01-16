@@ -1,0 +1,58 @@
+name: Release (kimi-agent-sdk)
+
+on:
+  push:
+    tags:
+      - "kimi-agent-sdk-*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+
+      - name: Check version tag
+        run: |
+          python scripts/check_version_tag.py \
+            --pyproject python/pyproject.toml \
+            --expected-version "${GITHUB_REF_NAME#kimi-agent-sdk-}"
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8.5"
+
+      - name: Build distributions
+        working-directory: python
+        run: uv build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: python/dist
