@@ -1,4 +1,4 @@
 packages:
-  - 'agent_sdk'
-  - 'vscode_extension'
-  - 'vscode_extension/webview-ui'
+  - "agent_sdk"
+  - "vscode_extension"
+  - "vscode_extension/webview-ui"

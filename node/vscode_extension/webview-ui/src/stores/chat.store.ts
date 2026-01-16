@@ -74,7 +74,6 @@ export interface PendingInput {
   model: string;
 }
 
-
 export interface ChatState {
   sessionId: string | null;
   messages: ChatMessage[];
@@ -199,7 +198,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
             draft.messages.pop();
           }
         }
-
       }),
     );
 
