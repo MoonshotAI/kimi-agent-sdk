@@ -58,9 +58,18 @@ const MCPConfigSchema = z.object({
   client: MCPClientConfigSchema.default({}),
 });
 
+const DefaultThinkingSchema = z.preprocess(
+  (val) => {
+    if (val === "on") return true;
+    if (val === "off") return false;
+    return val;
+  },
+  z.boolean()
+).default(false);
+
 const ConfigSchema = z.object({
   default_model: z.string().default(""),
-  default_thinking: z.boolean().default(false),
+  default_thinking: DefaultThinkingSchema,
   models: z.record(LLMModelSchema).default({}),
   providers: z.record(LLMProviderSchema).default({}),
   loop_control: LoopControlSchema.default({}),
