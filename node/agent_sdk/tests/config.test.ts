@@ -156,7 +156,7 @@ describe("parseConfig", () => {
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue(`
 default_model = "kimi-k2"
-default_thinking = "on"
+default_thinking = true
 
 [models.kimi-k2]
 provider = "kimi"
@@ -233,7 +233,7 @@ describe("saveDefaultModel", () => {
     const { saveDefaultModel } = await import("../config.js");
     saveDefaultModel("kimi-k2", true);
 
-    expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), 'default_model = "kimi-k2"\ndefault_thinking = "on"\n', "utf-8");
+    expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), 'default_model = "kimi-k2"\ndefault_thinking = true\n', "utf-8");
   });
 
   it("updates existing default_model", async () => {
@@ -265,13 +265,13 @@ describe("saveDefaultModel", () => {
   it("updates existing default_thinking", async () => {
     const fs = await import("node:fs");
     vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readFileSync).mockReturnValue('default_model = "kimi-k2"\ndefault_thinking = "off"\n');
+    vi.mocked(fs.readFileSync).mockReturnValue('default_model = "kimi-k2"\ndefault_thinking = false\n');
 
     vi.resetModules();
     const { saveDefaultModel } = await import("../config.js");
     saveDefaultModel("kimi-k2", true);
 
-    expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('default_thinking = "on"'), "utf-8");
+    expect(fs.writeFileSync).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('default_thinking = true'), "utf-8");
   });
 
   it("adds default_thinking after default_model", async () => {
@@ -284,6 +284,6 @@ describe("saveDefaultModel", () => {
     saveDefaultModel("kimi-k2", false);
 
     const written = vi.mocked(fs.writeFileSync).mock.calls[0][1] as string;
-    expect(written).toContain('default_thinking = "off"');
+    expect(written).toContain('default_thinking = false');
   });
 });
