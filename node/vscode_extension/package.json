@@ -3,7 +3,7 @@
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code",
   "description": "AI-powered coding assistant with Kimi Code",
-  "version": "0.0.4",
+  "version": "0.0.6",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
