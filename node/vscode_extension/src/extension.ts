@@ -1,8 +1,7 @@
 import * as vscode from "vscode";
-import * as path from "node:path";
 import { KimiWebviewProvider } from "./KimiWebviewProvider";
 import { onSettingsChange, VSCodeSettings } from "./config/vscode-settings";
-import { initCLIManager, GitManager } from "./managers";
+import { initCLIManager, BaselineManager } from "./managers";
 import { Events } from "../shared/bridge";
 
 let outputChannel: vscode.OutputChannel;
@@ -32,9 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
         if (!workDir || !sessionId) {
           return "";
         }
+
         const relativePath = uri.path.slice(1);
-        const absolutePath = path.join(workDir, relativePath);
-        const content = await GitManager.getBaselineContent(workDir, sessionId, absolutePath);
+        const content = BaselineManager.getBaselineContent(workDir, sessionId, relativePath);
         return content ?? "";
       },
     }),

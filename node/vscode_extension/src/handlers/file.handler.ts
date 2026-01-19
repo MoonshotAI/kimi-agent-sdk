@@ -2,8 +2,8 @@ import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "fs";
 import { Methods, Events } from "../../shared/bridge";
-import { GitManager } from "../managers";
-import type { ProjectFile, EditorContext, FileChange } from "../../shared/types";
+import { BaselineManager } from "../managers";
+import type { ProjectFile, EditorContext, FileChange, DiffInfo } from "../../shared/types";
 import type { Handler } from "./types";
 
 interface GetProjectFilesParams {
@@ -30,6 +30,7 @@ interface OptionalFilePathParams {
 
 interface TrackFilesParams {
   paths: string[];
+  diffs?: DiffInfo[];
 }
 
 interface CheckFileExistsParams {
@@ -144,9 +145,10 @@ const pickMedia: Handler<PickMediaParams, string[]> = async (params) => {
       const mime = getMimeType(ext);
       results.push(`data:${mime};base64,${Buffer.from(data).toString("base64")}`);
     } catch {
-      // Skip files that can't be read
+      // skip
     }
   }
+
   return results;
 };
 
@@ -197,6 +199,18 @@ const trackFiles: Handler<TrackFilesParams, FileChange[]> = async (params, ctx) 
     return [];
   }
 
+  // 保存 baseline 内容
+  if (params.diffs) {
+    for (const diff of params.diffs) {
+      const absolutePath = toAbsolute(workDir, diff.path);
+      if (isInsideWorkDir(workDir, absolutePath)) {
+        const relativePath = path.relative(workDir, absolutePath);
+        BaselineManager.saveBaseline(workDir, sessionId, relativePath, diff.oldText);
+      }
+    }
+  }
+
+  // 添加到 tracked 集合
   for (const filePath of params.paths) {
     const absolutePath = toAbsolute(workDir, filePath);
     if (isInsideWorkDir(workDir, absolutePath)) {
@@ -205,8 +219,9 @@ const trackFiles: Handler<TrackFilesParams, FileChange[]> = async (params, ctx) 
   }
 
   const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
-  const changes = await GitManager.getChanges(workDir, sessionId, trackedFiles);
+  const changes = await BaselineManager.getChanges(workDir, sessionId, trackedFiles);
   ctx.broadcast(Events.FileChangesUpdated, changes, ctx.webviewId);
+
   return changes;
 };
 
@@ -223,16 +238,19 @@ const revertFiles: Handler<OptionalFilePathParams, { ok: boolean }> = async (par
     return { ok: false };
   }
 
+  const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
+
   if (params.filePath) {
-    await GitManager.revertFile(workDir, sessionId, toAbsolute(workDir, params.filePath));
+    BaselineManager.revertFile(workDir, sessionId, params.filePath);
   } else {
-    await GitManager.revertToBaseline(workDir, sessionId);
+    BaselineManager.revertAll(workDir, sessionId, trackedFiles);
     ctx.fileManager.clearTracked(ctx.webviewId);
   }
 
-  const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
-  const changes = await GitManager.getChanges(workDir, sessionId, trackedFiles);
+  const newTracked = ctx.fileManager.getTracked(ctx.webviewId);
+  const changes = await BaselineManager.getChanges(workDir, sessionId, newTracked);
   ctx.broadcast(Events.FileChangesUpdated, changes, ctx.webviewId);
+
   return { ok: true };
 };
 
@@ -243,18 +261,21 @@ const keepChanges: Handler<OptionalFilePathParams, { ok: boolean }> = async (par
     return { ok: false };
   }
 
-  await GitManager.updateBaseline(workDir, sessionId);
+  const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
 
   if (params.filePath) {
     const absolutePath = toAbsolute(workDir, params.filePath);
-    ctx.fileManager.getTracked(ctx.webviewId).delete(absolutePath);
+    BaselineManager.clearBaseline(workDir, sessionId, params.filePath);
+    trackedFiles.delete(absolutePath);
   } else {
+    BaselineManager.clearBaselines(workDir, sessionId, trackedFiles);
     ctx.fileManager.clearTracked(ctx.webviewId);
   }
 
-  const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
-  const changes = await GitManager.getChanges(workDir, sessionId, trackedFiles);
+  const newTracked = ctx.fileManager.getTracked(ctx.webviewId);
+  const changes = await BaselineManager.getChanges(workDir, sessionId, newTracked);
   ctx.broadcast(Events.FileChangesUpdated, changes, ctx.webviewId);
+
   return { ok: true };
 };
 

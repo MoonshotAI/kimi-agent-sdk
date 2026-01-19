@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "node:path";
 import * as fs from "fs";
-import { GitManager } from "./git.manager";
+import { BaselineManager } from "./baseline.manager";
 import { Events } from "../../shared/bridge";
 import type { ProjectFile } from "../../shared/types";
 
@@ -119,7 +119,7 @@ export class FileManager {
         continue;
       }
 
-      const changes = await GitManager.getChanges(workDir, state.sessionId, state.trackedFiles);
+      const changes = await BaselineManager.getChanges(workDir, state.sessionId, state.trackedFiles);
       this.broadcast(Events.FileChangesUpdated, changes, webviewId);
     }
   }

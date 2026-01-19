@@ -1,6 +1,6 @@
 import { Methods, Events } from "shared/bridge";
 import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult } from "@moonshot-ai/kimi-agent-sdk";
-import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus } from "shared/types";
+import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus, DiffInfo } from "shared/types";
 import type { UIStreamEvent } from "shared/types";
 
 interface PendingRequest {
@@ -208,8 +208,8 @@ class Bridge {
     return this.call<{ ok: boolean }>(Methods.OpenFileDiff, { filePath });
   }
 
-  trackFiles(paths: string[]) {
-    return this.call<FileChange[]>(Methods.TrackFiles, { paths });
+  trackFiles(paths: string[], diffs?: DiffInfo[]) {
+    return this.call<FileChange[]>(Methods.TrackFiles, { paths, diffs });
   }
 
   clearTrackedFiles() {

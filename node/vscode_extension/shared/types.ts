@@ -29,6 +29,11 @@ export interface FileChange {
   deletions: number;
 }
 
+export interface DiffInfo {
+  path: string;
+  oldText: string;
+}
+
 export interface ExtensionConfig {
   executablePath: string;
   yoloMode: boolean;

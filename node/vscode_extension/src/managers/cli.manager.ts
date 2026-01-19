@@ -56,7 +56,7 @@ export class CLIManager {
 
   constructor(private context: vscode.ExtensionContext) {
     this.binDir = path.join(context.globalStorageUri.fsPath, "bin");
-    this.executable = path.join(this.binDir, process.platform === "win32" ? "kimi.exe" : "kimi");
+    this.executable = path.join(this.binDir, "kimi", process.platform === "win32" ? "kimi.exe" : "kimi");
   }
 
   getExecutablePath(): string {

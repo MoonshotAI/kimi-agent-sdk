@@ -3,7 +3,7 @@ import { useApprovalStore } from "./approval.store";
 import { isPreflightError, getUserMessage, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
-import type { UIStreamEvent, StreamError } from "shared/types";
+import type { UIStreamEvent, StreamError, DiffInfo } from "shared/types";
 
 type EventHandler = (draft: ChatState, payload: any) => void;
 
@@ -18,11 +18,17 @@ function addTokenUsage(target: TokenUsage, source: TokenUsage): void {
   target.input_cache_creation += source.input_cache_creation || 0;
 }
 
+function extractDiffInfo(display?: { type: string; path?: string; old_text?: string }[]): DiffInfo[] {
+  if (!display) {
+    return [];
+  }
+  return display.filter((block): block is DiffBlock => block.type === "diff" && typeof block.path === "string").map((block) => ({ path: block.path, oldText: block.old_text }));
+}
+
 function extractDiffPaths(display?: { type: string; path?: string }[]): string[] {
   if (!display) {
     return [];
   }
-
   return display.filter((block): block is DiffBlock => block.type === "diff" && typeof block.path === "string").map((block) => block.path);
 }
 
@@ -52,7 +58,6 @@ function findToolUseItem(steps: UIStep[], toolId: string): (UIStepItem & { type:
 
         if (item.subagent_steps) {
           const found = findToolUseItem(item.subagent_steps, toolId);
-
           if (found) {
             return found;
           }
@@ -76,7 +81,6 @@ function resolveSubagentTarget(
   }
 
   const toolItem = findToolUseItem(steps, task_tool_call_id);
-
   if (!toolItem) {
     return null;
   }
@@ -88,7 +92,6 @@ function resolveSubagentTarget(
   return { steps: toolItem.subagent_steps, event, toolItem };
 }
 
-// Mark steps 中的 text/thinking 为 finished
 function finishAllTextItems(steps: UIStep[]): void {
   for (const step of steps) {
     for (const item of step.items) {
@@ -109,7 +112,6 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
     if (!currentStep) {
       return;
     }
-
     const last = currentStep.items.at(-1);
 
     if (last?.type === type) {
@@ -194,7 +196,6 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
       if (!currentStep) {
         break;
       }
-
       finishAllTextItems(steps);
       const call = event.payload as ToolCall;
 
@@ -213,11 +214,9 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
 
     case "ToolCallPart": {
       const { arguments_part } = event.payload;
-
       if (!arguments_part) {
         break;
       }
-
       const tool = findLastToolUse();
 
       if (tool) {
@@ -232,9 +231,10 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
       updateToolResult(result.tool_call_id, result.return_value);
 
       const paths = extractDiffPaths(result.return_value.display);
+      const diffs = extractDiffInfo(result.return_value.display);
 
       if (paths.length > 0) {
-        bridge.trackFiles(paths);
+        bridge.trackFiles(paths, diffs);
       }
 
       break;
@@ -246,7 +246,6 @@ function isTaskToolResult(steps: UIStep[] | undefined, toolCallId: string): bool
   if (!steps) {
     return false;
   }
-
   const toolItem = findToolUseItem(steps, toolCallId);
   return toolItem?.call.name === "Task";
 }
@@ -413,7 +412,6 @@ const eventHandlers: Record<string, EventHandler> = {
 
   ContentPart: (draft, payload: ContentPart) => {
     const last = getLastAssistant(draft);
-
     if (!last?.steps) {
       return;
     }
@@ -427,27 +425,22 @@ const eventHandlers: Record<string, EventHandler> = {
 
   ToolCall: (draft, payload: ToolCall) => {
     const last = getLastAssistant(draft);
-
     if (!last?.steps) {
       return;
     }
-
     applyEventToSteps(last.steps, { type: "ToolCall", payload });
   },
 
   ToolCallPart: (draft, payload) => {
     const last = getLastAssistant(draft);
-
     if (!last?.steps) {
       return;
     }
-
     applyEventToSteps(last.steps, { type: "ToolCallPart", payload });
   },
 
   ToolResult: (draft, payload: ToolResult) => {
     const last = getLastAssistant(draft);
-
     if (!last?.steps) {
       return;
     }
@@ -462,13 +455,11 @@ const eventHandlers: Record<string, EventHandler> = {
 
   SubagentEvent: (draft, payload: SubagentEvent) => {
     const last = getLastAssistant(draft);
-
     if (!last?.steps) {
       return;
     }
 
     const target = resolveSubagentTarget(last.steps, payload);
-
     if (!target) {
       return;
     }

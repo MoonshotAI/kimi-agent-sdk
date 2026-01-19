@@ -1,6 +1,6 @@
 import { Methods } from "../../shared/bridge";
 import { listSessions, parseSessionEvents, deleteSession } from "../../../agent_sdk";
-import { GitManager } from "../managers";
+import { BaselineManager } from "../managers";
 import type { SessionInfo, StreamEvent } from "../../../agent_sdk";
 import type { Handler } from "./types";
 
@@ -23,7 +23,7 @@ export const sessionHandlers: Record<string, Handler<any, any>> = {
     }
 
     ctx.fileManager.setSessionId(ctx.webviewId, params.kimiSessionId);
-    await GitManager.initBaseline(ctx.workDir, params.kimiSessionId);
+    BaselineManager.initSession(ctx.workDir, params.kimiSessionId);
 
     return parseSessionEvents(ctx.workDir, params.kimiSessionId);
   },

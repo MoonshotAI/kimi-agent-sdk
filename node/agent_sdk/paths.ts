@@ -21,7 +21,7 @@ export const KimiPaths = {
     return path.join(KIMI_HOME, "sessions", hashPath(workDir), sessionId);
   },
 
-  shadowGitDir(workDir: string, sessionId: string): string {
-    return path.join(KIMI_HOME, "sessions", hashPath(workDir), sessionId, "shadow", ".git");
+  baselineDir(workDir: string, sessionId: string): string {
+    return path.join(KIMI_HOME, "sessions", hashPath(workDir), sessionId, "baseline");
   },
 };

@@ -58,14 +58,17 @@ const MCPConfigSchema = z.object({
   client: MCPClientConfigSchema.default({}),
 });
 
-const DefaultThinkingSchema = z.preprocess(
-  (val) => {
-    if (val === "on") return true;
-    if (val === "off") return false;
+const DefaultThinkingSchema = z
+  .preprocess((val) => {
+    if (val === "on") {
+      return true;
+    }
+    if (val === "off") {
+      return false;
+    }
     return val;
-  },
-  z.boolean()
-).default(false);
+  }, z.boolean())
+  .default(false);
 
 const ConfigSchema = z.object({
   default_model: z.string().default(""),
@@ -138,15 +141,15 @@ export function saveDefaultModel(modelId: string, thinking?: boolean): void {
   }
 
   // Update default_thinking if provided
-if (thinking !== undefined) {
+  if (thinking !== undefined) {
     const thinkingRegex = /^default_thinking\s*=\s*(?:true|false|"[^"]*")/m;
     const thinkingValue = thinking ? "true" : "false";
     if (thinkingRegex.test(content)) {
-      content = content.replace(thinkingRegex, `default_thinking = ${thinkingValue}`);  // 不带引号
+      content = content.replace(thinkingRegex, `default_thinking = ${thinkingValue}`); // 不带引号
     } else {
-      content = content.replace(/^(default_model\s*=\s*"[^"]*")/m, `$1\ndefault_thinking = ${thinkingValue}`);  // 不带引号
+      content = content.replace(/^(default_model\s*=\s*"[^"]*")/m, `$1\ndefault_thinking = ${thinkingValue}`); // 不带引号
     }
-}
+  }
 
   fs.writeFileSync(configPath, content, "utf-8");
 }
