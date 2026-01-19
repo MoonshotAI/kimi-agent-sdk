@@ -78,51 +78,72 @@ func WaitStreamTimeout(timeout time.Duration) CodecOption {
 }
 
 type Codec struct {
-	clientMethodRenamer Renamer
-	serverMethodRenamer Renamer
-	jsonidGenerator     Generator[string]
-	shutdownTimeout     time.Duration
-	waitStreamTimeout   time.Duration
+	// --- Configuration ---
+	// Configurable options for method renaming, ID generation, and timeouts.
+	clientMethodRenamer Renamer           // Renames Go RPC method names to JSON-RPC method names.
+	serverMethodRenamer Renamer           // Renames JSON-RPC method names back to Go RPC format.
+	jsonidGenerator     Generator[string] // Generates JSON-RPC request IDs.
+	shutdownTimeout     time.Duration     // Graceful shutdown timeout (default 15s).
+	waitStreamTimeout   time.Duration     // Stream idle wait timeout (default 30s).
 
-	donectx context.Context
-	cancel  context.CancelFunc
-	wg      sync.WaitGroup
+	// --- Lifecycle control ---
+	// Context and wait group for managing goroutine lifecycle.
+	donectx context.Context    // Cancellation context to signal all goroutines to exit.
+	cancel  context.CancelFunc // Cancel function for donectx.
+	wg      sync.WaitGroup     // Tracks send() and recv() goroutines.
 
-	rwc io.ReadWriteCloser
-	enc *json.Encoder
-	dec *json.Decoder
-	err atomic.Value
+	// --- Underlying I/O ---
+	// Low-level I/O components for reading and writing JSON-RPC messages.
+	rwc io.ReadWriteCloser // Underlying read-write connection.
+	enc *json.Encoder      // JSON encoder (used by send goroutine).
+	dec *json.Decoder      // JSON decoder (used by recv goroutine).
+	err atomic.Value       // Stores the first I/O error atomically.
 
+	// --- Request flight counting ---
+	// Tracks requests that have been decoded but not yet registered.
 	// inflight counts decoded requests that have not yet been registered in srvreqids.
 	// This closes a race window between recv() delivering a request and ReadRequestHeader()
 	// adding it to srvreqids.
 	inflight atomic.Int64
 
-	srvlock   sync.Mutex
-	seq       uint64
-	srvreqids map[uint64]string
-	thisreq   Request
+	// --- Server-side request handling ---
+	// State for processing incoming requests on the server side.
+	srvlock   sync.Mutex        // Mutex protecting server-side state.
+	seq       uint64            // Server request sequence number.
+	srvreqids map[uint64]string // Maps seq -> JSON-RPC ID.
+	thisreq   Request           // Current request being processed.
 
-	clilock     sync.Mutex
-	clireqids   map[string]uint64
-	reqmeth     map[string]string
-	thisres     Response
-	rxcloseonce sync.Once
+	// --- Client-side request/response handling ---
+	// State for processing outgoing requests and incoming responses on the client side.
+	clilock     sync.Mutex        // Mutex protecting client-side state.
+	clireqids   map[string]uint64 // Maps JSON-RPC ID -> seq.
+	reqmeth     map[string]string // Maps JSON-RPC ID -> method name.
+	thisres     Response          // Current response being processed.
+	rxcloseonce sync.Once         // Ensures outpls is closed only once.
 
-	outpls      chan *Payload
-	txcloseonce sync.Once
+	// --- Output channel ---
+	// Channel for outbound payloads to be sent.
+	outpls      chan *Payload // Outbound payload channel.
+	txcloseonce sync.Once     // Ensures inreqs/inress are closed only once.
 
-	senderlock     sync.RWMutex
-	senders        map[string]<-chan json.RawMessage
-	senderwaker    chan string
-	receiverlock   sync.RWMutex
-	receivers      map[string]chan<- json.RawMessage
-	receiverwaker  chan string
-	receivercloser chan string
-	receivetime    map[string]time.Time
+	// --- Stream sender management ---
+	// Manages streaming data senders.
+	senderlock  sync.RWMutex                    // RWMutex protecting senders map.
+	senders     map[string]<-chan json.RawMessage // Maps JSON-RPC ID -> send channel.
+	senderwaker chan string                     // Wakes up the send() goroutine.
 
-	inreqs chan Request
-	inress chan Response
+	// --- Stream receiver management ---
+	// Manages streaming data receivers.
+	receiverlock   sync.RWMutex                    // RWMutex protecting receivers map.
+	receivers      map[string]chan<- json.RawMessage // Maps JSON-RPC ID -> receive channel.
+	receiverwaker  chan string                     // Wakes up consumependings().
+	receivercloser chan string                     // Actively closes a stream receiver.
+	receivetime    map[string]time.Time            // Maps JSON-RPC ID -> last receive time.
+
+	// --- Input channels ---
+	// Channels for inbound requests and responses.
+	inreqs chan Request  // Inbound request channel (recv -> ReadRequestHeader).
+	inress chan Response // Inbound response channel (recv -> ReadResponseHeader).
 }
 
 func (c *Codec) loadOrFallbackErr(fallback error) error {
