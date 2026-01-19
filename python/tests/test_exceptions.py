@@ -50,9 +50,7 @@ class _DummySession:
     async def __aexit__(self, *_args: Any) -> None:
         return None
 
-    async def prompt(
-        self, *_args: Any, **_kwargs: Any
-    ) -> AsyncGenerator[Any, None]:
+    async def prompt(self, *_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         return
         yield
 
