@@ -19,14 +19,9 @@ if TYPE_CHECKING:
     from kimi_agent_sdk import MCPConfig
 
 
-def _coerce_work_dir(work_dir: Path | str | None) -> KaosPath:
-    if work_dir is None:
-        return KaosPath.cwd()
-    if isinstance(work_dir, KaosPath):
-        return work_dir.expanduser()
-    if isinstance(work_dir, Path):
-        return KaosPath.unsafe_from_local_path(work_dir).expanduser()
-    return KaosPath(str(work_dir)).expanduser()
+def _ensure_type(name: str, value: object, expected: type) -> None:
+    if not isinstance(value, expected):
+        raise TypeError(f"{name} must be {expected.__name__}, got {type(value).__name__}")
 
 
 class Session:
@@ -44,7 +39,7 @@ class Session:
 
     @staticmethod
     async def create(
-        work_dir: Path | str | None = None,
+        work_dir: KaosPath | None = None,
         *,
         # Basic configuration
         session_id: str | None = None,
@@ -56,7 +51,7 @@ class Session:
         # Extensions
         agent_file: Path | None = None,
         mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
-        skills_dir: Path | None = None,
+        skills_dir: KaosPath | None = None,
         # Loop control
         max_steps_per_turn: int | None = None,
         max_retries_per_step: int | None = None,
@@ -66,7 +61,7 @@ class Session:
         Create a new Session instance.
 
         Args:
-            work_dir: Working directory. Defaults to current directory.
+            work_dir: Working directory (KaosPath). Defaults to current directory.
             session_id: Custom session ID (optional).
             config: Configuration object or path to a config file.
             model: Model name, e.g. "kimi".
@@ -74,7 +69,7 @@ class Session:
             yolo: Automatically approve all approval requests.
             agent_file: Agent specification file path.
             mcp_configs: MCP server configurations.
-            skills_dir: Skills directory.
+            skills_dir: Skills directory (KaosPath).
             max_steps_per_turn: Maximum number of steps in one turn.
             max_retries_per_step: Maximum number of retries per step.
             max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
@@ -91,7 +86,14 @@ class Session:
             MCPRuntimeError(KimiCLIException, RuntimeError): When any MCP server cannot be
                 connected.
         """
-        work_dir_path = _coerce_work_dir(work_dir)
+        if work_dir is None:
+            work_dir_path = KaosPath.cwd()
+        else:
+            _ensure_type("work_dir", work_dir, KaosPath)
+            work_dir_path = work_dir
+
+        if skills_dir is not None:
+            _ensure_type("skills_dir", skills_dir, KaosPath)
         cli_session = await CliSession.create(work_dir_path, session_id)
         cli = await KimiCLI.create(
             cli_session,
@@ -110,7 +112,7 @@ class Session:
 
     @staticmethod
     async def resume(
-        work_dir: Path | str,
+        work_dir: KaosPath,
         session_id: str | None = None,
         *,
         # Basic configuration
@@ -122,7 +124,7 @@ class Session:
         # Extensions
         agent_file: Path | None = None,
         mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
-        skills_dir: Path | None = None,
+        skills_dir: KaosPath | None = None,
         # Loop control
         max_steps_per_turn: int | None = None,
         max_retries_per_step: int | None = None,
@@ -132,7 +134,7 @@ class Session:
         Resume an existing session.
 
         Args:
-            work_dir: Working directory to resume from.
+            work_dir: Working directory to resume from (KaosPath).
             session_id: Session ID to resume. If None, resumes the most recent session.
             config: Configuration object or path to a config file.
             model: Model name, e.g. "kimi".
@@ -140,7 +142,7 @@ class Session:
             yolo: Automatically approve all approval requests.
             agent_file: Agent specification file path.
             mcp_configs: MCP server configurations.
-            skills_dir: Skills directory.
+            skills_dir: Skills directory (KaosPath).
             max_steps_per_turn: Maximum number of steps in one turn.
             max_retries_per_step: Maximum number of retries per step.
             max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
@@ -157,11 +159,13 @@ class Session:
             MCPRuntimeError(KimiCLIException, RuntimeError): When any MCP server cannot be
                 connected.
         """
-        work_dir_path = _coerce_work_dir(work_dir)
+        _ensure_type("work_dir", work_dir, KaosPath)
+        if skills_dir is not None:
+            _ensure_type("skills_dir", skills_dir, KaosPath)
         if session_id is None:
-            cli_session = await CliSession.continue_(work_dir_path)
+            cli_session = await CliSession.continue_(work_dir)
         else:
-            cli_session = await CliSession.find(work_dir_path, session_id)
+            cli_session = await CliSession.find(work_dir, session_id)
         if cli_session is None:
             return None
         cli = await KimiCLI.create(

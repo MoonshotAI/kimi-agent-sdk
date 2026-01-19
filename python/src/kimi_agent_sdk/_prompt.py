@@ -5,6 +5,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from kaos.path import KaosPath
 from kimi_cli.config import Config
 from kimi_cli.wire.types import ApprovalRequest
 from kosong.message import ContentPart, Message
@@ -22,7 +23,7 @@ async def prompt(
     user_input: str | list[ContentPart],
     *,
     # Basic configuration
-    work_dir: Path | str | None = None,
+    work_dir: KaosPath | None = None,
     config: Config | Path | None = None,
     model: str | None = None,
     thinking: bool = False,
@@ -32,7 +33,7 @@ async def prompt(
     # Extensions
     agent_file: Path | None = None,
     mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
-    skills_dir: Path | None = None,
+    skills_dir: KaosPath | None = None,
     # Loop control
     max_steps_per_turn: int | None = None,
     max_retries_per_step: int | None = None,
@@ -48,7 +49,7 @@ async def prompt(
 
     Args:
         user_input: User input, can be plain text or a list of content parts.
-        work_dir: Working directory. Defaults to current directory.
+        work_dir: Working directory (KaosPath). Defaults to current directory.
         config: Configuration object or path to a config file.
         model: Model name, e.g. "kimi".
         thinking: Whether to enable thinking mode (requires model support).
@@ -56,7 +57,7 @@ async def prompt(
         approval_handler_fn: Custom approval handler callback (sync or async).
         agent_file: Agent specification file path.
         mcp_configs: MCP server configurations.
-        skills_dir: Skills directory.
+        skills_dir: Skills directory (KaosPath).
         max_steps_per_turn: Maximum number of steps in one turn.
         max_retries_per_step: Maximum number of retries per step.
         max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
