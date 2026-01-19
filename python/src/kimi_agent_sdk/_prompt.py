@@ -78,13 +78,9 @@ async def prompt(
     """
 
     if yolo and approval_handler_fn is not None:
-        raise PromptValidationError(
-            "yolo and approval_handler_fn are mutually exclusive"
-        )
+        raise PromptValidationError("yolo and approval_handler_fn are mutually exclusive")
     if not yolo and approval_handler_fn is None:
-        raise PromptValidationError(
-            "Either yolo=True or approval_handler_fn must be provided"
-        )
+        raise PromptValidationError("Either yolo=True or approval_handler_fn must be provided")
 
     def _auto_approve(request: ApprovalRequest) -> None:
         request.resolve("approve")
