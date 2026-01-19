@@ -48,6 +48,7 @@ jobs:
       - uses: xiaoju111a/kimi-actions@main
         with:
           kimi_api_key: ${{ secrets.KIMI_API_KEY }}
+          kimi_base_url: ${{ secrets.KIMI_BASE_URL }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           auto_review: 'false'
 
@@ -64,5 +65,6 @@ jobs:
       - uses: xiaoju111a/kimi-actions@main
         with:
           kimi_api_key: ${{ secrets.KIMI_API_KEY }}
+          kimi_base_url: ${{ secrets.KIMI_BASE_URL }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           auto_triage: 'false'
