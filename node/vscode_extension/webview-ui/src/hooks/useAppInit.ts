@@ -1,10 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { bridge, Events } from "@/services";
 import { useSettingsStore } from "@/stores";
 import type { ExtensionConfig } from "shared/types";
 
-export type InitStatus = "loading" | "error" | "ready";
-export type ErrorType = "no-workspace" | "cli-error" | "no-models" | null;
+export type InitStatus = "loading" | "ready" | "error";
+export type ErrorType = "cli-error" | "no-models" | "no-workspace" | null;
 
 export interface AppInitState {
   status: InitStatus;
@@ -12,116 +12,114 @@ export interface AppInitState {
   errorMessage: string | null;
 }
 
-interface ConfigChangedPayload {
-  config: ExtensionConfig;
-  changedKeys: string[];
+function errorState(type: ErrorType, message: string): AppInitState {
+  return { status: "error", errorType: type, errorMessage: message };
 }
 
 export function useAppInit(): AppInitState {
-  const [state, setState] = useState<AppInitState>({
-    status: "ready",
-    errorType: null,
-    errorMessage: null,
-  });
+  const [state, setState] = useState<AppInitState>({ status: "ready", errorType: null, errorMessage: null });
+  const [initKey, setInitKey] = useState(0);
+  const { initModels, setExtensionConfig, setMCPServers } = useSettingsStore();
 
-  const { initModels, setExtensionConfig, setMCPServers, models, modelsLoaded } = useSettingsStore();
-
-  const checkCLIAndLoadModels = useCallback(async (): Promise<boolean> => {
-    try {
-      let installed = await bridge.checkCLI();
-      console.log("CLI installed:", installed.ok);
-      if (!installed.ok) {
-        console.log("Installing CLI...");
+  // 监听配置变化，executablePath 改变时重新初始化
+  useEffect(() => {
+    return bridge.on<{ config: ExtensionConfig; changedKeys: string[] }>(Events.ExtensionConfigChanged, ({ config, changedKeys }) => {
+      setExtensionConfig(config);
+      if (changedKeys.includes("executablePath")) {
         setState({ status: "loading", errorType: null, errorMessage: null });
-
-        await bridge.installCLI();
-        installed = await bridge.checkCLI();
-
-        if (!installed.ok) {
-          return false;
-        }
+        setInitKey((k) => k + 1);
       }
+    });
+  }, [setExtensionConfig]);
 
-      const modelsData = await bridge.getModels();
-      initModels(modelsData.models, modelsData.defaultModel, modelsData.defaultThinking);
-      return true;
-    } catch {
-      return false;
-    }
-  }, [initModels]);
-
-  // Initial load
   useEffect(() => {
     let cancelled = false;
 
     async function init() {
       try {
-        // Check workspace
+        // 1. Check workspace
         const workspace = await bridge.checkWorkspace();
-
         if (!workspace.hasWorkspace) {
-          setState({ status: "error", errorType: "no-workspace", errorMessage: null });
+          setState(errorState("no-workspace", "Please open a folder to start."));
           return;
         }
 
-        // Load extension config
-        const extensionConfig = await bridge.getExtensionConfig();
+        // 2. Check if CLI been warmed up
+        const { warmed } = await bridge.isCliWarmed();
+        if (cancelled) {
+          return;
+        }
+        if (!warmed) {
+          setState({ status: "loading", errorType: null, errorMessage: null });
+        }
 
-        setExtensionConfig(extensionConfig);
+        // 3. Load configuration in parallel
+        const configPromise = bridge.getExtensionConfig().then((config) => {
+          if (!cancelled) {
+            setExtensionConfig(config);
+          }
+        });
 
-        // Check CLI and load models
-        const ok = await checkCLIAndLoadModels();
+        const mcpPromise = bridge.getMCPServers().then((servers) => {
+          if (!cancelled) {
+            setMCPServers(servers);
+          }
+        });
+
+        // 4. Check CLI (this might be a slow operation)
+        let cliResult = await bridge.checkCLI();
+        if (cancelled) {
+          return;
+        }
+        console.log("[Kimi Code] App init: CLI check result:", cliResult);
+
+        // 5. If CLI check failed, try to install
+        if (!cliResult.ok) {
+          console.log("[Kimi Code] App init: Attempting to install Kimi CLI...");
+          await bridge.installCLI();
+          if (cancelled) {
+            return;
+          }
+
+          console.log("[Kimi Code] App init: Checking Kimi CLI after installation...");
+          cliResult = await bridge.checkCLI();
+        }
+
+        if (!cliResult.ok) {
+          setState(errorState("cli-error", "Kimi CLI is not installed or outdated."));
+          return;
+        }
+
+        // 6. Load models
+        const kimiConfig = await bridge.getModels();
         if (cancelled) {
           return;
         }
 
-        if (!ok) {
-          setState({ status: "error", errorType: "cli-error", errorMessage: "Kimi CLI is not properly configured" });
+        if (!kimiConfig.models || kimiConfig.models.length === 0) {
+          setState(errorState("no-models", "No models configured. Please run 'kimi setup' first."));
           return;
         }
 
-        // Load MCP servers
-        bridge.getMCPServers().then(setMCPServers);
+        initModels(kimiConfig.models, kimiConfig.defaultModel, kimiConfig.defaultThinking);
 
-        setState({ status: "ready", errorType: null, errorMessage: null });
+        await Promise.all([configPromise, mcpPromise]);
+        if (!cancelled) {
+          setState({ status: "ready", errorType: null, errorMessage: null });
+        }
       } catch (err) {
-        setState({
-          status: "error",
-          errorType: "cli-error",
-          errorMessage: err instanceof Error ? err.message : String(err),
-        });
+        if (!cancelled) {
+          setState(errorState("cli-error", err instanceof Error ? err.message : "Failed to initialize"));
+        }
       }
     }
 
     init();
+
     return () => {
       cancelled = true;
     };
-  }, [setExtensionConfig, setMCPServers, checkCLIAndLoadModels]);
-
-  // Listen for config changes
-  useEffect(() => {
-    return bridge.on<ConfigChangedPayload>(Events.ExtensionConfigChanged, async (payload) => {
-      setExtensionConfig(payload.config);
-
-      if (!payload.changedKeys.includes("executablePath")) {
-        return;
-      }
-
-      // Re-check CLI when executable path changes
-      const ok = await checkCLIAndLoadModels();
-      if (ok) {
-        setState({ status: "ready", errorType: null, errorMessage: null });
-      } else {
-        setState({ status: "error", errorType: "cli-error", errorMessage: "Kimi CLI is not properly configured" });
-      }
-    });
-  }, [setExtensionConfig, checkCLIAndLoadModels]);
-
-  // Check for no models after loading
-  if (state.status === "ready" && modelsLoaded && models.length === 0) {
-    return { status: "error", errorType: "no-models", errorMessage: null };
-  }
+  }, [initKey, initModels, setExtensionConfig, setMCPServers]);
 
   return state;
 }

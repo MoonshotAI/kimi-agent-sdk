@@ -10,12 +10,12 @@ import { useChatStore, useSettingsStore } from "./stores";
 import { bridge, Events } from "./services";
 import { useAppInit } from "./hooks/useAppInit";
 import { isPreflightError, getUserMessage } from "shared/errors";
-import type { UIStreamEvent, StreamError } from "shared/types";
+import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
 function MainContent() {
   const { processEvent, startNewConversation } = useChatStore();
-  const { setMCPServers, extensionConfig } = useSettingsStore();
+  const { setMCPServers, setExtensionConfig, extensionConfig } = useSettingsStore();
 
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
@@ -37,11 +37,12 @@ function MainContent() {
   useEffect(() => {
     const unsubs = [
       bridge.on(Events.MCPServersChanged, setMCPServers),
+      bridge.on(Events.ExtensionConfigChanged, ({ config }: { config: ExtensionConfig }) => setExtensionConfig(config)),
       bridge.on(Events.FocusInput, () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()),
       bridge.on(Events.NewConversation, () => startNewConversation()),
     ];
     return () => unsubs.forEach((u) => u());
-  }, [setMCPServers, startNewConversation]);
+  }, [setMCPServers, setExtensionConfig, startNewConversation]);
 
   useEffect(() => {
     if (!extensionConfig.enableNewConversationShortcut) {

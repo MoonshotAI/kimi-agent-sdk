@@ -14,9 +14,12 @@ export function ConfigErrorScreen({ type, errorMessage }: Props) {
       <div className="h-full flex items-center justify-center p-6">
         <div className="text-center space-y-4">
           <KimiMascot className="h-10 mx-auto opacity-50" />
-          <div className="inline-flex items-center gap-2 text-muted-foreground">
-            <IconLoader2 className="size-4 animate-spin" />
-            <span className="text-sm">Initializing...</span>
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 text-muted-foreground">
+              <IconLoader2 className="size-4 animate-spin" />
+              <span className="text-sm">Initializing Kimi...</span>
+            </div>
+            <p className="text-xs text-muted-foreground/70">First launch may take a moment</p>
           </div>
         </div>
       </div>
@@ -85,7 +88,7 @@ export function ConfigErrorScreen({ type, errorMessage }: Props) {
             <IconTerminal2 className="size-4" />
             <span>Run in terminal:</span>
           </div>
-          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">./kimia and /setup</code>
+          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">./kimi and run /setup</code>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ const MIN_CLI_VERSION = "0.72";
 const MIN_WIRE_PROTOCOL_VERSION = "1";
 const GITHUB_RELEASE_BASE = "https://github.com/MoonshotAI/kimi-cli/releases/latest/download";
 const GITHUB_API_LATEST = "https://api.github.com/repos/MoonshotAI/kimi-cli/releases/latest";
+const WARMED_FLAG = ".warmed";
 
 interface CLIInfo {
   kimi_cli_version: string;
@@ -53,14 +54,38 @@ function compareVersions(a: string, b: string): number {
 export class CLIManager {
   private binDir: string;
   private executable: string;
+  private warmedPath: string;
 
   constructor(private context: vscode.ExtensionContext) {
-    this.binDir = path.join(context.globalStorageUri.fsPath, "bin");
+    this.binDir = path.join(context.globalStorageUri.fsPath, "bin", "kimi");
     this.executable = path.join(this.binDir, process.platform === "win32" ? "kimi.exe" : "kimi");
+    this.warmedPath = path.join(context.globalStorageUri.fsPath, "bin", WARMED_FLAG);
   }
 
   getExecutablePath(): string {
     return vscode.workspace.getConfiguration("kimi").get<string>("executablePath", "") || this.executable;
+  }
+
+  isWarmed(): boolean {
+    console.log(`[Kimi CLI] Checking warmed status at ${this.warmedPath}`);
+    // In the case of user-specified CLI path, always consider it warmed
+    const userPath = vscode.workspace.getConfiguration("kimi").get<string>("executablePath", "");
+    if (userPath) {
+      console.log("[Kimi CLI] User-specified executable path detected, considering warmed.");
+      return true;
+    }
+    return fs.existsSync(this.warmedPath);
+  }
+
+  markWarmed(): void {
+    fs.mkdirSync(this.binDir, { recursive: true });
+    fs.writeFileSync(this.warmedPath, Date.now().toString(), "utf-8");
+  }
+
+  clearWarmed(): void {
+    if (fs.existsSync(this.warmedPath)) {
+      fs.unlinkSync(this.warmedPath);
+    }
   }
 
   async checkInstalled(): Promise<boolean> {
@@ -96,6 +121,8 @@ export class CLIManager {
   }
 
   private async install(): Promise<void> {
+    this.clearWarmed();
+
     const platform = this.getPlatform();
     if (!platform) {
       throw new Error(`Unsupported: ${process.platform} ${process.arch}. Manual install: uv tool install --python 3.14 kimi-cli`);
@@ -162,6 +189,7 @@ export class CLIManager {
         }
 
         await fs.promises.unlink(archivePath).catch(() => {});
+
         if (process.platform !== "win32") {
           await fs.promises.chmod(this.executable, 0o755);
         }

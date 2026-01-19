@@ -92,6 +92,10 @@ class Bridge {
     return this.call<WorkspaceStatus>(Methods.CheckWorkspace);
   }
 
+  isCliWarmed() {
+    return this.call<{ warmed: boolean }>(Methods.IsCliWarmed);
+  }
+
   checkCLI() {
     return this.call<{ ok: boolean }>(Methods.CheckCLI);
   }
