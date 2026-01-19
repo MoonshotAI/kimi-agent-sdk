@@ -340,6 +340,132 @@ func TestCodec_RPC_UnknownMethod_DiscardBodyAndError(t *testing.T) {
 	}
 }
 
+func TestCodec_RPC_UnknownMethod_ReturnsMethodNotFoundError(t *testing.T) {
+	client := newRPCClient(t, TestWireService{})
+
+	err := client.Call("Transport.Unknown", &TestArgs{UserInput: "x"}, &TestReply{})
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+
+	parsed, ok := ParseError(err)
+	if !ok {
+		t.Fatalf("expected ParseError ok=true, err=%v", err)
+	}
+	if parsed.Code != ErrorCodeMethodNotFound {
+		t.Fatalf("expected error code %d, got %d", ErrorCodeMethodNotFound, parsed.Code)
+	}
+	if !strings.Contains(parsed.Message, "can't find method") {
+		t.Fatalf("unexpected error message: %q", parsed.Message)
+	}
+}
+
+func TestCodec_RPC_UnknownService_ReturnsMethodNotFoundError(t *testing.T) {
+	serverConn, peerConn := net.Pipe()
+	// Use codec without renamer so method names are passed through as-is.
+	serverCodec := NewCodec(serverConn, ShutdownTimeout(200*time.Millisecond))
+
+	srv := rpc.NewServer()
+	if err := srv.RegisterName(testServiceName, TestWireService{}); err != nil {
+		t.Fatalf("RegisterName: %v", err)
+	}
+	done := make(chan struct{})
+	go func() {
+		srv.ServeCodec(serverCodec)
+		close(done)
+	}()
+
+	enc := json.NewEncoder(peerConn)
+	dec := json.NewDecoder(peerConn)
+
+	// Send request with unknown service name.
+	params, _ := json.Marshal(&TestArgs{UserInput: "x"})
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Method:  "Unknown.Prompt", // Unknown service
+		Params:  params,
+	}); err != nil {
+		t.Fatalf("Encode request: %v", err)
+	}
+
+	var resp Payload
+	if err := dec.Decode(&resp); err != nil {
+		t.Fatalf("Decode response: %v", err)
+	}
+
+	var parsed Error
+	if err := json.Unmarshal(resp.Error, &parsed); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+	if parsed.Code != ErrorCodeMethodNotFound {
+		t.Fatalf("expected error code %d, got %d", ErrorCodeMethodNotFound, parsed.Code)
+	}
+	if !strings.Contains(parsed.Message, "can't find service") {
+		t.Fatalf("unexpected error message: %q", parsed.Message)
+	}
+
+	_ = peerConn.Close()
+	select {
+	case <-done:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("rpc server did not exit")
+	}
+}
+
+func TestCodec_RPC_IllFormedMethod_ReturnsMethodNotFoundError(t *testing.T) {
+	serverConn, peerConn := net.Pipe()
+	// Use codec without renamer so method names are passed through as-is.
+	serverCodec := NewCodec(serverConn, ShutdownTimeout(200*time.Millisecond))
+
+	srv := rpc.NewServer()
+	if err := srv.RegisterName(testServiceName, TestWireService{}); err != nil {
+		t.Fatalf("RegisterName: %v", err)
+	}
+	done := make(chan struct{})
+	go func() {
+		srv.ServeCodec(serverCodec)
+		close(done)
+	}()
+
+	enc := json.NewEncoder(peerConn)
+	dec := json.NewDecoder(peerConn)
+
+	// Send request with ill-formed method name (no dot).
+	params, _ := json.Marshal(&TestArgs{UserInput: "x"})
+	if err := enc.Encode(Payload{
+		Version: JSONRPC2Version,
+		ID:      "1",
+		Method:  "nodot", // Ill-formed: no dot separator
+		Params:  params,
+	}); err != nil {
+		t.Fatalf("Encode request: %v", err)
+	}
+
+	var resp Payload
+	if err := dec.Decode(&resp); err != nil {
+		t.Fatalf("Decode response: %v", err)
+	}
+
+	var parsed Error
+	if err := json.Unmarshal(resp.Error, &parsed); err != nil {
+		t.Fatalf("Unmarshal error: %v", err)
+	}
+	if parsed.Code != ErrorCodeMethodNotFound {
+		t.Fatalf("expected error code %d, got %d", ErrorCodeMethodNotFound, parsed.Code)
+	}
+	if !strings.Contains(parsed.Message, "ill-formed") {
+		t.Fatalf("unexpected error message: %q", parsed.Message)
+	}
+
+	_ = peerConn.Close()
+	select {
+	case <-done:
+	case <-time.After(1 * time.Second):
+		t.Fatalf("rpc server did not exit")
+	}
+}
+
 func TestParseServerError_EdgeCases(t *testing.T) {
 	if _, ok := ParseServerError[testJSONErr](nil); ok {
 		t.Fatalf("expected ok=false for nil error")

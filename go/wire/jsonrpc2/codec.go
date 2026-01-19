@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/rpc"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -281,6 +282,10 @@ func (c *Codec) recv() {
 		}
 	}
 	consumependings := func() {
+		timeout := c.waitStreamTimeout
+		if timeout == 0 {
+			timeout = 30 * time.Second
+		}
 		for {
 			select {
 			case receiverid := <-c.receiverwaker:
@@ -312,6 +317,9 @@ func (c *Codec) recv() {
 						c.receiverlock.Lock()
 						c.receivetime[receiverid] = time.Now()
 						c.receiverlock.Unlock()
+					case <-time.After(timeout):
+						go requeue(receiverid)
+						continue
 					case <-c.donectx.Done():
 						return
 					}
@@ -473,9 +481,18 @@ func (c *Codec) WriteResponse(r *rpc.Response, x any) error {
 				return c.loadOrFallbackErr(io.EOF)
 			}
 		} else {
-			errmsg := json.RawMessage(r.Error)
-			if !json.Valid(errmsg) {
-				errmsg, _ = json.Marshal(r.Error)
+			var errmsg json.RawMessage
+			// NOTE: The net/rpc package does not export its internal error types,
+			// so we have to match error strings to map them to JSON-RPC 2.0 error codes.
+			if strings.HasPrefix(r.Error, "rpc: service/method request ill-formed: ") ||
+				strings.HasPrefix(r.Error, "rpc: can't find service ") || strings.HasPrefix(r.Error, "rpc: can't find method ") {
+				errmsg = json.RawMessage((Error{Code: ErrorCodeMethodNotFound, Message: r.Error}).Error())
+			} else {
+				errmsg = json.RawMessage(r.Error)
+				if !json.Valid(errmsg) {
+					// SAFETY: This is safe because we are marshalling a string to a json.RawMessage.
+					errmsg, _ = json.Marshal(r.Error)
+				}
 			}
 			select {
 			case c.outpls <- &Payload{
