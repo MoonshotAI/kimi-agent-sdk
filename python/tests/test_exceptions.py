@@ -24,8 +24,8 @@ from kimi_agent_sdk import _session as session_module
 
 class _DummyCLI:
     async def run(self, *_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
-        if False:
-            yield None
+        return
+        yield
 
 
 class _FailingCLI:
@@ -34,8 +34,8 @@ class _FailingCLI:
 
     async def run(self, *_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         raise self._exc
-        if False:
-            yield None
+        return
+        yield
 
 
 class _DummyLLM:
