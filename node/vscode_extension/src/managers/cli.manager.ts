@@ -55,6 +55,7 @@ export class CLIManager {
   private binDir: string;
   private executable: string;
   private warmedPath: string;
+  private installPromise: Promise<void> | null = null;
 
   constructor(private context: vscode.ExtensionContext) {
     this.binDir = path.join(context.globalStorageUri.fsPath, "bin", "kimi");
@@ -106,7 +107,15 @@ export class CLIManager {
       return;
     }
 
-    await this.install();
+    if (this.installPromise) {
+      return this.installPromise;
+    }
+
+    this.installPromise = this.install().finally(() => {
+      this.installPromise = null;
+    });
+
+    return this.installPromise;
   }
 
   private async getInfo(execPath: string): Promise<CLIInfo> {
@@ -158,7 +167,7 @@ export class CLIManager {
         const reader = archiveRes.body!.getReader();
         const chunks: Uint8Array[] = [];
 
-        for (let loaded = 0; ; ) {
+        for (let loaded = 0; ;) {
           const { done, value } = await reader.read();
           if (done) {
             break;
@@ -175,7 +184,7 @@ export class CLIManager {
         progress.report({ message: "Verifying..." });
         const actualHash = crypto.createHash("sha256").update(buffer).digest("hex");
         if (actualHash !== expectedHash) {
-          await fs.promises.unlink(archivePath).catch(() => {});
+          await fs.promises.unlink(archivePath).catch(() => { });
           throw new Error(`Checksum mismatch`);
         }
 
@@ -188,7 +197,7 @@ export class CLIManager {
           await exec("tar", ["-xzf", archivePath, "-C", this.binDir]);
         }
 
-        await fs.promises.unlink(archivePath).catch(() => {});
+        await fs.promises.unlink(archivePath).catch(() => { });
 
         if (process.platform !== "win32") {
           await fs.promises.chmod(this.executable, 0o755);
