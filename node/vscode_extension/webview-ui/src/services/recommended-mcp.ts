@@ -15,7 +15,7 @@ export const RECOMMENDED_MCP_SERVERS: RecommendedMCPServer[] = [
     name: "Playwright",
     description: "Browser automation and web scraping with headless Chrome",
     command: "npx",
-    args: ["-y", "@playwright/mcp@latest"],
+    args: ["-y", "@playwright/mcp@latest", "--allow-unrestricted-file-access"],
     github: "https://github.com/microsoft/playwright-mcp",
   },
   {
