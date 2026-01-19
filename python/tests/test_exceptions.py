@@ -19,6 +19,7 @@ from kimi_agent_sdk import (
     SessionStateError,
     prompt,
 )
+from kimi_agent_sdk import _prompt as prompt_module
 from kimi_agent_sdk import _session as session_module
 
 
@@ -42,6 +43,20 @@ class _DummyLLM:
     model_name = "dummy"
 
 
+class _DummySession:
+    async def __aenter__(self) -> _DummySession:
+        return self
+
+    async def __aexit__(self, *_args: Any) -> None:
+        return None
+
+    async def prompt(
+        self, *_args: Any, **_kwargs: Any
+    ) -> AsyncGenerator[Any, None]:
+        return
+        yield
+
+
 @pytest.mark.asyncio
 async def test_prompt_requires_yolo_or_handler() -> None:
     with pytest.raises(PromptValidationError):
@@ -49,8 +64,13 @@ async def test_prompt_requires_yolo_or_handler() -> None:
 
 
 @pytest.mark.asyncio
-async def test_prompt_rejects_yolo_with_handler() -> None:
-    with pytest.raises(PromptValidationError):
+async def test_prompt_allows_yolo_with_handler(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _dummy_create(*_args: Any, **_kwargs: Any) -> _DummySession:
+        return _DummySession()
+
+    monkeypatch.setattr(prompt_module.Session, "create", _dummy_create)
+
+    with pytest.raises(StopAsyncIteration):
         await anext(prompt("hi", yolo=True, approval_handler_fn=lambda _req: None))
 
 

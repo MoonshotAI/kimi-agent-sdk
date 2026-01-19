@@ -71,14 +71,12 @@ async def prompt(
         ChatProviderError: When the LLM provider returns an error.
         MaxStepsReached: When the maximum number of steps is reached.
         RunCancelled: When the run is cancelled by the cancel event.
-        PromptValidationError: When both or neither of yolo/approval_handler_fn are provided.
+        PromptValidationError: When neither of yolo/approval_handler_fn are provided.
 
     Note:
-        approval_handler_fn is mutually exclusive with yolo=True.
+        If yolo=True and approval_handler_fn is provided, the handler is ignored.
     """
 
-    if yolo and approval_handler_fn is not None:
-        raise PromptValidationError("yolo and approval_handler_fn are mutually exclusive")
     if not yolo and approval_handler_fn is None:
         raise PromptValidationError("Either yolo=True or approval_handler_fn must be provided")
 
