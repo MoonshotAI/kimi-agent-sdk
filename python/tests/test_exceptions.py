@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncGenerator
+from typing import Any, cast
 
 import pytest
+from kimi_cli.app import KimiCLI
 
 from kimi_agent_sdk import (
     APIStatusError,
@@ -20,7 +23,7 @@ from kimi_agent_sdk import _session as session_module
 
 
 class _DummyCLI:
-    async def run(self, *_args, **_kwargs):
+    async def run(self, *_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         if False:
             yield None
 
@@ -29,7 +32,7 @@ class _FailingCLI:
     def __init__(self, exc: BaseException) -> None:
         self._exc = exc
 
-    async def run(self, *_args, **_kwargs):
+    async def run(self, *_args: Any, **_kwargs: Any) -> AsyncGenerator[Any, None]:
         raise self._exc
         if False:
             yield None
@@ -53,16 +56,16 @@ async def test_prompt_rejects_yolo_with_handler() -> None:
 
 @pytest.mark.asyncio
 async def test_session_prompt_rejects_closed() -> None:
-    session = Session(_DummyCLI())
-    session._closed = True
+    session = Session(cast(KimiCLI, _DummyCLI()))
+    cast(Any, session)._closed = True
     with pytest.raises(SessionStateError):
         await anext(session.prompt("hi"))
 
 
 @pytest.mark.asyncio
 async def test_session_prompt_rejects_already_running() -> None:
-    session = Session(_DummyCLI())
-    session._cancel_event = asyncio.Event()
+    session = Session(cast(KimiCLI, _DummyCLI()))
+    cast(Any, session)._cancel_event = asyncio.Event()
     with pytest.raises(SessionStateError):
         await anext(session.prompt("hi"))
 
@@ -72,7 +75,7 @@ async def test_session_prompt_rejects_already_running() -> None:
     "exc",
     [
         LLMNotSet(),
-        LLMNotSupported(_DummyLLM(), ["image_in"]),
+        LLMNotSupported(cast(Any, _DummyLLM()), ["image_in"]),
         MaxStepsReached(5),
         RunCancelled(),
         ChatProviderError("provider failure"),
@@ -80,17 +83,17 @@ async def test_session_prompt_rejects_already_running() -> None:
     ],
 )
 async def test_session_prompt_propagates_cli_exceptions(exc: BaseException) -> None:
-    session = Session(_FailingCLI(exc))
+    session = Session(cast(KimiCLI, _FailingCLI(exc)))
     with pytest.raises(type(exc)):
         await anext(session.prompt("hi"))
 
 
 @pytest.mark.asyncio
 async def test_session_create_propagates_file_not_found(monkeypatch: pytest.MonkeyPatch) -> None:
-    async def _dummy_session_create(*_args, **_kwargs):
+    async def _dummy_session_create(*_args: Any, **_kwargs: Any) -> Any:
         return object()
 
-    async def _raise_create(*_args, **_kwargs):
+    async def _raise_create(*_args: Any, **_kwargs: Any) -> Any:
         raise FileNotFoundError("missing agent")
 
     monkeypatch.setattr(session_module.CliSession, "create", _dummy_session_create)
