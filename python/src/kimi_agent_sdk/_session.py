@@ -13,6 +13,8 @@ from kimi_cli.session import Session as CliSession
 from kimi_cli.soul import StatusSnapshot
 from kimi_cli.wire.types import ContentPart, WireMessage
 
+from kimi_agent_sdk._exception import SessionStateError
+
 if TYPE_CHECKING:
     from kimi_agent_sdk import MCPConfig
 
@@ -214,15 +216,15 @@ class Session:
             ChatProviderError: When the LLM provider returns an error.
             MaxStepsReached: When the maximum number of steps is reached.
             RunCancelled: When the run is cancelled by the cancel event.
-            RuntimeError: When the session is closed or already running.
+            SessionStateError: When the session is closed or already running.
 
         Note:
             Callers must handle ApprovalRequest manually unless yolo=True.
         """
         if self._closed:
-            raise RuntimeError("Session is closed")
+            raise SessionStateError("Session is closed")
         if self._cancel_event is not None:
-            raise RuntimeError("Session is already running")
+            raise SessionStateError("Session is already running")
         cancel_event = asyncio.Event()
         self._cancel_event = cancel_event
         try:

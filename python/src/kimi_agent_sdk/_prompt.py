@@ -11,6 +11,7 @@ from kosong.message import ContentPart, Message
 
 from kimi_agent_sdk._aggregator import MessageAggregator
 from kimi_agent_sdk._approval import ApprovalHandlerFn
+from kimi_agent_sdk._exception import PromptValidationError
 from kimi_agent_sdk._session import Session
 
 if TYPE_CHECKING:
@@ -70,16 +71,20 @@ async def prompt(
         ChatProviderError: When the LLM provider returns an error.
         MaxStepsReached: When the maximum number of steps is reached.
         RunCancelled: When the run is cancelled by the cancel event.
-        ValueError: When both or neither of yolo/approval_handler_fn are provided.
+        PromptValidationError: When both or neither of yolo/approval_handler_fn are provided.
 
     Note:
         approval_handler_fn is mutually exclusive with yolo=True.
     """
 
     if yolo and approval_handler_fn is not None:
-        raise ValueError("yolo and approval_handler_fn are mutually exclusive")
+        raise PromptValidationError(
+            "yolo and approval_handler_fn are mutually exclusive"
+        )
     if not yolo and approval_handler_fn is None:
-        raise ValueError("Either yolo=True or approval_handler_fn must be provided")
+        raise PromptValidationError(
+            "Either yolo=True or approval_handler_fn must be provided"
+        )
 
     def _auto_approve(request: ApprovalRequest) -> None:
         request.resolve("approve")

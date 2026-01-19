@@ -49,6 +49,7 @@ from kosong.message import (
 )
 
 from kimi_agent_sdk._approval import ApprovalHandlerFn
+from kimi_agent_sdk._exception import PromptValidationError, SessionStateError
 from kimi_agent_sdk._prompt import prompt
 from kimi_agent_sdk._session import Session
 
@@ -103,6 +104,8 @@ __all__ = [
     "ChatProviderError",
     "MaxStepsReached",
     "RunCancelled",
+    "PromptValidationError",
+    "SessionStateError",
     # Others
     "Config",
     "MCPConfig",
