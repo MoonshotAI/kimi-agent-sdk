@@ -119,6 +119,8 @@ asyncio.run(main())
 ```
 > Note: In YOLO mode, all file modifications and shell commands are automatically executed. Use with caution.
 
+For detailed doc about `prompt()`, see the [Prompt API guide](./prompt.md).
+
 ### Low-level API `Session`
 
 ```python
