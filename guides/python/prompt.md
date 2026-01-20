@@ -78,6 +78,9 @@ async def prompt(
   SDK will reject the request by default.
 - If your approval handler is async and never returns, the agent will keep
   waiting and the turn will not make progress.
+- `prompt()` creates a temporary session per call. You can only consume the
+  messages from that single call and cannot continue a previous session through
+  `prompt()`. For multi-turn or reusable sessions, use `Session`.
 - `final_message_only=True` returns only the last assistant message, which is
   useful for simple UI output but hides tool call details.
 
