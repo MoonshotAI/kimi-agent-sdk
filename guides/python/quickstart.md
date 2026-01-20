@@ -2,13 +2,13 @@
 
 This guide will help you get started with the Kimi Agent SDK for Python in just a few minutes.
 
-Kimi Agent SDK is a thin wrapper around Kimi Code(Formerly Kimi CLI), and provides programming interfaces for building your own agents based on Kimi Code. 
+Kimi Agent SDK is a thin wrapper around Kimi Code (Formerly Kimi CLI), and provides programming interfaces for building your own agents based on Kimi Code. 
 
 This means:
 
 - Configuration and credentials follow the Kimi Code model.
 - Tools, skills, and MCP servers are configured the same way as in the Kimi Code.
-- If you already a user of Kimi Code, you can reuse all the configuration files and tools from Kimi Code out of the box.
+- If you are already a user of Kimi Code, you can reuse all the configuration files and tools from Kimi Code out of the box.
 
 ## Installation
 
@@ -82,12 +82,12 @@ config_path = Path("/path/to/your/config.toml")
 
 async def main() -> None:
     async for msg in prompt(
-    "Hello, world!",
-    config=config_path,
-    yolo=True
-):
-    print(msg.extract_text(), end="", flush=True)
-print()
+        "Hello, world!",
+        config=config_path,
+        yolo=True,
+    ):
+        print(msg.extract_text(), end="", flush=True)
+    print()
 
 asyncio.run(main())
 ```

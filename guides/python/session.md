@@ -118,7 +118,7 @@ Parameters:
 - `agent_file`: Agent specification file path.
 - `mcp_configs`: MCP server configs (same schema as Kimi Code).
 - `skills_dir`: Skills directory (KaosPath).
-- `max_steps_per_turn`: Cap on steps per turn.
+- `max_steps_per_turn`: Maximum number of steps allowed per turn.
 - `max_retries_per_step`: Retry limit per step.
 - `max_ralph_iterations`: Extra iterations for Ralph mode (`-1` for unlimited).
 
@@ -216,7 +216,8 @@ Resolve with one of:
 - `"approve"`
 - `"approve_for_session"`
 - `"reject"`
-- `"approve_for_session"` auto-approves subsequent similar requests for the
+
+`"approve_for_session"` auto-approves subsequent similar requests for the
 remainder of the session.
 
 ```python
