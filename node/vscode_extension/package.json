@@ -104,11 +104,6 @@
         "icon": "$(output)"
       },
       {
-        "command": "kimi.login",
-        "title": "Kimi Code: Login",
-        "icon": "$(sign-in)"
-      },
-      {
         "command": "kimi.logout",
         "title": "Kimi Code: Logout",
         "icon": "$(sign-out)"
@@ -186,10 +181,6 @@
         {
           "command": "kimi.showLogs",
           "when": "true"
-        },
-        {
-          "command": "kimi.login",
-          "when": "!kimi.isLoggedIn"
         },
         {
           "command": "kimi.logout",
