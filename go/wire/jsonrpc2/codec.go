@@ -128,17 +128,17 @@ type Codec struct {
 
 	// --- Stream sender management ---
 	// Manages streaming data senders.
-	senderlock  sync.RWMutex                    // RWMutex protecting senders map.
+	senderlock  sync.RWMutex                      // RWMutex protecting senders map.
 	senders     map[string]<-chan json.RawMessage // Maps JSON-RPC ID -> send channel.
-	senderwaker chan string                     // Wakes up the send() goroutine.
+	senderwaker chan string                       // Wakes up the send() goroutine.
 
 	// --- Stream receiver management ---
 	// Manages streaming data receivers.
-	receiverlock   sync.RWMutex                    // RWMutex protecting receivers map.
+	receiverlock   sync.RWMutex                      // RWMutex protecting receivers map.
 	receivers      map[string]chan<- json.RawMessage // Maps JSON-RPC ID -> receive channel.
-	receiverwaker  chan string                     // Wakes up consumependings().
-	receivercloser chan string                     // Actively closes a stream receiver.
-	receivetime    map[string]time.Time            // Maps JSON-RPC ID -> last receive time.
+	receiverwaker  chan string                       // Wakes up consumependings().
+	receivercloser chan string                       // Actively closes a stream receiver.
+	receivetime    map[string]time.Time              // Maps JSON-RPC ID -> last receive time.
 
 	// --- Input channels ---
 	// Channels for inbound requests and responses.
