@@ -77,6 +77,7 @@ func (ToolCallPart) message()            {}
 func (ToolResult) message()              {}
 func (SubagentEvent) message()           {}
 func (ApprovalRequestResolved) message() {}
+func (ApprovalResponse) message()        {}
 func (ApprovalRequest) message()         {}
 func (ToolCallRequest) message()         {}
 
@@ -100,6 +101,7 @@ const (
 	EventTypeToolResult              EventType = "ToolResult"
 	EventTypeSubagentEvent           EventType = "SubagentEvent"
 	EventTypeApprovalRequestResolved EventType = "ApprovalRequestResolved"
+	EventTypeApprovalResponse        EventType = "ApprovalResponse"
 )
 
 func (TurnBegin) EventType() EventType               { return EventTypeTurnBegin }
@@ -114,6 +116,7 @@ func (ToolCallPart) EventType() EventType            { return EventTypeToolCallP
 func (ToolResult) EventType() EventType              { return EventTypeToolResult }
 func (SubagentEvent) EventType() EventType           { return EventTypeSubagentEvent }
 func (ApprovalRequestResolved) EventType() EventType { return EventTypeApprovalRequestResolved }
+func (ApprovalResponse) EventType() EventType        { return EventTypeApprovalResponse }
 
 func unmarshalEvent[E Event](data []byte) (Event, error) {
 	var event E
@@ -136,6 +139,7 @@ var eventUnmarshaler = map[EventType]func(data []byte) (Event, error){
 	EventTypeToolResult:              unmarshalEvent[ToolResult],
 	EventTypeSubagentEvent:           unmarshalEvent[SubagentEvent],
 	EventTypeApprovalRequestResolved: unmarshalEvent[ApprovalRequestResolved],
+	EventTypeApprovalResponse:        unmarshalEvent[ApprovalResponse],
 }
 
 func (params *EventParams) UnmarshalJSON(data []byte) (err error) {
