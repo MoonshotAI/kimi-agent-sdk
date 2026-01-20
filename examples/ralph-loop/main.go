@@ -80,7 +80,7 @@ func run() error {
 		for step := range turn.Steps {
 			for msg := range step.Messages {
 				if cp, ok := msg.(wire.ContentPart); ok && cp.Type == wire.ContentPartTypeText {
-					fmt.Print(cp.Text)
+					fmt.Print(cp.Text.Value)
 				}
 			}
 		}
