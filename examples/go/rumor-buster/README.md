@@ -16,7 +16,7 @@ This example demonstrates the ExternalTool capability of the Kimi Agent SDK. It 
 ## Installation
 
 ```bash
-cd examples/rumor-buster
+cd examples/go/rumor-buster
 go build .
 ```
 
