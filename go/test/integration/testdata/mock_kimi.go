@@ -305,7 +305,7 @@ func handlePromptToolCall(encoder *json.Encoder, scanner *bufio.Scanner, reqID s
 		},
 	})
 	paramsJSON, _ := json.Marshal(map[string]any{
-		"type":    "ToolCall",
+		"type":    "ToolCallRequest",
 		"payload": json.RawMessage(payloadJSON),
 	})
 	encoder.Encode(Payload{

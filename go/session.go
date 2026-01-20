@@ -324,7 +324,7 @@ func (r *Responder) Request(request *wire.RequestParams) (wire.RequestResult, er
 			RequestID: req.ID,
 			Response:  (<-*r.wireRequestResponseChan).(wire.ApprovalRequestResponse),
 		}, nil
-	case wire.ToolCall:
+	case wire.ToolCallRequest:
 		for _, tool := range r.tools {
 			if req.Function.Name == tool.def.Name && req.Function.Arguments.Valid {
 				toolResult, err := tool.call(json.RawMessage(req.Function.Arguments.Value))
