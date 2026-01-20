@@ -46,7 +46,7 @@
         "kimi.executablePath": {
           "type": "string",
           "default": "",
-          "description": "Path to the Kimi Code executable"
+          "description": "Path to the Kimi Code executable (leave empty to use bundled CLI)"
         },
         "kimi.enableNewConversationShortcut": {
           "type": "boolean",
@@ -204,7 +204,8 @@
     "build": "pnpm run build:webview && pnpm run build:extension",
     "build:webview": "pnpm --filter @moonshot-ai/vscode_extension-webview-ui build",
     "build:extension": "tsc --noEmit && node esbuild.js --production",
-    "package": "tsc --noEmit && node esbuild.js --production && vsce package --no-dependencies"
+    "download:cli": "node scripts/download-cli.js",
+    "package:platform": "node scripts/vsix-package.js"
   },
   "devDependencies": {
     "@types/node": "22.x",

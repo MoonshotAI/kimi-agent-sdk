@@ -2,22 +2,13 @@ import { Methods } from "../../shared/bridge";
 import { getCLIManager } from "../managers";
 import type { Handler } from "./types";
 
-export const cliHandlers: Record<string, Handler<any, any>> = {
-  [Methods.IsCliWarmed]: async () => {
-    return { warmed: getCLIManager().isWarmed() };
-  },
-
+export const cliHandlers: Record<string, Handler<unknown, unknown>> = {
   [Methods.CheckCLI]: async () => {
-    const cli = getCLIManager();
-    const ok = await cli.checkInstalled();
-    if (ok) {
-      cli.markWarmed();
-    }
+    const ok = await getCLIManager().checkInstalled();
     return { ok };
   },
-
-  [Methods.InstallCLI]: async () => {
-    await getCLIManager().installCLI();
-    return { ok: true };
+  [Methods.IsCliWarmed]: async () => {
+    const warmed = await getCLIManager().isWarmed();
+    return { warmed };
   },
 };

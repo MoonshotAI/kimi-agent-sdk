@@ -17,11 +17,11 @@ function errorState(type: ErrorType, message: string): AppInitState {
 }
 
 export function useAppInit(): AppInitState {
-  const [state, setState] = useState<AppInitState>({ status: "ready", errorType: null, errorMessage: null });
+  const [state, setState] = useState<AppInitState>({ status: "loading", errorType: null, errorMessage: null });
   const [initKey, setInitKey] = useState(0);
   const { initModels, setExtensionConfig, setMCPServers } = useSettingsStore();
 
-  // 监听配置变化，executablePath 改变时重新初始化
+  // Watch for config changes, reinit when executablePath changes
   useEffect(() => {
     return bridge.on<{ config: ExtensionConfig; changedKeys: string[] }>(Events.ExtensionConfigChanged, ({ config, changedKeys }) => {
       setExtensionConfig(config);
@@ -53,44 +53,27 @@ export function useAppInit(): AppInitState {
           setState({ status: "loading", errorType: null, errorMessage: null });
         }
 
-        // 3. Load configuration in parallel
-        const configPromise = bridge.getExtensionConfig().then((config) => {
-          if (!cancelled) {
-            setExtensionConfig(config);
-          }
-        });
+        // 3. Load config, MCP servers and check CLI in parallel
+        const [extensionConfig, mcpServers, cliResult] = await Promise.all([
+          bridge.getExtensionConfig(),
+          bridge.getMCPServers(),
+          bridge.checkCLI(),
+        ]);
 
-        const mcpPromise = bridge.getMCPServers().then((servers) => {
-          if (!cancelled) {
-            setMCPServers(servers);
-          }
-        });
-
-        // 4. Check CLI (this might be a slow operation)
-        let cliResult = await bridge.checkCLI();
         if (cancelled) {
           return;
         }
-        console.log("[Kimi Code] App init: CLI check result:", cliResult);
 
-        // 5. If CLI check failed, try to install
+        setExtensionConfig(extensionConfig);
+        setMCPServers(mcpServers);
+
+        // 3. Check CLI result
         if (!cliResult.ok) {
-          console.log("[Kimi Code] App init: Attempting to install Kimi CLI...");
-          await bridge.installCLI();
-          if (cancelled) {
-            return;
-          }
-
-          console.log("[Kimi Code] App init: Checking Kimi CLI after installation...");
-          cliResult = await bridge.checkCLI();
-        }
-
-        if (!cliResult.ok) {
-          setState(errorState("cli-error", "Kimi CLI is not installed or outdated."));
+          setState(errorState("cli-error", "Kimi CLI is not available or outdated."));
           return;
         }
 
-        // 6. Load models
+        // 4. Load models
         const kimiConfig = await bridge.getModels();
         if (cancelled) {
           return;
@@ -103,7 +86,6 @@ export function useAppInit(): AppInitState {
 
         initModels(kimiConfig.models, kimiConfig.defaultModel, kimiConfig.defaultThinking);
 
-        await Promise.all([configPromise, mcpPromise]);
         if (!cancelled) {
           setState({ status: "ready", errorType: null, errorMessage: null });
         }

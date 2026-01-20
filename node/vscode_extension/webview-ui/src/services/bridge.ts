@@ -92,16 +92,12 @@ class Bridge {
     return this.call<WorkspaceStatus>(Methods.CheckWorkspace);
   }
 
-  isCliWarmed() {
-    return this.call<{ warmed: boolean }>(Methods.IsCliWarmed);
-  }
-
   checkCLI() {
     return this.call<{ ok: boolean }>(Methods.CheckCLI);
   }
 
-  installCLI() {
-    return this.call<{ ok: boolean }>(Methods.InstallCLI);
+  isCliWarmed() {
+    return this.call<{ warmed: boolean }>(Methods.IsCliWarmed);
   }
 
   saveConfig(sessionConfig: SessionConfig) {
