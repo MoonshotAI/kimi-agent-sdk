@@ -1,6 +1,14 @@
 # QuickStart
 
-This guide will help you get started with the Kimi Agent SDK for Python in minutes.
+This guide will help you get started with the Kimi Agent SDK for Python in just a few minutes.
+
+Kimi Agent SDK is a thin wrapper around Kimi Code(Formerly Kimi CLI), and provides programming interfaces for building your own agents based on Kimi Code. 
+
+This means:
+
+- Configuration and credentials follow the Kimi Code model.
+- Tools, skills, and MCP servers are configured the same way as in the CLI.
+- If you already a user of Kimi Code, you can reuse all the configuration files and tools from Kimi Code out of the box.
 
 ## Installation
 
@@ -8,7 +16,7 @@ This guide will help you get started with the Kimi Agent SDK for Python in minut
 pip install kimi-agent-sdk
 ```
 
-or
+Alternatively,
 
 ```bash
 uv add kimi-agent-sdk
@@ -16,7 +24,7 @@ uv add kimi-agent-sdk
 
 ## LLM Provider Configuration
 
-There are several ways to configure the LLM Provider API:
+There are several ways to configure the LLM provider API:
 
 ### Environment Variables
 
@@ -28,7 +36,7 @@ export KIMI_MODEL_NAME=kimi-k2-thinking-turbo
 
 ### Configuration Object
 
-you can pass a `Config` object to `prompt` or `Session.create` method.
+You can pass a `Config` object to the `prompt` or `Session.create` method.
 
 ```python
 import asyncio
@@ -61,9 +69,9 @@ asyncio.run(main())
 
 For more configuration options, see [Kimi Code Configuration](https://moonshotai.github.io/kimi-cli/en/configuration/config-files.html).
 
-### Configuration File
+### Configuration File Path
 
-You can also pass a configuration file path to `prompt` or `Session.create` method.
+You can also pass the path to a configuration file to the `prompt` or `Session.create` method.
 
 ```python
 from pathlib import Path
@@ -88,9 +96,9 @@ For more info about configuration files, see [Kimi Code Configuration](https://m
 
 ## Your First Powerful Agent with Kimi Agent SDK
 
-There are two ways to create agents with Kimi Agent SDK, one is to use the high-level API `prompt`, the other is to use the low-level API `Session`.
+There are two ways to create agents with the Kimi Agent SDK: using the high-level `prompt` API, or the low-level `Session` API.
 
-We would recommend using the high-level API `prompt` as your starting point, you can change to the low-level API `Session` when you need more control over the agent.
+We recommend starting with the high-level `prompt` API. You can switch to the low-level `Session` API when you need more control over the agent.
 
 ### High-level API `prompt`
 
