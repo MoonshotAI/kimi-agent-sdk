@@ -17,7 +17,7 @@ function errorState(type: ErrorType, message: string): AppInitState {
 }
 
 export function useAppInit(): AppInitState {
-  const [state, setState] = useState<AppInitState>({ status: "loading", errorType: null, errorMessage: null });
+  const [state, setState] = useState<AppInitState>({ status: "ready", errorType: null, errorMessage: null });
   const [initKey, setInitKey] = useState(0);
   const { initModels, setExtensionConfig, setMCPServers } = useSettingsStore();
 
