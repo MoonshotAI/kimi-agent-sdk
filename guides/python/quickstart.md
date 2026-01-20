@@ -7,7 +7,7 @@ Kimi Agent SDK is a thin wrapper around Kimi Code(Formerly Kimi CLI), and provid
 This means:
 
 - Configuration and credentials follow the Kimi Code model.
-- Tools, skills, and MCP servers are configured the same way as in the CLI.
+- Tools, skills, and MCP servers are configured the same way as in the Kimi Code.
 - If you already a user of Kimi Code, you can reuse all the configuration files and tools from Kimi Code out of the box.
 
 ## Installation
@@ -94,6 +94,8 @@ asyncio.run(main())
 
 For more info about configuration files, see [Kimi Code Configuration](https://moonshotai.github.io/kimi-cli/en/configuration/config-files.html).
 
+For the configuration priority order, see [Config Overrides](https://moonshotai.github.io/kimi-cli/en/configuration/overrides.html#config-overrides).
+
 ## Your First Powerful Agent with Kimi Agent SDK
 
 There are two ways to create agents with the Kimi Agent SDK: using the high-level `prompt` API, or the low-level `Session` API.
@@ -115,6 +117,7 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+> Note: In YOLO mode, all file modifications and shell commands are automatically executed. Use with caution.
 
 ### Low-level API `Session`
 
