@@ -143,6 +143,8 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+For detailed doc about `Session`, see the [Session API guide](./session.md).
+
 ## Choosing prompt vs Session
 
 Use `prompt()` when you want the fastest path to an answer and do not need to
