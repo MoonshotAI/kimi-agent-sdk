@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as toml from "toml";
 import { z } from "zod";
 import { KimiPaths } from "./paths";
+import { log } from "./logger";
 import type { KimiConfig, ModelConfig } from "./schema";
 
 // ============================================================================
@@ -85,15 +86,17 @@ type Config = z.infer<typeof ConfigSchema>;
 // Config Parsing
 export function parseConfig(): KimiConfig {
   if (!fs.existsSync(KimiPaths.config)) {
+    log.config("Config file not found: %s", KimiPaths.config);
     return { defaultModel: null, defaultThinking: false, models: [] };
   }
 
   try {
     const raw = toml.parse(fs.readFileSync(KimiPaths.config, "utf-8"));
     const config = ConfigSchema.parse(raw);
+    log.config("Parsed config with %d models", Object.keys(config.models).length);
     return toKimiConfig(config);
   } catch (err) {
-    console.warn("[config] Failed to parse config.toml:", err);
+    log.config("Failed to parse config.toml: %O", err);
     return { defaultModel: null, defaultThinking: false, models: [] };
   }
 }
@@ -126,6 +129,7 @@ export function saveDefaultModel(modelId: string, thinking?: boolean): void {
       content += `default_thinking = ${thinking}\n`;
     }
     fs.writeFileSync(configPath, content, "utf-8");
+    log.config("Created config with default model: %s", modelId);
     return;
   }
 
@@ -145,13 +149,14 @@ export function saveDefaultModel(modelId: string, thinking?: boolean): void {
     const thinkingRegex = /^default_thinking\s*=\s*(?:true|false|"[^"]*")/m;
     const thinkingValue = thinking ? "true" : "false";
     if (thinkingRegex.test(content)) {
-      content = content.replace(thinkingRegex, `default_thinking = ${thinkingValue}`); // 不带引号
+      content = content.replace(thinkingRegex, `default_thinking = ${thinkingValue}`);
     } else {
-      content = content.replace(/^(default_model\s*=\s*"[^"]*")/m, `$1\ndefault_thinking = ${thinkingValue}`); // 不带引号
+      content = content.replace(/^(default_model\s*=\s*"[^"]*")/m, `$1\ndefault_thinking = ${thinkingValue}`);
     }
   }
 
   fs.writeFileSync(configPath, content, "utf-8");
+  log.config("Updated default model: %s, thinking: %s", modelId, thinking);
 }
 
 // Model Utilities

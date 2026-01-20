@@ -12,7 +12,10 @@
         "${workspaceFolder}/node/vscode_extension/dist/**/*.js"
       ],
       "preLaunchTask": "npm: dev",
-      "sourceMaps": true
+      "sourceMaps": true,
+      "env": {
+        "DEBUG": "kimi-sdk:*"
+      }
     },
     {
       "name": "Run Extension (No Build)",

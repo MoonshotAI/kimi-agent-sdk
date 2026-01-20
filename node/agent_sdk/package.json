@@ -55,10 +55,12 @@
     "publish:npm": "pnpm publish --access public --no-git-checks"
   },
   "dependencies": {
+    "debug": "^4.4.3",
     "toml": "^3.0.0",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@types/debug": "^4.1.12",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "^3.2.4",
     "tsup": "^8.0.0",

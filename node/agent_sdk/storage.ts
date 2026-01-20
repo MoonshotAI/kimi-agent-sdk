@@ -3,6 +3,7 @@ import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import * as readline from "node:readline";
 import { KimiPaths } from "./paths";
+import { log } from "./logger";
 import type { SessionInfo, ContentPart } from "./schema";
 
 // Constants
@@ -55,7 +56,7 @@ export async function listSessions(workDir: string): Promise<SessionInfo[]> {
         brief,
       });
     } catch (err) {
-      console.warn(`[storage] Failed to stat ${sessionId}:`, err);
+      log.storage("Failed to stat session %s: %O", sessionId, err);
     }
   }
 
@@ -74,9 +75,10 @@ export async function deleteSession(workDir: string, sessionId: string): Promise
 
   try {
     await fsp.rm(sessionDir, { recursive: true, force: true });
+    log.storage("Deleted session %s", sessionId);
     return true;
   } catch (err) {
-    console.warn(`[storage] Failed to delete ${sessionId}:`, err);
+    log.storage("Failed to delete session %s: %O", sessionId, err);
     return false;
   }
 }
@@ -119,7 +121,7 @@ async function getFirstUserMessage(sessionDir: string): Promise<string> {
       }
     }
   } catch (err) {
-    console.warn("[storage] Failed to read wire file:", err);
+    log.storage("Failed to read wire file: %O", err);
   }
 
   return "";

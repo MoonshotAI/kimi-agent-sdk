@@ -3,6 +3,7 @@ import * as fsp from "node:fs/promises";
 import * as path from "node:path";
 import * as readline from "node:readline";
 import { KimiPaths } from "../paths";
+import { log } from "../logger";
 import { parseEventPayload, type StreamEvent, type WireEvent } from "../schema";
 
 // Constants
@@ -14,19 +15,23 @@ export async function parseSessionEvents(workDir: string, sessionId: string): Pr
   const wireFile = path.join(sessionDir, "wire.jsonl");
   const contextFile = path.join(sessionDir, "context.jsonl");
 
-  // Try wire.jsonl first (complete event stream)
+  // Prefer wire.jsonl if it exists and is not too large
   if (fs.existsSync(wireFile)) {
     const stat = await fsp.stat(wireFile);
     if (stat.size <= MAX_FILE_SIZE) {
+      log.history("Parsing wire file: %s (%d bytes)", wireFile, stat.size);
       return parseWireFile(wireFile);
     }
+    log.history("Wire file too large (%d bytes), falling back to context", stat.size);
   }
 
   // Fallback to context.jsonl (compacted)
   if (fs.existsSync(contextFile)) {
+    log.history("Parsing context file: %s", contextFile);
     return parseContextFile(contextFile);
   }
 
+  log.history("No history files found for session: %s", sessionId);
   return [];
 }
 
@@ -53,6 +58,7 @@ async function parseWireFile(filePath: string): Promise<StreamEvent[]> {
     }
   }
 
+  log.history("Parsed %d events from wire file", events.length);
   return events;
 }
 
@@ -93,6 +99,7 @@ async function parseContextFile(filePath: string): Promise<StreamEvent[]> {
     }
   }
 
+  log.history("Parsed %d events from context file", events.length);
   return events;
 }
 

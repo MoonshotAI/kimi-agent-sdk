@@ -1,6 +1,7 @@
 import * as crypto from "node:crypto";
 import { ProtocolClient } from "./protocol";
 import { SessionError } from "./errors";
+import { log } from "./logger";
 import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse } from "./schema";
 
 export type SessionState = "idle" | "active" | "closed";
@@ -143,6 +144,8 @@ class SessionImpl implements Session {
     this._yoloMode = options.yoloMode ?? false;
     this._executable = options.executable ?? "kimi";
     this._env = options.env ?? {};
+
+    log.session("Created session %s in %s", this._sessionId, this._workDir);
   }
 
   get sessionId(): string {
@@ -191,6 +194,7 @@ class SessionImpl implements Session {
     }
 
     this.pendingMessages.push(content);
+    log.session("Queued prompt, pending: %d", this.pendingMessages.length);
 
     if (this._state === "active" && this.currentTurn) {
       return this.currentTurn;
@@ -209,6 +213,7 @@ class SessionImpl implements Session {
           this._state = "idle";
         }
         this.currentTurn = null;
+        log.session("Turn completed, state: %s", this._state);
       },
     );
 
@@ -219,6 +224,8 @@ class SessionImpl implements Session {
     if (this._state === "closed") {
       return;
     }
+
+    log.session("Closing session %s", this._sessionId);
     this._state = "closed";
     this.currentTurn = null;
     this.pendingMessages = [];
@@ -227,7 +234,7 @@ class SessionImpl implements Session {
       try {
         await this.client.stop();
       } catch (err) {
-        console.warn("[session] Error during close:", err);
+        log.session("Error during close: %O", err);
       }
       this.client = null;
       this.activeConfig = null;
@@ -247,6 +254,7 @@ class SessionImpl implements Session {
 
     // Config changed or no client, restart
     if (this.client) {
+      log.session("Config changed, restarting client");
       await this.client.stop();
       this.client = null;
     }

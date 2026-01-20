@@ -198,7 +198,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run build",
-    "dev": "node dev.js",
+    "dev": "DEBUG=kimi-sdk:* node dev.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run build:webview && pnpm run build:extension",

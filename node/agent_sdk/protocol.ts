@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
 import { parseEventPayload, parseRequestPayload, type StreamEvent, type RunResult, type ContentPart, type ApprovalResponse, type ParseError } from "./schema";
 import { TransportError, CliError } from "./errors";
+import { log } from "./logger";
 
 // Client Options
 export interface ClientOptions {
@@ -91,7 +92,7 @@ export class ProtocolClient {
     const args = this.buildArgs(options);
     const executable = options.executablePath ?? "kimi";
 
-    console.log(`[protocol-client] Spawning CLI: ${executable} ${args.join(" ")}`);
+    log.protocol("Spawning CLI: %s %o", executable, args);
 
     try {
       this.process = spawn(executable, args, {
@@ -112,7 +113,7 @@ export class ProtocolClient {
     this.readline = createInterface({ input: this.process.stdout });
     this.readline.on("line", (line) => this.handleLine(line));
 
-    this.process.stderr?.on("data", (data) => console.warn("[protocol-client stderr]", data.toString()));
+    this.process.stderr?.on("data", (data) => log.protocol("stderr: %s", data.toString().trim()));
     this.process.on("error", (err) => this.handleProcessError(err));
     this.process.on("exit", (code) => this.handleProcessExit(code));
   }
@@ -127,17 +128,21 @@ export class ProtocolClient {
       return;
     }
 
+    log.protocol("Stopping process...");
     this.process.kill("SIGTERM");
+
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
         this.process?.kill("SIGKILL");
         resolve();
       }, 3000);
+
       this.process!.once("exit", () => {
         clearTimeout(timeout);
         resolve();
       });
     });
+
     this.cleanup();
   }
 
@@ -213,7 +218,7 @@ export class ProtocolClient {
   }
 
   private writeLine(data: unknown): void {
-    console.log("[protocol-client] Sending:", JSON.stringify(data));
+    log.protocol(">>> %O", data);
 
     if (!this.process?.stdin?.writable) {
       throw new TransportError("STDIN_NOT_WRITABLE", "Cannot write to CLI stdin");
@@ -223,7 +228,7 @@ export class ProtocolClient {
 
   // Private: Line Handling
   private handleLine(line: string): void {
-    console.log("[protocol-client] Received:", line);
+    log.protocol("<<< %s", line.length > 500 ? line.slice(0, 500) + "..." : line);
 
     let parsed: unknown;
     try {
@@ -235,7 +240,7 @@ export class ProtocolClient {
 
     const msg = parsed as { id?: string; method?: string; params?: unknown; result?: unknown; error?: { code: number; message: string } };
 
-    // Response to our request
+    // Response to a pending request
     if (msg.id && this.pendingRequests.has(msg.id)) {
       const pending = this.pendingRequests.get(msg.id)!;
       this.pendingRequests.delete(msg.id);
@@ -248,7 +253,7 @@ export class ProtocolClient {
       return;
     }
 
-    // Notification from Agent
+    // Notification (event or request from server)
     if (msg.method) {
       this.handleNotification(msg.method, msg.params);
     }
@@ -289,7 +294,7 @@ export class ProtocolClient {
 
   // Private: Process Lifecycle
   private handleProcessError(err: Error): void {
-    console.error("[protocol-client] Process error:", err.message);
+    log.protocol("Process error: %s", err.message);
 
     const error = new TransportError("PROCESS_CRASHED", `CLI process error: ${err.message}`, err);
     for (const pending of this.pendingRequests.values()) {
@@ -300,7 +305,7 @@ export class ProtocolClient {
   }
 
   private handleProcessExit(code: number | null): void {
-    console.log("[protocol-client] Process exited with code:", code);
+    log.protocol("Process exited with code: %d", code);
 
     if (code !== 0 && code !== null) {
       const error = new TransportError("PROCESS_CRASHED", `CLI exited with code ${code}`);
