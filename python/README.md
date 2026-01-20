@@ -34,11 +34,12 @@ asyncio.run(main())
 
 ```python
 import asyncio
+from kaos.path import KaosPath
 from kimi_agent_sdk import ApprovalRequest, Session, TextPart
 
 
 async def main() -> None:
-    async with await Session.create(work_dir=".") as session:
+    async with await Session.create(work_dir=KaosPath.cwd()) as session:
         async for wire_msg in session.prompt("List files in current directory"):
             match wire_msg:
                 case TextPart(text=text):
@@ -54,4 +55,5 @@ asyncio.run(main())
 
 - `prompt()` creates a temporary session per call.
 - `Session.prompt()` yields raw Wire messages and requires handling approvals.
+- `work_dir` and `skills_dir` expect `KaosPath` values.
 - See the API docstrings for more configuration options.

@@ -19,7 +19,7 @@ classifiers = [
     "License :: OSI Approved :: Apache Software License",
 ]
 dependencies = [
-    "kimi-cli>=0.77,<0.78",
+    "kimi-cli>=0.79,<0.80",
     "kosong>=0.38.0,<0.39.0",
 ]
 
