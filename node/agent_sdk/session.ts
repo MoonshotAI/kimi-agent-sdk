@@ -5,7 +5,7 @@ import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalRespo
 
 export type SessionState = "idle" | "active" | "closed";
 
-/** 当前生效的配置快照 */
+/** Active Configuration Snapshot */
 interface ActiveConfig {
   model: string | undefined;
   thinking: boolean;
@@ -14,41 +14,41 @@ interface ActiveConfig {
   env: string; // JSON stringified for comparison
 }
 
-/** Turn 接口，代表一次对话轮次 */
+/** Turn interface, represents a single conversation turn */
 export interface Turn {
-  /** 异步迭代事件流，迭代完成后返回 RunResult */
+  /** Asynchronous iterator of event stream, returns RunResult upon completion */
   [Symbol.asyncIterator](): AsyncIterator<StreamEvent, RunResult, undefined>;
-  /** 中断当前轮次，清空消息队列 */
+  /** Interrupt the current turn, clearing the message queue */
   interrupt(): Promise<void>;
-  /** 响应审批请求 */
+  /** Respond to approval request */
   approve(requestId: string, response: ApprovalResponse): Promise<void>;
-  /** 轮次完成后的结果 Promise */
+  /** Promise of the result after the turn is completed */
   readonly result: Promise<RunResult>;
 }
 
-/** Session 接口，代表一个与 Kimi Code 的持久连接 */
+/** Session interface, represents a persistent connection with Kimi Code */
 export interface Session {
-  /** 会话 ID */
+  /** Session ID */
   readonly sessionId: string;
-  /** 工作目录 */
+  /** Working directory */
   readonly workDir: string;
-  /** 当前状态：idle | active | closed */
+  /** Current state: idle | active | closed */
   readonly state: SessionState;
-  /** 模型 ID，可在轮次间修改 */
+  /** Model ID, can be changed between turns */
   model: string | undefined;
-  /** 是否启用思考模式，可在轮次间修改 */
+  /** Whether thinking mode is enabled, can be changed between turns */
   thinking: boolean;
-  /** 是否自动批准操作，可在轮次间修改 */
+  /** Whether to automatically approve actions, can be changed between turns */
   yoloMode: boolean;
-  /** CLI 可执行文件路径，可在轮次间修改 */
+  /** CLI executable path, can be changed between turns */
   executable: string;
-  /** 环境变量，可在轮次间修改 */
+  /** Environment variables, can be changed between turns */
   env: Record<string, string>;
-  /** 发送消息，返回 Turn 对象 */
+  /** Send a message, returns a Turn object */
   prompt(content: string | ContentPart[]): Turn;
-  /** 关闭会话，释放资源 */
+  /** Close the session, release resources */
   close(): Promise<void>;
-  /** 支持 using 语法自动关闭 */
+  /** Supports using syntax for automatic closure */
   [Symbol.asyncDispose](): Promise<void>;
 }
 

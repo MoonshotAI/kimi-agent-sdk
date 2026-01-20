@@ -4,82 +4,82 @@ import { z } from "zod";
 // Primitives
 // ============================================================================
 
-/** 审批响应类型 */
+// Approval response type
 export const ApprovalResponseSchema = z.enum(["approve", "approve_for_session", "reject"]);
 /**
- * 审批响应
- * - `approve`: 批准本次操作
- * - `approve_for_session`: 批准本会话中的同类操作
- * - `reject`: 拒绝操作
+ * Approval response
+ * - `approve`: Approve this operation
+ * - `approve_for_session`: Approve similar operations in this session
+ * - `reject`: Reject the operation
  */
 export type ApprovalResponse = z.infer<typeof ApprovalResponseSchema>;
 
-/** 消息内容片段 */
+// Message content part
 export const ContentPartSchema = z.discriminatedUnion("type", [
   z.object({
-    /** 文本类型 */
+    // Text type
     type: z.literal("text"),
-    /** 文本内容 */
+    // Text content
     text: z.string(),
   }),
   z.object({
-    /** 思考类型，仅在思考模式下出现 */
+    // Think type, appears only in thinking mode
     type: z.literal("think"),
-    /** 思考内容 */
+    // Think content
     think: z.string(),
-    /** 加密的思考内容或签名 */
+    // Encrypted think content or signature
     encrypted: z.string().nullable().optional(),
   }),
   z.object({
-    /** 图片类型 */
+    // Image type
     type: z.literal("image_url"),
     image_url: z.object({
-      /** 图片 URL，通常是 data URI（如 data:image/png;base64,...） */
+      // Image URL, usually a data URI (e.g., data:image/png;base64,...)
       url: z.string(),
-      /** 图片 ID，用于区分不同图片 */
+      // Image ID, used to distinguish different images
       id: z.string().nullable().optional(),
     }),
   }),
   z.object({
-    /** 音频类型 */
+    // Audio type
     type: z.literal("audio_url"),
     audio_url: z.object({
-      /** 音频 URL，通常是 data URI（如 data:audio/aac;base64,...） */
+      // Audio URL, usually a data URI (e.g., data:audio/aac;base64,...)
       url: z.string(),
-      /** 音频 ID，用于区分不同音频 */
+      // Audio ID, used to distinguish different audio
       id: z.string().nullable().optional(),
     }),
   }),
   z.object({
-    /** 视频类型 */
+    // Video type
     type: z.literal("video_url"),
     video_url: z.object({
-      /** 视频 URL，通常是 data URI（如 data:video/mp4;base64,...） */
+      // Video URL, usually a data URI (e.g., data:video/mp4;base64,...)
       url: z.string(),
-      /** 视频 ID，用于区分不同视频 */
+      // Video ID, used to distinguish different videos
       id: z.string().nullable().optional(),
     }),
   }),
 ]);
 /**
- * 消息内容片段
- * - `text`: 文本内容
- * - `think`: 思考内容（思考模式）
- * - `image_url`: 图片
- * - `audio_url`: 音频
- * - `video_url`: 视频
+ * Message content part
+ * - `text`: Text content
+ * - `think`: Think content (thinking mode)
+ * - `image_url`: Image
+ * - `audio_url`: Audio
+ * - `video_url`: Video
  */
 export type ContentPart = z.infer<typeof ContentPartSchema>;
 
-/** Token 用量统计 */
+// Token usage statistics
 export const TokenUsageSchema = z.object({
-  /** 输入 token 数（非缓存） */
+  // Number of input tokens (excluding cache)
   input_other: z.number(),
-  /** 输出 token 数 */
+  // Number of output tokens
   output: z.number(),
-  /** 从缓存读取的输入 token 数 */
+  // Number of input tokens read from cache
   input_cache_read: z.number(),
-  /** 写入缓存的输入 token 数 */
+  // Number of input tokens written to cache
   input_cache_creation: z.number(),
 });
 export type TokenUsage = z.infer<typeof TokenUsageSchema>;
@@ -88,35 +88,35 @@ export type TokenUsage = z.infer<typeof TokenUsageSchema>;
 // DisplayBlock
 // ============================================================================
 
-/** 简短文本显示块 */
+// Brief text display block
 export const BriefBlockSchema = z.object({
   type: z.literal("brief"),
-  /** 简短的文本内容 */
+  // Brief text content
   text: z.string(),
 });
 export type BriefBlock = z.infer<typeof BriefBlockSchema>;
 
-/** 文件差异显示块 */
+// File diff display block
 export const DiffBlockSchema = z.object({
   type: z.literal("diff"),
-  /** 文件路径 */
+  // File path
   path: z.string(),
-  /** 原始内容 */
+  // Original content
   old_text: z.string(),
-  /** 新内容 */
+  // New content
   new_text: z.string(),
 });
 export type DiffBlock = z.infer<typeof DiffBlockSchema>;
 
-/** 待办事项显示块 */
+// Todo list display block
 export const TodoBlockSchema = z.object({
   type: z.literal("todo"),
-  /** 待办事项列表 */
+  // Todo list
   items: z.array(
     z.object({
-      /** 待办事项标题 */
+      // Todo item title
       title: z.string(),
-      /** 状态：pending | in_progress | done */
+      // Status: pending | in_progress | done
       status: z.enum(["pending", "in_progress", "done"]),
     }),
   ),
@@ -130,7 +130,7 @@ export const ShellBlockSchema = z.object({
 });
 export type ShellBlock = z.infer<typeof ShellBlockSchema>;
 
-/** 未知类型显示块（fallback） */
+// Unknown display block (fallback)
 export interface UnknownBlock {
   type: string;
   data: Record<string, unknown>;
@@ -138,7 +138,7 @@ export interface UnknownBlock {
 
 export type DisplayBlock = BriefBlock | DiffBlock | TodoBlock | ShellBlock | UnknownBlock;
 
-/** DisplayBlock 原始解析 schema */
+// Raw DisplayBlock parsing schema
 const RawDisplayBlockSchema = z
   .object({
     type: z.string(),
@@ -152,7 +152,7 @@ const RawDisplayBlockSchema = z
   })
   .passthrough();
 
-/** DisplayBlock schema，自动转换为强类型 */
+// DisplayBlock schema with automatic strong typing
 export const DisplayBlockSchema = RawDisplayBlockSchema.transform((raw): DisplayBlock => {
   switch (raw.type) {
     case "brief":
@@ -184,44 +184,44 @@ export const DisplayBlockSchema = RawDisplayBlockSchema.transform((raw): Display
 // Tool Types
 // ============================================================================
 
-/** 工具调用 */
+// Tool call
 export const ToolCallSchema = z.object({
-  /** 固定为 "function" */
+  // Always "function"
   type: z.literal("function"),
-  /** 工具调用 ID，用于关联 ToolResult */
+  // Tool call ID, used to match with ToolResult
   id: z.string(),
   function: z.object({
-    /** 工具名称，如 "Shell"、"ReadFile"、"WriteFile" */
+    // Tool name, e.g. "Shell", "ReadFile", "WriteFile"
     name: z.string(),
-    /** JSON 格式的参数字符串，流式时可能不完整 */
+    // JSON-encoded arguments string, may be incomplete during streaming
     arguments: z.string().nullable().optional(),
   }),
-  /** 额外信息 */
+  // Extra metadata
   extras: z.record(z.unknown()).nullable().optional(),
 });
 export type ToolCall = z.infer<typeof ToolCallSchema>;
 
-/** 工具调用参数片段（流式） */
+// Tool call argument chunk (streaming)
 export const ToolCallPartSchema = z.object({
-  /** 参数片段，追加到最后一个 ToolCall 的 arguments */
+  // Argument chunk, appended to the last ToolCall's arguments
   arguments_part: z.string().nullable().optional(),
 });
 export type ToolCallPart = z.infer<typeof ToolCallPartSchema>;
 
-/** 工具执行结果 */
+// Tool execution result
 export const ToolResultSchema = z.object({
-  /** 对应的工具调用 ID */
+  // Corresponding tool call ID
   tool_call_id: z.string(),
   return_value: z.object({
-    /** 是否为错误 */
+    // Whether this is an error
     is_error: z.boolean(),
-    /** 返回给模型的输出内容，可以是纯文本或内容片段数组 */
+    // Output content for the model, can be plain text or array of content parts
     output: z.union([z.string(), z.array(ContentPartSchema)]),
-    /** 给模型的解释性消息 */
+    // Explanatory message for the model
     message: z.string(),
-    /** 显示给用户的内容块 */
+    // Display blocks shown to the user
     display: z.array(DisplayBlockSchema),
-    /** 额外调试信息 */
+    // Extra debug info
     extras: z.record(z.unknown()).nullable().optional(),
   }),
 });
@@ -231,74 +231,74 @@ export type ToolResult = z.infer<typeof ToolResultSchema>;
 // Event Payloads
 // ============================================================================
 
-/** 轮次开始事件 */
+// Turn begin event
 export const TurnBeginSchema = z.object({
-  /** 用户输入，可以是纯文本或内容片段数组 */
+  // User input, can be plain text or array of content parts
   user_input: z.union([z.string(), z.array(ContentPartSchema)]),
 });
 export type TurnBegin = z.infer<typeof TurnBeginSchema>;
 
-/** 步骤开始事件 */
+// Step begin event
 export const StepBeginSchema = z.object({
-  /** 步骤编号，从 1 开始 */
+  // Step number, starting from 1
   n: z.number(),
 });
 export type StepBegin = z.infer<typeof StepBeginSchema>;
 
-/** 空 payload（用于 StepInterrupted, CompactionBegin, CompactionEnd） */
+// Empty payload (for StepInterrupted, CompactionBegin, CompactionEnd)
 export const EmptyPayloadSchema = z.object({});
-/** 步骤被中断，无额外字段 */
+// Step interrupted, no additional fields
 export type StepInterrupted = z.infer<typeof EmptyPayloadSchema>;
-/** 上下文压缩开始，无额外字段 */
+// Context compaction started, no additional fields
 export type CompactionBegin = z.infer<typeof EmptyPayloadSchema>;
-/** 上下文压缩结束，无额外字段 */
+// Context compaction ended, no additional fields
 export type CompactionEnd = z.infer<typeof EmptyPayloadSchema>;
 
-/** 状态更新事件 */
+// Status update event
 export const StatusUpdateSchema = z.object({
-  /** 上下文使用率，0-1 之间的浮点数 */
+  // Context usage ratio, float between 0 and 1
   context_usage: z.number().nullable().optional(),
-  /** 当前步骤的 token 用量统计 */
+  // Token usage stats for the current step
   token_usage: TokenUsageSchema.nullable().optional(),
-  /** 当前步骤的消息 ID */
+  // Message ID for the current step
   message_id: z.string().nullable().optional(),
 });
 export type StatusUpdate = z.infer<typeof StatusUpdateSchema>;
 
-/** 审批请求 payload */
+// Approval request payload
 export const ApprovalRequestPayloadSchema = z.object({
-  /** 请求 ID，用于响应时引用 */
+  // Request ID, referenced when responding
   id: z.string(),
-  /** 关联的工具调用 ID */
+  // Associated tool call ID
   tool_call_id: z.string(),
-  /** 发起者（工具名称），如 "Shell"、"WriteFile" */
+  // Sender (tool name), e.g. "Shell", "WriteFile"
   sender: z.string(),
-  /** 操作描述，如 "run shell command" */
+  // Action description, e.g. "run shell command"
   action: z.string(),
-  /** 详细说明，如 "Run command `rm -rf /`" */
+  // Detailed description, e.g. "Run command `rm -rf /`"
   description: z.string(),
-  /** 显示给用户的内容块 */
+  // Display blocks shown to the user
   display: z.array(DisplayBlockSchema).optional(),
 });
 export type ApprovalRequestPayload = z.infer<typeof ApprovalRequestPayloadSchema>;
 
-/** 审批请求已解决事件 */
+// Approval request resolved event
 export const ApprovalRequestResolvedSchema = z.object({
-  /** 已解决的审批请求 ID */
+  // Resolved approval request ID
   request_id: z.string(),
-  /** 审批结果 */
+  // Approval result
   response: ApprovalResponseSchema,
 });
 export type ApprovalRequestResolved = z.infer<typeof ApprovalRequestResolvedSchema>;
 
-/** 解析错误 payload */
+// Parse error payload
 export interface ParseErrorPayload {
   code: string;
   message: string;
   rawType?: string;
 }
 
-/** 子 Agent 事件 */
+// Sub-agent event
 export interface SubagentEvent {
   task_tool_call_id: string;
   event: WireEvent;
@@ -309,8 +309,8 @@ export interface SubagentEvent {
 // ============================================================================
 
 /**
- * Wire 事件联合类型
- * 通过 `event` 方法从 Agent 发送到 Client，无需响应
+ * Wire event union type
+ * Sent from Agent to Client via `event` method, no response required
  */
 export type WireEvent =
   | { type: "TurnBegin"; payload: TurnBegin }
@@ -329,7 +329,7 @@ export type WireEvent =
 
 export type WireRequest = { type: "ApprovalRequest"; payload: ApprovalRequestPayload };
 
-/** 事件类型 -> schema 映射 */
+// Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
   TurnBegin: TurnBeginSchema,
   StepBegin: StepBeginSchema,
@@ -344,14 +344,14 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequestResolved: ApprovalRequestResolvedSchema,
 };
 
-/** 请求类型 -> schema 映射 */
+// Request type -> schema mapping
 export const RequestSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequest: ApprovalRequestPayloadSchema,
 };
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
-/** 解析 Wire 事件（内部使用） */
+// Parse wire event (internal use)
 export function parseEventPayload(type: string, payload: unknown): Result<WireEvent> {
   const schema = EventSchemas[type];
   if (!schema) {
@@ -392,20 +392,20 @@ EventSchemas.SubagentEvent = SubagentEventSchema;
 // Stream Event
 // ============================================================================
 
-/** 协议解析错误 */
+// Protocol parse error
 export interface ParseError {
   type: "error";
-  /** 错误代码 */
+  // Error code
   code: string;
-  /** 错误消息 */
+  // Error message
   message: string;
-  /** 原始数据（截断至 500 字符） */
+  // Raw data (truncated to 500 chars)
   raw?: string;
 }
 
 /**
- * 流事件联合类型
- * Turn 迭代器返回的事件类型，包括 WireEvent、WireRequest 和 ParseError
+ * Stream event union type
+ * Event type returned by the Turn iterator, includes WireEvent, WireRequest, and ParseError
  */
 export type StreamEvent = WireEvent | WireRequest | ParseError;
 
@@ -413,16 +413,16 @@ export type StreamEvent = WireEvent | WireRequest | ParseError;
 // Run Result
 // ============================================================================
 
-/** 轮次运行结果 */
+// Turn run result
 export const RunResultSchema = z.object({
   /**
-   * 完成状态
-   * - `finished`: 轮次正常完成
-   * - `cancelled`: 轮次被 cancel 取消
-   * - `max_steps_reached`: 达到最大步数限制
+   * Completion status
+   * - `finished`: Turn completed normally
+   * - `cancelled`: Turn was cancelled via cancel()
+   * - `max_steps_reached`: Reached maximum step limit
    */
   status: z.enum(["finished", "cancelled", "max_steps_reached"]),
-  /** 当 status 为 max_steps_reached 时，返回已执行的步数 */
+  // When status is max_steps_reached, returns the number of steps executed
   steps: z.number().optional(),
 });
 export type RunResult = z.infer<typeof RunResultSchema>;
@@ -431,18 +431,18 @@ export type RunResult = z.infer<typeof RunResultSchema>;
 // RPC Messages
 // ============================================================================
 
-/** RPC 错误 */
+// RPC error
 export const RpcErrorSchema = z.object({
-  /** 错误代码 */
+  // Error code
   code: z.number(),
-  /** 错误消息 */
+  // Error message
   message: z.string(),
-  /** 额外数据 */
+  // Extra data
   data: z.unknown().optional(),
 });
 export type RpcError = z.infer<typeof RpcErrorSchema>;
 
-/** RPC 消息（请求、通知或响应） */
+// RPC message (request, notification, or response)
 export const RpcMessageSchema = z.object({
   jsonrpc: z.string().optional(),
   id: z.string().optional(),
@@ -457,43 +457,43 @@ export type RpcMessage = z.infer<typeof RpcMessageSchema>;
 // Config Types
 // ============================================================================
 
-/** 模型配置 */
+// Model configuration
 export interface ModelConfig {
-  /** 模型 ID，用于 API 调用 */
+  // Model ID for API calls
   id: string;
-  /** 模型显示名称 */
+  // Model display name
   name: string;
-  /** 模型能力列表，如 ["thinking", "image_in", "video_in"] */
+  // Model capabilities, e.g. ["thinking", "image_in", "video_in"]
   capabilities: string[];
 }
 
-/** Kimi 配置 */
+// Kimi configuration
 export interface KimiConfig {
-  /** 默认模型 ID */
+  // Default model ID
   defaultModel: string | null;
-  /** 默认思考模式 */
+  // Default thinking mode
   defaultThinking: boolean;
-  /** 可用模型列表 */
+  // Available models list
   models: ModelConfig[];
 }
 
-/** MCP 服务器配置 */
+// MCP server configuration
 export interface MCPServerConfig {
-  /** 服务器名称，用于标识 */
+  // Server name for identification
   name: string;
-  /** 传输方式 */
+  // Transport type
   transport: "http" | "stdio";
-  /** HTTP 传输时的服务器 URL */
+  // Server URL for HTTP transport
   url?: string;
-  /** stdio 传输时的启动命令 */
+  // Command to launch for stdio transport
   command?: string;
-  /** stdio 传输时的命令参数 */
+  // Command arguments for stdio transport
   args?: string[];
-  /** 环境变量 */
+  // Environment variables
   env?: Record<string, string>;
-  /** HTTP 请求头 */
+  // HTTP headers
   headers?: Record<string, string>;
-  /** 认证方式，目前仅支持 "oauth" */
+  // Authentication method, currently only "oauth" is supported
   auth?: "oauth";
 }
 
@@ -501,35 +501,35 @@ export interface MCPServerConfig {
 // Session Types
 // ============================================================================
 
-/** 会话选项 */
+// Session options
 export interface SessionOptions {
-  /** 工作目录路径，必填 */
+  // Working directory path, required
   workDir: string;
-  /** 会话 ID，不提供则自动生成 UUID */
+  // Session ID, auto-generated UUID if not provided
   sessionId?: string;
-  /** 模型 ID */
+  // Model ID
   model?: string;
-  /** 是否启用思考模式，默认 false */
+  // Enable thinking mode, defaults to false
   thinking?: boolean;
-  /** 是否自动批准所有操作，默认 false */
+  // Auto-approve all operations, defaults to false
   yoloMode?: boolean;
-  /** CLI 可执行文件路径，默认 "kimi" */
+  // CLI executable path, defaults to "kimi"
   executable?: string;
-  /** 传递给 CLI 的环境变量 */
+  // Environment variables passed to CLI
   env?: Record<string, string>;
 }
 
-/** 会话信息 */
+// Session info
 export interface SessionInfo {
-  /** 会话 ID */
+  // Session ID
   id: string;
-  /** 工作目录 */
+  // Working directory
   workDir: string;
-  /** 上下文文件路径 */
+  // Context file path
   contextFile: string;
-  /** 最后更新时间戳（毫秒） */
+  // Last updated timestamp (milliseconds)
   updatedAt: number;
-  /** 第一条用户消息的摘要 */
+  // Summary of the first user message
   brief: string;
 }
 
@@ -537,7 +537,7 @@ export interface SessionInfo {
 // Context Record (for history parsing)
 // ============================================================================
 
-/** 上下文记录（用于解析历史） */
+// Context record (for parsing history)
 export const ContextRecordSchema = z.object({
   role: z.string().optional(),
   content: z.unknown().optional(),
@@ -558,7 +558,7 @@ export const ContextRecordSchema = z.object({
 });
 export type ContextRecord = z.infer<typeof ContextRecordSchema>;
 
-/** 解析请求 payload */
+// Parse request payload
 export function parseRequestPayload(type: string, payload: unknown): Result<WireRequest> {
   const schema = RequestSchemas[type];
   if (!schema) {
