@@ -294,15 +294,12 @@ func handlePromptToolCall(encoder *json.Encoder, scanner *bufio.Scanner, reqID s
 		"n": 1,
 	})
 
-	// Send ToolCall request
+	// Send ToolCall request (Wire 1.1 format)
 	toolReqID := fmt.Sprintf("req-%d", requestID.Add(1))
 	payloadJSON, _ := json.Marshal(map[string]any{
-		"type": "function",
-		"id":   "call-123",
-		"function": map[string]any{
-			"name":      "test_tool",
-			"arguments": `{"input":"hello"}`,
-		},
+		"id":        "call-123",
+		"name":      "test_tool",
+		"arguments": `{"input":"hello"}`,
 	})
 	paramsJSON, _ := json.Marshal(map[string]any{
 		"type":    "ToolCallRequest",

@@ -29,7 +29,7 @@ var (
 	_ Event = CompactionEnd{}
 	_ Event = StatusUpdate{}
 	_ Event = ContentPart{}
-	_ Event = ToolCallRequest{}
+	_ Event = ToolCall{}
 	_ Event = ToolCallPart{}
 	_ Event = ToolResult{}
 	_ Event = SubagentEvent{}
@@ -52,7 +52,7 @@ func TestEvent_EventTypeConstants(t *testing.T) {
 		{"CompactionEnd", CompactionEnd{}, EventTypeCompactionEnd},
 		{"StatusUpdate", StatusUpdate{}, EventTypeStatusUpdate},
 		{"ContentPart", ContentPart{}, EventTypeContentPart},
-		{"ToolCall", ToolCallRequest{}, EventTypeToolCall},
+		{"ToolCall", ToolCall{}, EventTypeToolCall},
 		{"ToolCallPart", ToolCallPart{}, EventTypeToolCallPart},
 		{"ToolResult", ToolResult{}, EventTypeToolResult},
 		{"SubagentEvent", SubagentEvent{}, EventTypeSubagentEvent},
@@ -236,7 +236,7 @@ func TestEventParams_UnmarshalJSON_AllEventTypes(t *testing.T) {
 		{"CompactionEnd", EventTypeCompactionEnd, CompactionEnd{}},
 		{"StatusUpdate", EventTypeStatusUpdate, StatusUpdate{ContextUsage: Optional[float64]{Value: 0.5, Valid: true}}},
 		{"ContentPart", EventTypeContentPart, NewTextContentPart("hello")},
-		{"ToolCall", EventTypeToolCall, ToolCallRequest{Type: "function", ID: "1", Function: ToolCallFunction{Name: "f"}}},
+		{"ToolCall", EventTypeToolCall, ToolCall{Type: "function", ID: "1", Function: ToolCallFunction{Name: "f"}}},
 		{"ToolCallPart", EventTypeToolCallPart, ToolCallPart{ArgumentsPart: Optional[string]{Value: "x", Valid: true}}},
 		{"ToolResult", EventTypeToolResult, ToolResult{ToolCallID: "1", ReturnValue: ToolResultReturnValue{IsError: false, Output: NewStringContent("ok"), Message: "m"}}},
 		{"SubagentEvent", EventTypeSubagentEvent, sub},
