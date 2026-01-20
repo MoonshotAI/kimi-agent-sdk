@@ -142,3 +142,19 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+## Choosing prompt vs Session
+
+Use `prompt()` when you want the fastest path to an answer and do not need to
+manage session state:
+
+- Each call creates a temporary session.
+- You can only consume the returned `Message` stream for that call.
+- Approval happens only through `approval_handler_fn` (or `yolo=True`).
+
+Use `Session` when you need control over conversation state or lower-level
+access:
+
+- You can run multiple prompts within the same session.
+- You can resume previous sessions with `Session.resume(...)`.
+- It exposes raw [Wire](https://moonshotai.github.io/kimi-cli/en/customization/wire-mode.html#wire-mode) messages and approvals for fine-grained control.
