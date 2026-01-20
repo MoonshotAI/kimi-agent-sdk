@@ -75,7 +75,7 @@ async function main() {
       "@moonshot-ai/kimi-agent-sdk/utils": path.resolve(__dirname, "../agent_sdk/utils.ts"),
     },
     plugins: [
-      watchAgentSdkPlugin,  // 添加这个插件
+      watchAgentSdkPlugin,
       esbuildProblemMatcherPlugin,
     ],
   });

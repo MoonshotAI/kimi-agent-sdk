@@ -54,11 +54,7 @@ export function useAppInit(): AppInitState {
         }
 
         // 3. Load config, MCP servers and check CLI in parallel
-        const [extensionConfig, mcpServers, cliResult] = await Promise.all([
-          bridge.getExtensionConfig(),
-          bridge.getMCPServers(),
-          bridge.checkCLI(),
-        ]);
+        const [extensionConfig, mcpServers, cliResult] = await Promise.all([bridge.getExtensionConfig(), bridge.getMCPServers(), bridge.checkCLI()]);
 
         if (cancelled) {
           return;

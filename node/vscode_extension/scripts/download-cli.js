@@ -23,20 +23,22 @@ const PLATFORM_MAP = {
 function fetch(url) {
   return new Promise((resolve, reject) => {
     const doRequest = (url) => {
-      https.get(url, { headers: { "User-Agent": "kimi-vscode" } }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          doRequest(res.headers.location);
-          return;
-        }
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}: ${url}`));
-          return;
-        }
-        const chunks = [];
-        res.on("data", (chunk) => chunks.push(chunk));
-        res.on("end", () => resolve(Buffer.concat(chunks)));
-        res.on("error", reject);
-      }).on("error", reject);
+      https
+        .get(url, { headers: { "User-Agent": "kimi-vscode" } }, (res) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            doRequest(res.headers.location);
+            return;
+          }
+          if (res.statusCode !== 200) {
+            reject(new Error(`HTTP ${res.statusCode}: ${url}`));
+            return;
+          }
+          const chunks = [];
+          res.on("data", (chunk) => chunks.push(chunk));
+          res.on("end", () => resolve(Buffer.concat(chunks)));
+          res.on("error", reject);
+        })
+        .on("error", reject);
     };
     doRequest(url);
   });
@@ -88,10 +90,7 @@ async function main() {
   const sha256Url = `${archiveUrl}.sha256`;
 
   console.log(`Downloading ${archiveName}...`);
-  const [archiveData, sha256Data] = await Promise.all([
-    fetch(archiveUrl),
-    fetch(sha256Url),
-  ]);
+  const [archiveData, sha256Data] = await Promise.all([fetch(archiveUrl), fetch(sha256Url)]);
 
   // Verify checksum
   const expectedHash = sha256Data.toString().trim().split(/\s+/)[0];

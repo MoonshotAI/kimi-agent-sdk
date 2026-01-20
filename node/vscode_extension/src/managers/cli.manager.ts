@@ -93,9 +93,6 @@ export class CLIManager {
   }
 
   private meetsRequirements(info: CLIInfo): boolean {
-    return (
-      compareVersions(info.kimi_cli_version, MIN_CLI_VERSION) >= 0 &&
-      compareVersions(info.wire_protocol_version, MIN_WIRE_PROTOCOL_VERSION) >= 0
-    );
+    return compareVersions(info.kimi_cli_version, MIN_CLI_VERSION) >= 0 && compareVersions(info.wire_protocol_version, MIN_WIRE_PROTOCOL_VERSION) >= 0;
   }
 }
