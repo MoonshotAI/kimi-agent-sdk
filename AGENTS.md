@@ -6,11 +6,8 @@ This document defines the API specification that all Kimi Agent SDK implementati
 
 1. [Overview](#overview)
 2. [Core API](#core-api)
-3. [Type Definitions](#type-definitions)
-4. [Wire Protocol](#wire-protocol)
-5. [Configuration Options](#configuration-options)
-6. [Error Handling](#error-handling)
-7. [Implementation Guidelines](#implementation-guidelines)
+3. [Wire Protocol](#wire-protocol)
+4. [Configuration Options](#configuration-options)
 
 ---
 
@@ -222,21 +219,6 @@ Agent                SDK                    Your Handler
 
 ---
 
-## Type Definitions
-
-For detailed type definitions used in the Wire protocol, see the official documentation:
-
-**[Wire Mode Type Definitions](https://moonshotai.github.io/kimi-cli/en/customization/wire-mode.html#contentpart)**
-
-Key types include:
-- `Content` / `ContentPart` - User input and output content
-- `ToolCall` / `ToolResult` - Tool invocation and results
-- `ApprovalRequest` / `ApprovalResponse` - User approval flow
-- `DisplayBlock` - Rich display content for UIs
-- `TokenUsage` - Token consumption statistics
-
----
-
 ## Wire Protocol
 
 The SDK communicates with Kimi CLI using Wire Protocol version `2` (JSON-RPC 2.0 over stdio).
@@ -250,24 +232,6 @@ For complete Wire protocol documentation including event types, RPC methods, and
 ## Configuration Options
 
 ### Session Options
-
-```typescript
-interface SessionOptions {
-  workDir?: string;        // Working directory path
-  sessionId?: string;      // Custom session identifier
-  model?: string;          // Model name (e.g., "kimi")
-  thinking?: boolean;      // Enable thinking mode
-  yolo?: boolean;          // Auto-approve all requests
-  configFile?: string;     // Path to config file
-  config?: Config;         // Inline configuration object
-  executable?: string;     // CLI executable path
-  env?: Record<string, string>;  // Environment variables
-  mcpConfigs?: MCPConfig[];      // MCP server configurations
-  agentFile?: string;      // Agent specification file
-  skillsDir?: string;      // Skills directory path
-  tools?: ExternalTool[];  // Custom external tools
-}
-```
 
 | Option        | Type                     | Description                                     |
 | ------------- | ------------------------ | ----------------------------------------------- |
@@ -287,66 +251,7 @@ interface SessionOptions {
 
 ### Loop Control Options
 
-```typescript
-interface LoopOptions {
-  maxStepsPerTurn?: number;    // Maximum steps in one turn
-  maxRetriesPerStep?: number;  // Maximum retries per step
-}
-```
-
 | Option              | Type     | Description                            |
 | ------------------- | -------- | -------------------------------------- |
 | `maxStepsPerTurn`   | `number` | Maximum steps allowed in one turn      |
 | `maxRetriesPerStep` | `number` | Maximum retries allowed per step       |
-
----
-
-## Implementation Guidelines
-
-### Process Management
-
-1. **Spawning**: Start CLI with `kimi --wire` and connect to stdin/stdout
-2. **Monitoring**: Watch for process exit and propagate errors
-3. **Termination**: Send cancel if turn active, then terminate gracefully
-
-```
-Session.close():
-  1. Cancel active turn (if any)
-  2. Wait for data exchange to complete
-  3. Close stdio pipes
-  4. Terminate CLI process
-```
-
-### Concurrency Handling
-
-1. **Single Turn Per Session**: Only one turn can be active at a time
-2. **No Concurrent Access**: Session is not thread-safe and must not be accessed concurrently
-3. **Async Iteration**: Turn events should be consumable via async iteration
-
-### Resource Cleanup
-
-1. **Session as Context Manager**: Support `with`/`using` for automatic cleanup
-2. **Turn Completion**: Clean up turn resources when iteration completes
-3. **Error Recovery**: Ensure cleanup even when errors occur
-
-### Streaming Processing
-
-1. **Event Routing**: Route events to correct turn/step based on nesting
-2. **Backpressure**: Handle slow consumers without unbounded buffering
-3. **Cancellation**: Support cancellation at any point in the stream
-
-### Approval Handling
-
-When an `ApprovalRequest` arrives:
-
-1. If `yolo` mode: Auto-approve with `"approve"`
-2. If handler provided: Call handler and use returned response
-3. Default: Reject with `"reject"`
-
-```typescript
-// Typical approval flow
-if (event is ApprovalRequest) {
-  const response = yolo ? "approve" : await handler(event);
-  await sendApprovalResponse(event.id, response);
-}
-```
