@@ -6,12 +6,11 @@ This document defines the API specification that all Kimi Agent SDK implementati
 
 1. [Overview](#overview)
 2. [Core API](#core-api)
-3. [Optional API](#optional-api)
-4. [Type Definitions](#type-definitions)
-5. [Wire Protocol](#wire-protocol)
-6. [Configuration Options](#configuration-options)
-7. [Error Handling](#error-handling)
-8. [Implementation Guidelines](#implementation-guidelines)
+3. [Type Definitions](#type-definitions)
+4. [Wire Protocol](#wire-protocol)
+5. [Configuration Options](#configuration-options)
+6. [Error Handling](#error-handling)
+7. [Implementation Guidelines](#implementation-guidelines)
 
 ---
 
@@ -158,48 +157,68 @@ prompt(content: Content, options?: SessionOptions): Turn
 3. Yield/return all events
 4. Automatically close the Session when done
 
----
-
-## Optional API
-
-These APIs are RECOMMENDED but not required.
-
-### Session.resume(workDir, sessionId) → Session | null
-
-Resume an existing session from storage.
-
-```typescript
-Session.resume(workDir: string, sessionId: string): Session | null
-```
-
-Returns a Session if the session exists and can be resumed, otherwise returns null.
-
-### listSessions(workDir) → SessionInfo[]
-
-List existing sessions in a work directory.
-
-```typescript
-listSessions(workDir: string): SessionInfo[]
-```
-
-Returns a list of session metadata for all sessions in the specified work directory.
-
 ### External Tools
 
-Register custom tools that the agent can invoke.
+External tools allow you to extend the agent's capabilities by registering custom tools that the agent can invoke during a conversation.
+
+#### ExternalTool Interface
 
 ```typescript
 interface ExternalTool {
-  name: string;
-  description: string;
-  parameters: object;  // JSON Schema
-  handler: (params: object) => Promise<ToolResult>;
+  name: string;           // Unique tool name
+  description: string;    // Description for the agent to understand when to use this tool
+  parameters: object;     // JSON Schema defining the tool's input parameters
+  handler: (params: object) => Promise<ToolResult>;  // Async function to execute the tool
 }
-
-createSession({ tools: ExternalTool[] }): Session
 ```
 
-External tools are registered during session initialization and can be invoked by the agent through the Wire protocol.
+#### Registering External Tools
+
+External tools are registered during session creation via the `tools` option:
+
+```typescript
+const session = createSession({
+  workDir: "/path/to/project",
+  tools: [
+    {
+      name: "search_database",
+      description: "Search the internal database for records matching a query",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "Search query" },
+          limit: { type: "number", description: "Maximum results to return" }
+        },
+        required: ["query"]
+      },
+      handler: async (params) => {
+        const results = await db.search(params.query, params.limit);
+        return { content: JSON.stringify(results) };
+      }
+    }
+  ]
+});
+```
+
+#### Tool Execution Flow
+
+When the agent decides to use an external tool:
+
+1. The SDK receives a tool call request via the Wire protocol
+2. The SDK matches the tool name to a registered `ExternalTool`
+3. The `handler` function is invoked with the parsed parameters
+4. The handler's return value (`ToolResult`) is sent back to the agent
+
+```
+Agent                SDK                    Your Handler
+  │                   │                          │
+  │──ToolCall────────►│                          │
+  │                   │──handler(params)────────►│
+  │                   │                          │
+  │                   │◄─────ToolResult──────────│
+  │◄──ToolResult──────│                          │
+  │                   │                          │
+```
 
 ---
 
