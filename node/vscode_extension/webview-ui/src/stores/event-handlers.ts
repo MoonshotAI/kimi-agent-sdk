@@ -479,6 +479,10 @@ const eventHandlers: Record<string, EventHandler> = {
       return;
     }
 
+    if (target.steps.length === 0) {
+      target.steps.push({ n: 1, items: [] });
+    }
+
     // Nested Subagent Task End: accumulate token usage
     if (target.event.type === "ToolResult") {
       const toolResultPayload = target.event.payload as ToolResult;

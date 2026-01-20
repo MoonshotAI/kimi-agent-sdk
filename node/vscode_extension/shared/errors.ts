@@ -1,4 +1,4 @@
-import { CliErrorCodes, SessionErrorCodes, TransportErrorCodes } from "@moonshot-ai/kimi-agent-sdk/errors";
+import { CliErrorCodes, SessionErrorCodes, TransportErrorCodes, ProtocolErrorCodes } from "@moonshot-ai/kimi-agent-sdk/errors";
 import type { ErrorPhase } from "./types";
 
 // Pre-flight: task didn't start at all or was blocked by "gatekeeper"
@@ -21,17 +21,25 @@ export const ERROR_MESSAGES: Record<string, string> = {
   [TransportErrorCodes.SPAWN_FAILED]: "Failed to start Kimi Code.",
   [TransportErrorCodes.ALREADY_STARTED]: "A session is already running.",
   [TransportErrorCodes.STDIN_NOT_WRITABLE]: "Failed to communicate with Kimi Code.",
+  [TransportErrorCodes.HANDSHAKE_TIMEOUT]: "Connection timed out.",
+  [TransportErrorCodes.PROCESS_CRASHED]: "Process connection lost.",
+
+  // CLI errors
   [CliErrorCodes.LLM_NOT_SET]: "Authentication failed. Please sign in.",
   [CliErrorCodes.LLM_NOT_SUPPORTED]: "This model is not supported.",
   [CliErrorCodes.INVALID_STATE]: "Please wait for the current operation.",
-  [SessionErrorCodes.SESSION_BUSY]: "A message is being sent. Please wait.",
-
-  // Runtime
-  [TransportErrorCodes.HANDSHAKE_TIMEOUT]: "Connection timed out.",
-  [TransportErrorCodes.PROCESS_CRASHED]: "Process connection lost.",
   [CliErrorCodes.CHAT_PROVIDER_ERROR]: "Service temporarily unavailable.",
+
+  // Session errors
+  [SessionErrorCodes.SESSION_BUSY]: "A message is being sent. Please wait.",
   [SessionErrorCodes.SESSION_CLOSED]: "Session was closed.",
   [SessionErrorCodes.TURN_INTERRUPTED]: "Stopped by user.",
+
+  // Protocol errors
+  [ProtocolErrorCodes.INVALID_JSON]: "Communication format error.",
+  [ProtocolErrorCodes.INVALID_REQUEST]: "Invalid request.",
+  [ProtocolErrorCodes.INVALID_PARAMS]: "Invalid parameters.",
+  [ProtocolErrorCodes.INTERNAL_ERROR]: "Internal error occurred.",
 };
 
 export function classifyError(code: string): ErrorPhase {

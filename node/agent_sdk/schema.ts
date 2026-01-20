@@ -123,22 +123,20 @@ export const TodoBlockSchema = z.object({
 });
 export type TodoBlock = z.infer<typeof TodoBlockSchema>;
 
+export const ShellBlockSchema = z.object({
+  type: z.literal("shell"),
+  language: z.string(),
+  command: z.string(),
+});
+export type ShellBlock = z.infer<typeof ShellBlockSchema>;
+
 /** 未知类型显示块（fallback） */
 export interface UnknownBlock {
-  /** 类型标识 */
   type: string;
-  /** 原始数据 */
   data: Record<string, unknown>;
 }
 
-/**
- * 显示块联合类型
- * - `brief`: 简短文本
- * - `diff`: 文件差异
- * - `todo`: 待办事项
- * - 其他: UnknownBlock fallback
- */
-export type DisplayBlock = BriefBlock | DiffBlock | TodoBlock | UnknownBlock;
+export type DisplayBlock = BriefBlock | DiffBlock | TodoBlock | ShellBlock | UnknownBlock;
 
 /** DisplayBlock 原始解析 schema */
 const RawDisplayBlockSchema = z
@@ -149,19 +147,34 @@ const RawDisplayBlockSchema = z
     old_text: z.string().optional(),
     new_text: z.string().optional(),
     items: z.array(z.object({ title: z.string(), status: z.enum(["pending", "in_progress", "done"]) })).optional(),
+    language: z.string().optional(),
+    command: z.string().optional(),
   })
   .passthrough();
 
 /** DisplayBlock schema，自动转换为强类型 */
 export const DisplayBlockSchema = RawDisplayBlockSchema.transform((raw): DisplayBlock => {
-  if (raw.type === "brief" && typeof raw.text === "string") {
-    return { type: "brief", text: raw.text };
-  }
-  if (raw.type === "diff" && typeof raw.path === "string" && typeof raw.old_text === "string" && typeof raw.new_text === "string") {
-    return { type: "diff", path: raw.path, old_text: raw.old_text, new_text: raw.new_text };
-  }
-  if (raw.type === "todo" && Array.isArray(raw.items)) {
-    return { type: "todo", items: raw.items };
+  switch (raw.type) {
+    case "brief":
+      if (typeof raw.text === "string") {
+        return { type: "brief", text: raw.text };
+      }
+      break;
+    case "diff":
+      if (typeof raw.path === "string" && typeof raw.old_text === "string" && typeof raw.new_text === "string") {
+        return { type: "diff", path: raw.path, old_text: raw.old_text, new_text: raw.new_text };
+      }
+      break;
+    case "todo":
+      if (Array.isArray(raw.items)) {
+        return { type: "todo", items: raw.items };
+      }
+      break;
+    case "shell":
+      if (typeof raw.language === "string" && typeof raw.command === "string") {
+        return { type: "shell", language: raw.language, command: raw.command };
+      }
+      break;
   }
   const { type, ...rest } = raw;
   return { type, data: rest };

@@ -1,10 +1,16 @@
 import { useMemo } from "react";
-import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock } from "@moonshot-ai/kimi-agent-sdk/schema";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock, ShellBlock } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
 import * as Diff from "diff";
 
+function useIsDark(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("dark");
+}
+
 interface DiffBlockProps {
-  block: { path: string; old_text: string; new_text: string };
+  block: DiffBlock;
   maxHeight?: string;
 }
 
@@ -120,7 +126,7 @@ export function DiffBlockView({ block, maxHeight = "max-h-40" }: DiffBlockProps)
 }
 
 interface TodoBlockProps {
-  block: { items: Array<{ title: string; status: string }> };
+  block: TodoBlock;
 }
 
 export function TodoBlockView({ block }: TodoBlockProps) {
@@ -144,11 +150,42 @@ export function TodoBlockView({ block }: TodoBlockProps) {
 }
 
 interface BriefBlockProps {
-  block: { text: string };
+  block: BriefBlock;
 }
 
 export function BriefBlockView({ block }: BriefBlockProps) {
   return <div className="text-xs text-muted-foreground bg-muted/30 rounded-md px-2 py-1.5">{block.text}</div>;
+}
+
+interface ShellBlockProps {
+  block: ShellBlock;
+  maxHeight?: string;
+}
+
+export function ShellBlockView({ block, maxHeight = "max-h-40" }: ShellBlockProps) {
+  console.log("ShellBlockView render", { block });
+  const isDark = useIsDark();
+  const language = block.language || "bash";
+
+  return (
+    <div className="text-[11px] border border-border rounded-md overflow-hidden">
+      <div className="px-2 py-1 bg-muted/50 border-b border-border text-muted-foreground flex items-center gap-2">
+        <span className="font-mono">$</span>
+        <span>Shell Command</span>
+      </div>
+      <div className={cn("overflow-auto", maxHeight)}>
+        <SyntaxHighlighter
+          style={isDark ? oneDark : oneLight}
+          language={language}
+          PreTag="div"
+          customStyle={{ margin: 0, padding: "0.5rem", fontSize: "11px", background: "transparent" }}
+          codeTagProps={{ style: { backgroundColor: "transparent" } }}
+        >
+          {block.command}
+        </SyntaxHighlighter>
+      </div>
+    </div>
+  );
 }
 
 interface DisplayBlockViewProps {

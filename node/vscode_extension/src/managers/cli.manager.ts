@@ -4,7 +4,7 @@ import * as path from "node:path";
 import * as crypto from "crypto";
 import { spawn } from "child_process";
 
-const MIN_CLI_VERSION = "0.72";
+const MIN_CLI_VERSION = "0.79";
 const MIN_WIRE_PROTOCOL_VERSION = "1";
 const GITHUB_RELEASE_BASE = "https://github.com/MoonshotAI/kimi-cli/releases/latest/download";
 const GITHUB_API_LATEST = "https://api.github.com/repos/MoonshotAI/kimi-cli/releases/latest";

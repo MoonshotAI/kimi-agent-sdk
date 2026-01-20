@@ -13,6 +13,9 @@ export const TransportErrorCodes = {
 
 export const ProtocolErrorCodes = {
   INVALID_JSON: "INVALID_JSON",
+  INVALID_REQUEST: "INVALID_REQUEST",
+  INVALID_PARAMS: "INVALID_PARAMS",
+  INTERNAL_ERROR: "INTERNAL_ERROR",
   SCHEMA_MISMATCH: "SCHEMA_MISMATCH",
   UNKNOWN_EVENT_TYPE: "UNKNOWN_EVENT_TYPE",
   UNKNOWN_REQUEST_TYPE: "UNKNOWN_REQUEST_TYPE",
@@ -105,14 +108,27 @@ export class CliError extends AgentSdkError {
     super(message);
   }
 
-  static fromRpcError(rpcCode: number, message: string): CliError {
-    const codeMap: Record<number, CliErrorCodeType> = {
+  static fromRpcError(rpcCode: number, message: string): CliError | ProtocolError {
+    // JSON-RPC 2.0 standard errors
+    const protocolCodeMap: Record<number, ProtocolErrorCodeType> = {
+      [-32700]: ProtocolErrorCodes.INVALID_JSON,
+      [-32600]: ProtocolErrorCodes.INVALID_REQUEST,
+      [-32602]: ProtocolErrorCodes.INVALID_PARAMS,
+      [-32603]: ProtocolErrorCodes.INTERNAL_ERROR,
+    };
+    if (protocolCodeMap[rpcCode]) {
+      return new ProtocolError(protocolCodeMap[rpcCode], message);
+    }
+
+    // Application-specific errors
+    const cliCodeMap: Record<number, CliErrorCodeType> = {
       [-32000]: CliErrorCodes.INVALID_STATE,
       [-32001]: CliErrorCodes.LLM_NOT_SET,
       [-32002]: CliErrorCodes.LLM_NOT_SUPPORTED,
       [-32003]: CliErrorCodes.CHAT_PROVIDER_ERROR,
     };
-    return new CliError(codeMap[rpcCode] ?? CliErrorCodes.UNKNOWN, message, rpcCode);
+
+    return new CliError(cliCodeMap[rpcCode] ?? CliErrorCodes.UNKNOWN, message, rpcCode);
   }
 }
 
