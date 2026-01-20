@@ -201,18 +201,6 @@ createSession({ tools: ExternalTool[] }): Session
 
 External tools are registered during session initialization and can be invoked by the agent through the Wire protocol.
 
-### Message Aggregation
-
-Aggregate raw Wire events into higher-level Message objects.
-
-```typescript
-interface MessageAggregator {
-  aggregate(events: WireEvent[]): Message[];
-}
-```
-
-This utility helps transform low-level Wire events into structured messages suitable for UI display or further processing.
-
 ---
 
 ## Type Definitions
