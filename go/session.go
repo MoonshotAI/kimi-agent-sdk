@@ -87,7 +87,7 @@ func NewSession(options ...Option) (*Session, error) {
 		cancel()
 		return nil, err
 	}
-	if wireProtocolVersion >= "2" {
+	if wireProtocolVersion >= "1.1" {
 		var toolDefs []wire.ExternalTool
 		for _, tool := range opt.tools {
 			toolDefs = append(toolDefs, tool.def)
@@ -326,8 +326,8 @@ func (r *Responder) Request(request *wire.RequestParams) (wire.RequestResult, er
 		}, nil
 	case wire.ToolCallRequest:
 		for _, tool := range r.tools {
-			if req.Function.Name == tool.def.Name && req.Function.Arguments.Valid {
-				toolResult, err := tool.call(json.RawMessage(req.Function.Arguments.Value))
+			if req.Name == tool.def.Name && req.Arguments.Valid {
+				toolResult, err := tool.call(json.RawMessage(req.Arguments.Value))
 				var output wire.Content
 				if err != nil {
 					output = wire.NewStringContent(err.Error())
@@ -339,13 +339,15 @@ func (r *Responder) Request(request *wire.RequestParams) (wire.RequestResult, er
 					ReturnValue: wire.ToolResultReturnValue{
 						IsError: err != nil,
 						Output:  output,
+						Message: "",
+						Display: []wire.DisplayBlock{},
 					},
 				}, nil
 			}
 		}
 		return nil, jsonrpc2.Error{
 			Code:    jsonrpc2.ErrorCodeInvalidParams,
-			Message: fmt.Sprintf("tool not found: %s", req.Function.Name),
+			Message: fmt.Sprintf("tool not found: %s", req.Name),
 		}
 	default:
 		return nil, jsonrpc2.Error{
