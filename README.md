@@ -155,22 +155,22 @@ for step := range turn.Steps {
 
 ## Documentation
 
-See the [guides](./guides) for detailed documentation:
+See the [guides](./guides/go) for detailed documentation:
 
-- [Quick Start](./guides/quickstart.md) - Get up and running
-- [Configuration](./guides/configuration.md) - All available options
-- [Thinking](./guides/thinking.md) - Access the model's reasoning process
-- [Approval Requests](./guides/approval-requests.md) - Handle permission flows
-- [External Tools](./guides/external-tools.md) - Register custom tools
-- [Turn Cancellation](./guides/turn-cancellation.md) - Cancel and continue sessions
-- [Costs and Usage](./guides/costs-and-usage.md) - Track token consumption
+- [Quick Start](./guides/go/quickstart.md) - Get up and running
+- [Configuration](./guides/go/configuration.md) - All available options
+- [Thinking](./guides/go/thinking.md) - Access the model's reasoning process
+- [Approval Requests](./guides/go/approval-requests.md) - Handle permission flows
+- [External Tools](./guides/go/external-tools.md) - Register custom tools
+- [Turn Cancellation](./guides/go/turn-cancellation.md) - Cancel and continue sessions
+- [Costs and Usage](./guides/go/costs-and-usage.md) - Track token consumption
 
 ## Examples
 
-See the [examples](./examples) directory for complete working examples:
+See the [examples](./examples/go) directory for complete working examples:
 
-- [Ralph Loop](./examples/ralph-loop) - Iterative AI task pattern with external verification
-- [Rumor Buster](./examples/rumor-buster) - Demonstrates ExternalTool capability for fact-checking
+- [Ralph Loop](./examples/go/ralph-loop) - Iterative AI task pattern with external verification
+- [Rumor Buster](./examples/go/rumor-buster) - Demonstrates ExternalTool capability for fact-checking
 
 ## Architecture
 

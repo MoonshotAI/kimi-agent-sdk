@@ -29,7 +29,7 @@ The name comes from Ralph Wiggum from The Simpsons - always making mistakes but 
 ## Installation
 
 ```bash
-cd examples/ralph-loop
+cd examples/go/ralph-loop
 go build .
 ```
 

@@ -28,7 +28,7 @@ A simple example demonstrating the basic usage of the Kimi Agent SDK. This tool 
 ## Installation
 
 ```bash
-cd examples/contributor-hunter
+cd examples/go/contributor-hunter
 go build .
 ```
 
