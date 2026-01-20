@@ -166,6 +166,9 @@ type RequestResponse interface {
 	requestResponse()
 }
 
+func (ApprovalResponse) requestResponse() {}
+func (ToolResult) requestResponse()       {}
+
 type Responder interface {
 	Respond(RequestResponse) error
 }
@@ -430,26 +433,26 @@ type ApprovalResponse struct {
 	Response  ApprovalRequestResponse `json:"response"`
 }
 
-func (ApprovalResponse) requestResponse() {}
-func (ToolResult) requestResponse()       {}
-
 type DisplayBlockType string
 
 const (
 	DisplayBlockTypeBrief   DisplayBlockType = "brief"
 	DisplayBlockTypeDiff    DisplayBlockType = "diff"
 	DisplayBlockTypeTodo    DisplayBlockType = "todo"
+	DisplayBlockTypeShell   DisplayBlockType = "shell"
 	DisplayBlockTypeUnknown DisplayBlockType = "unknown"
 )
 
 type DisplayBlock struct {
-	Type    DisplayBlockType       `json:"type"`
-	Text    string                 `json:"text,omitzero"`
-	Path    string                 `json:"path,omitzero"`
-	OldText string                 `json:"old_text,omitzero"`
-	NewText string                 `json:"new_text,omitzero"`
-	Items   []DisplayBlockTodoItem `json:"items,omitzero"`
-	Data    map[string]any         `json:"data,omitzero"`
+	Type     DisplayBlockType                 `json:"type"`
+	Text     Optional[string]                 `json:"text,omitzero"`
+	Path     Optional[string]                 `json:"path,omitzero"`
+	OldText  Optional[string]                 `json:"old_text,omitzero"`
+	NewText  Optional[string]                 `json:"new_text,omitzero"`
+	Items    Optional[[]DisplayBlockTodoItem] `json:"items,omitzero"`
+	Data     Optional[map[string]any]         `json:"data,omitzero"`
+	Language Optional[string]                 `json:"language,omitzero"`
+	Command  Optional[string]                 `json:"command,omitzero"`
 }
 
 type TodoStatus string
