@@ -1,15 +1,44 @@
 const esbuild = require("esbuild");
 const path = require("path");
+const fs = require("fs");
 
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
-/**
- * @type {import('esbuild').Plugin}
- */
+const watchAgentSdkPlugin = {
+  name: "watch-agent-sdk",
+  setup(build) {
+    build.onResolve({ filter: /.*/, namespace: "file" }, (args) => {
+      if (args.path.includes("agent_sdk")) {
+        return { path: args.path, watchFiles: [args.path] };
+      }
+      return null;
+    });
+
+    build.onStart(() => {
+      const agentSdkDir = path.resolve(__dirname, "../agent_sdk");
+      const tsFiles = [];
+
+      function walkDir(dir) {
+        const files = fs.readdirSync(dir, { withFileTypes: true });
+        for (const file of files) {
+          const fullPath = path.join(dir, file.name);
+          if (file.isDirectory() && !file.name.includes("node_modules") && !file.name.includes("dist")) {
+            walkDir(fullPath);
+          } else if (file.name.endsWith(".ts") && !file.name.endsWith(".test.ts")) {
+            tsFiles.push(fullPath);
+          }
+        }
+      }
+
+      walkDir(agentSdkDir);
+      return { watchFiles: tsFiles };
+    });
+  },
+};
+
 const esbuildProblemMatcherPlugin = {
   name: "esbuild-problem-matcher",
-
   setup(build) {
     build.onStart(() => {
       console.log("[watch] build started");
@@ -46,21 +75,14 @@ async function main() {
       "@moonshot-ai/kimi-agent-sdk/utils": path.resolve(__dirname, "../agent_sdk/utils.ts"),
     },
     plugins: [
+      watchAgentSdkPlugin,  // 添加这个插件
       esbuildProblemMatcherPlugin,
-      {
-        name: "watch-build",
-        setup(build) {
-          build.onEnd((result) => {
-            console.log("[watch] build finished");
-          });
-        },
-      },
     ],
   });
 
   if (watch) {
     await ctx.watch();
-    console.log("[watch] watching...");
+    console.log("[watch] watching for changes in extension and agent_sdk...");
   } else {
     await ctx.rebuild();
     await ctx.dispose();
