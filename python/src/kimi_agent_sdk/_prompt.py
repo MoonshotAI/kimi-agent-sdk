@@ -1,3 +1,62 @@
+"""
+High-level prompt API for Kimi Agent SDK.
+
+This module provides the prompt function, the highest-level API for sending prompts to Kimi
+and receiving aggregated Message responses. It handles session lifecycle, approval requests,
+and message aggregation automatically.
+
+Key functions:
+
+- `prompt` is an async generator that creates a session, sends a prompt, handles approvals via
+  yolo mode or custom handler, and yields aggregated Message objects similar to
+  `kimi --print --output stream-json`.
+
+Example:
+
+```python
+import asyncio
+
+from kimi_agent_sdk import prompt
+
+
+async def main() -> None:
+    async for message in prompt(
+        "What is 2 + 3?",
+        model="kimi",
+        yolo=True,
+    ):
+        print(message.extract_text())
+
+
+asyncio.run(main())
+```
+
+Example (with custom approval handler):
+
+```python
+import asyncio
+
+from kimi_agent_sdk import ApprovalRequest, prompt
+
+
+def my_approval_handler(request: ApprovalRequest) -> None:
+    print(f"Approval requested: {request.description}")
+    request.resolve("approve")
+
+
+async def main() -> None:
+    async for message in prompt(
+        "Create a file named test.txt",
+        model="kimi",
+        approval_handler_fn=my_approval_handler,
+    ):
+        print(message.extract_text())
+
+
+asyncio.run(main())
+```
+"""
+
 from __future__ import annotations
 
 import inspect

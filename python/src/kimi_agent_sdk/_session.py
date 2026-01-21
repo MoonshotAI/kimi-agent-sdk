@@ -1,3 +1,41 @@
+"""
+Session management for Kimi Agent SDK.
+
+This module provides the Session class for low-level agent control with Wire message access,
+manual approval handling, and session persistence. Use Session when you need full control over
+agent execution flow, custom approval logic, or resumable sessions across multiple prompts.
+
+Key classes:
+
+- `Session` wraps KimiCLI to provide stateful agent sessions with async context manager support,
+  cancellation, and resource cleanup.
+
+Example:
+
+```python
+import asyncio
+
+from kaos.path import KaosPath
+
+from kimi_agent_sdk import ApprovalRequest, Session
+
+
+async def main() -> None:
+    async with await Session.create(
+        work_dir=KaosPath.cwd(),
+        model="kimi",
+    ) as session:
+        async for wire_msg in session.prompt("Hello!"):
+            if isinstance(wire_msg, ApprovalRequest):
+                wire_msg.resolve("approve")
+            else:
+                print(wire_msg)
+
+
+asyncio.run(main())
+```
+"""
+
 from __future__ import annotations
 
 import asyncio
