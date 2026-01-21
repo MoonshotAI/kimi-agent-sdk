@@ -3,6 +3,12 @@
 
 ## Unreleased
 
+## 0.0.3 (2026-01-21)
+- Docs: expand Python SDK guides (QuickStart, Prompt/Session, tools)
+- Examples: add Python examples to demonstrate SDK features
+- Code: add module-level docstrings to public modules; re-export SDK tools
+- Dependencies: Update kimi-cli to version 0.83
+
 ## 0.0.2 (2025-01-20)
 - Align Python SDK path types with Kimi CLI signatures
 - Normalize SDK exceptions and propagate exceptions from CLI/Kosong 
