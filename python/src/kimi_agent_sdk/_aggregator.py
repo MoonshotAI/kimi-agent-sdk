@@ -1,30 +1,3 @@
-"""
-Wire message aggregation for Kimi Agent SDK.
-
-This module provides the MessageAggregator class that transforms streaming Wire messages
-(low-level protocol messages) into aggregated Message objects (high-level content structures).
-It supports two output modes: full step-by-step messages with tool calls/results, or final
-message text only.
-
-Key classes:
-
-- `MessageAggregator` buffers and merges WireMessage events (ContentPart, ToolCall, ToolResult)
-  and flushes them as complete Message objects at step boundaries.
-
-Example:
-
-```python
-from kimi_agent_sdk._aggregator import MessageAggregator
-
-aggregator = MessageAggregator(final_message_only=False)
-for wire_msg in wire_stream:
-    for message in aggregator.feed(wire_msg):
-        print(message)
-for message in aggregator.flush():
-    print(message)
-```
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

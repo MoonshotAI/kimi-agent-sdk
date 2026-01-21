@@ -1,29 +1,3 @@
-"""
-Approval handling types for Kimi Agent SDK.
-
-This module defines the ApprovalHandlerFn type for custom approval handling in agent sessions.
-Approval handlers allow you to programmatically approve or reject tool execution requests from
-the agent, providing fine-grained control over what actions the agent can perform.
-
-Key types:
-
-- `ApprovalHandlerFn` is a callback function type that receives ApprovalRequest objects and
-  resolves them with "approve", "approve_for_session", or "reject".
-
-Example:
-
-```python
-from kimi_agent_sdk import ApprovalRequest
-
-
-def my_handler(request: ApprovalRequest) -> None:
-    if request.sender == "bash":
-        request.resolve("approve")
-    else:
-        request.resolve("reject")
-```
-"""
-
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
