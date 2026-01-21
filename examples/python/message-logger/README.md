@@ -1,4 +1,4 @@
-# Example: Prompt Logger
+# Example: Message Logger
 
 This example uses the high-level `prompt()` API to catalog every example in the
 repository, grouped by language. It writes every streamed `Message` to a log
@@ -21,5 +21,5 @@ uv run main.py
 
 Outputs:
 
-- `messages-<timestamp>.log`: one line per prompt message
+- `messages-<timestamp>.log`: one line per message
 - `examples-catalog.md`: the final Markdown report grouped by language
