@@ -115,7 +115,7 @@ Parameters:
 - `thinking`: Enable thinking mode for supported models.
 - `yolo`: Auto-approve all approval requests. When enabled, you may not receive
   `ApprovalRequest` messages.
-- `agent_file`: Agent specification file path,  for more details see
+- `agent_file`: Agent specification file path, for more details see
   [Custom Agent Files](https://moonshotai.github.io/kimi-cli/en/customization/agents.html#custom-agent-files).
 - `mcp_configs`: MCP server configs (same schema as Kimi Code).
 - `skills_dir`: Skills directory (KaosPath).

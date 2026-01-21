@@ -3,7 +3,10 @@ from pydantic import BaseModel, Field
 
 
 class Params(BaseModel):
-    directory: str = Field(description="The directory to list files from.", default=".")
+    directory: str = Field(
+        default=".",
+        description="The directory to list files from.",
+    )
 
 
 class Ls(CallableTool2):
