@@ -60,7 +60,8 @@ async def prompt(
 - `approval_handler_fn`: Callback that receives an [`ApprovalRequest`](https://moonshotai.github.io/kimi-cli/en/customization/wire-mode.html#approvalrequest) and must
   call `request.resolve(...)` with `"approve"`, `"approve_for_session"`, or
   `"reject"`. Required when `yolo=False`.
-- `agent_file`: Path to a CLI agent spec file (tools, prompts, subagents).
+- `agent_file`: Path to a CLI agent spec file (tools, prompts, subagents), for more details see
+  [Custom Agent Files](https://moonshotai.github.io/kimi-cli/en/customization/agents.html#custom-agent-files).
 - `mcp_configs`: MCP configuration objects or raw dictionaries. Matches the Kimi Code
   [MCP schema](https://moonshotai.github.io/kimi-cli/en/customization/mcp.html) (for example, `mcp.json`).
 - `skills_dir`: Directory containing agent skills to load. It should be a valid KaosPath object.

@@ -30,7 +30,6 @@ from kimi_cli.wire.types import (
     TokenUsage,
     ToolCallPart,
     ToolResult,
-    ToolReturnValue,
     TurnBegin,
     WireMessage,
     is_event,
@@ -53,6 +52,7 @@ from kosong.message import (
     ToolCall,
     VideoURLPart,
 )
+from kosong.tooling import CallableTool2, ToolError, ToolOk, ToolReturnValue
 
 from kimi_agent_sdk._approval import ApprovalHandlerFn
 from kimi_agent_sdk._exception import PromptValidationError, SessionStateError
@@ -98,6 +98,9 @@ __all__ = [
     "TokenUsage",
     "is_event",
     "is_request",
+    "CallableTool2",
+    "ToolOk",
+    "ToolError",
     # Exceptions
     "KimiAgentException",
     "ConfigError",
