@@ -1,0 +1,13 @@
+[project]
+name = "kimi-agent-sdk-e2b-sandbox"
+version = "0.1.0"
+description = "Run Kimi Agent SDK with an E2B-backed KAOS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kimi-agent-sdk",
+    "e2b>=2.10.2",
+]
+
+[tool.uv.sources]
+kimi-agent-sdk = { path = "../../../python" }
