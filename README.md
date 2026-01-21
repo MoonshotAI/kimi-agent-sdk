@@ -51,3 +51,8 @@ pip install kimi-agent-sdk
 ```
 
 Python quick start: [guides/python/quickstart.md](./guides/python/quickstart.md)
+
+## Examples
+
+- Go: [examples/go/ralph-loop](./examples/go/ralph-loop), [examples/go/rumor-buster](./examples/go/rumor-buster)
+- Python: [examples/python/customized-tools](./examples/python/customized-tools), [examples/python/e2b-sandbox](./examples/python/e2b-sandbox)
