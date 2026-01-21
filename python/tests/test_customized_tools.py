@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 from kaos.path import KaosPath
-from pydantic import BaseModel, Field
 from kosong.tooling import (
     CallableTool2 as KosongCallableTool2,
+)
+from kosong.tooling import (
     ToolError as KosongToolError,
+)
+from kosong.tooling import (
     ToolOk as KosongToolOk,
+)
+from kosong.tooling import (
     ToolReturnValue as KosongToolReturnValue,
 )
+from pydantic import BaseModel, Field
 
 from kimi_agent_sdk import (
     CallableTool2,
@@ -34,7 +42,7 @@ def test_custom_tool_uses_sdk_exports() -> None:
     class Params(BaseModel):
         directory: str = Field(default=".")
 
-    class Ls(CallableTool2):
+    class Ls(CallableTool2[Params]):
         name: str = "Ls"
         description: str = "List files in a directory."
         params: type[Params] = Params
@@ -48,7 +56,7 @@ def test_custom_tool_uses_sdk_exports() -> None:
 
 
 @pytest.mark.asyncio
-async def test_agent_loads_custom_tool(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_agent_loads_custom_tool(tmp_path: Path) -> None:
     tools_dir = tmp_path / "my_tools"
     tools_dir.mkdir()
     (tools_dir / "__init__.py").write_text("", encoding="utf-8")
@@ -85,20 +93,26 @@ async def test_agent_loads_custom_tool(tmp_path: Path, monkeypatch: pytest.Monke
                 "  name: test-agent",
                 "  system_prompt_path: ./system.md",
                 "  tools:",
-                "    - \"my_tools.ls:Ls\"",
+                '    - "my_tools.ls:Ls"',
                 "",
             ]
         ),
         encoding="utf-8",
     )
 
-    monkeypatch.syspath_prepend(str(tmp_path))
-
-    async with await Session.create(
-        work_dir=KaosPath(str(tmp_path)),
-        config=Config(),
-        agent_file=agent_file,
-    ) as session:
-        tool = session._cli.soul.agent.toolset.find("Ls")
+    sys.path.insert(0, str(tmp_path))
+    try:
+        async with await Session.create(
+            work_dir=KaosPath(str(tmp_path)),
+            config=Config(),
+            agent_file=agent_file,
+            yolo=True,
+        ) as session:
+            cli = cast(Any, session)._cli
+            toolset = cli.soul.agent.toolset
+            tool = toolset.find("Ls")
         assert tool is not None
         assert tool.__class__.__module__ == "my_tools.ls"
+    finally:
+        if sys.path and sys.path[0] == str(tmp_path):
+            sys.path.pop(0)

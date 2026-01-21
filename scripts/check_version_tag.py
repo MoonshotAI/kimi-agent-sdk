@@ -22,7 +22,9 @@ def load_project_version(pyproject_path: Path) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate tag version against pyproject.")
+    parser = argparse.ArgumentParser(
+        description="Validate tag version against pyproject."
+    )
     parser.add_argument("--pyproject", type=Path, required=True)
     parser.add_argument("--expected-version", required=True)
     args = parser.parse_args()
