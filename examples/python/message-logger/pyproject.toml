@@ -1,5 +1,5 @@
 [project]
-name = "prompt-logger"
+name = "message-logger"
 version = "0.1.0"
 description = "Prompt logging example for Kimi Agent SDK"
 readme = "README.md"

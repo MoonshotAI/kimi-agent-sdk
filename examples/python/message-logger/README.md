@@ -8,7 +8,7 @@ the final Markdown report.
 ## Run
 
 ```sh
-cd examples/python/prompt-logger
+cd examples/python/message-logger
 uv sync --reinstall
 
 # configure your API key

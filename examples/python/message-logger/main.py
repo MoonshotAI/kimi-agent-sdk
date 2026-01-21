@@ -31,6 +31,7 @@ Rules:
 
 
 async def main() -> None:
+    # Go from examples/python/message-logger/main.py up three levels to the repository root
     repo_root = KaosPath(Path(__file__).resolve().parents[3])
     output_dir = Path(__file__).parent
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -57,8 +58,8 @@ async def main() -> None:
         raise RuntimeError("No final report generated.")
 
     report_path.write_text(final_report, encoding="utf-8")
-
-    print(f"Wrote prompt messages to {log_path}")
+    
+    print(f"Wrote message log to {log_path}")
     print(f"Wrote catalog report to {report_path}")
 
 
