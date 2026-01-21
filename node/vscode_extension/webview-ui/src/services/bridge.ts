@@ -96,10 +96,6 @@ class Bridge {
     return this.call<CLICheckResult>(Methods.CheckCLI);
   }
 
-  isCliWarmed() {
-    return this.call<{ warmed: boolean }>(Methods.IsCliWarmed);
-  }
-
   saveConfig(sessionConfig: SessionConfig) {
     return this.call<{ ok: boolean }>(Methods.SaveConfig, sessionConfig);
   }

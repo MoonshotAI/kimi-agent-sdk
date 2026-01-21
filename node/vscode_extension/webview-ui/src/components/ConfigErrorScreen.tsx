@@ -17,9 +17,9 @@ export function ConfigErrorScreen({ type, errorMessage }: Props) {
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 text-muted-foreground">
               <IconLoader2 className="size-4 animate-spin" />
-              <span className="text-sm">Initializing Kimi...</span>
+              <span className="text-sm">Loading...</span>
             </div>
-            <p className="text-xs text-muted-foreground/70">First launch may take a moment</p>
+            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 15 seconds. Please wait.</p>
           </div>
         </div>
       </div>
@@ -36,7 +36,7 @@ export function ConfigErrorScreen({ type, errorMessage }: Props) {
               <IconFolderOpen className="size-5" />
               <span className="text-sm font-medium">No Workspace Open</span>
             </div>
-            <p className="text-xs text-muted-foreground">Please open a folder to start using Kimi Code.</p>
+            <p className="text-xs text-muted-foreground/70">Please open a folder to start using Kimi Code.</p>
           </div>
           <Button onClick={() => bridge.openFolder()} className="gap-2">
             <IconFolderOpen className="size-4" />

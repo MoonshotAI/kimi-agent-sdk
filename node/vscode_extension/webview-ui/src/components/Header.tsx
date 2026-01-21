@@ -2,13 +2,7 @@ import { useState } from "react";
 import { IconPlus, IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { KimiLogo } from "./KimiLogo";
 import { SessionList } from "./SessionList";
 import { useChatStore } from "@/stores";
@@ -63,9 +57,7 @@ export function Header() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm">Session Information</DialogTitle>
-            <DialogDescription className="text-xs">
-              Current conversation session details.
-            </DialogDescription>
+            <DialogDescription className="text-xs">Current conversation session details.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>

@@ -29,6 +29,7 @@
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
+  "icon": "resources/kimi-icon-storefront.png",
   "contributes": {
     "configuration": {
       "title": "Kimi Code",

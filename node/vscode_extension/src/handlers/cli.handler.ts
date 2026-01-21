@@ -10,9 +10,4 @@ export const cliHandlers: Record<string, Handler<unknown, unknown>> = {
     }
     return getCLIManager().checkInstalled(ctx.workDir);
   },
-
-  [Methods.IsCliWarmed]: async () => {
-    const warmed = await getCLIManager().isWarmed();
-    return { warmed };
-  },
 };
