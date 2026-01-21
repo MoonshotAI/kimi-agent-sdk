@@ -1,11 +1,6 @@
 # Example: E2B Sandbox
 
 This example runs Kimi Agent SDK on an E2B sandbox by swapping KAOS to `E2BKaos`.
-The sandbox lifecycle is managed outside of the SDK.
-
-## Requirements
-
-- `E2B_API_KEY` in the environment.
 
 ## Run
 
@@ -26,10 +21,5 @@ export KIMI_WORK_DIR=/home/user/kimi-workdir
 uv run main.py
 ```
 
-## Notes
-
-- If `E2B_SANDBOX_ID` is not set, the script creates a new sandbox and prints the ID.
-- This example never kills sandboxes; lifecycle remains external.
-- `KIMI_WORK_DIR` is created inside the sandbox if missing.
-- Defaults: template `base`, timeout `300s` (create mode).
-- Uses `agent.yaml` to disable the Grep tool, which only supports local KAOS.
+If `E2B_SANDBOX_ID` is not set, the script creates a sandbox and prints the ID. The
+sandbox lifecycle is managed outside of the SDK.
