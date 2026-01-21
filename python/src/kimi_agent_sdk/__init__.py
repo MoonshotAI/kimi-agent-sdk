@@ -75,8 +75,7 @@ from kimi_cli.exception import (
 from kimi_cli.soul import LLMNotSet, LLMNotSupported, MaxStepsReached, RunCancelled
 from kimi_cli.wire.types import (
     ApprovalRequest,
-    ApprovalRequestResolved,
-    ApprovalResponseKind,
+    ApprovalResponse,
     BriefDisplayBlock,
     CompactionBegin,
     CompactionEnd,
@@ -127,7 +126,6 @@ __all__ = [
     "Session",
     # Approval
     "ApprovalHandlerFn",
-    "ApprovalResponseKind",
     "ApprovalRequest",
     # High-level types
     "Message",
@@ -151,7 +149,7 @@ __all__ = [
     "ToolCallPart",
     "ToolResult",
     "ToolReturnValue",
-    "ApprovalRequestResolved",
+    "ApprovalResponse",
     "SubagentEvent",
     "DisplayBlock",
     "BriefDisplayBlock",
