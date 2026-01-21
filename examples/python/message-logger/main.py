@@ -11,8 +11,8 @@ from utils import format_console_message, format_message
 TASK_PROMPT = """You are a cataloging assistant.
 
 Task:
-- Inspect the local repository under ./examples
-- List every example (all languages, all subfolders)
+- Inspect the local repository under ./examples/python
+- List every Python example subfolder
 - For each example, report:
   - A 1-2 sentence description of what it does
   - A difficulty label: Easy, Medium, or Hard
@@ -25,7 +25,7 @@ Rules:
 - You must read from the filesystem to avoid guessing
 - Avoid emojis and keep output ASCII
 - Output a single Markdown report and nothing else
-- Group by language, one table per language
+- Use a single table
 - Table columns: Example, Description, Difficulty, Best For
 """
 
