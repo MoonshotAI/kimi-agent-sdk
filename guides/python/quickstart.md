@@ -163,6 +163,7 @@ access:
 
 ## What's Next
 
+- [Examples](./README.md) - Overview of Python examples and what they teach
 - [Prompt API](./prompt.md) - Deep dive into the high-level `prompt()` helper
 - [Session API](./session.md) - Manage sessions, approvals, and raw Wire messages
 - [Customized Tools](./customized-tools.md) - Add your own tools via agent files
