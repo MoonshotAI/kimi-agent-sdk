@@ -5,6 +5,7 @@ import * as crypto from "crypto";
 import { spawn } from "child_process";
 import { ProtocolClient } from "@moonshot-ai/kimi-agent-sdk";
 import type { InitializeResult, SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
+import { CLICheckResult } from "shared/types";
 
 const MIN_CLI_VERSION = "0.81";
 const MIN_WIRE_PROTOCOL_VERSION = "1.1";
@@ -12,11 +13,6 @@ const MIN_WIRE_PROTOCOL_VERSION = "1.1";
 interface CLIInfo {
   kimi_cli_version: string;
   wire_protocol_version: string;
-}
-
-export interface CLICheckResult {
-  ok: boolean;
-  slashCommands?: SlashCommandInfo[];
 }
 
 let instance: CLIManager | null = null;
@@ -92,15 +88,11 @@ export class CLIManager {
       // Check version via info --json
       console.log(`[Kimi Code] Checking CLI at path: ${execPath}`);
 
-      const info = await this.getInfo(execPath).catch((err) => console.error("[Kimi Code] Failed to get CLI info:", err));
-      console.log("[Kimi Code] CLI info retrieved:", info);
-
+      const info = await this.getInfo(execPath);
       if (!info || !this.meetsRequirements(info)) {
         console.error("[Kimi Code] CLI does not meet minimum version requirements.");
         return { ok: false };
       }
-
-      console.log(`[Kimi Code] CLI version: ${info.kimi_cli_version}, Wire protocol version: ${info.wire_protocol_version}`);
 
       console.log("[Kimi Code] Verifying CLI via wire protocol...");
       const initResult = await this.verifyWithWire(execPath, workDir);

@@ -19,7 +19,7 @@ function errorState(type: ErrorType, message: string): AppInitState {
 export function useAppInit(): AppInitState {
   const [state, setState] = useState<AppInitState>({ status: "ready", errorType: null, errorMessage: null });
   const [initKey, setInitKey] = useState(0);
-  const { initModels, setExtensionConfig, setMCPServers } = useSettingsStore();
+  const { initModels, setExtensionConfig, setMCPServers, setWireSlashCommands } = useSettingsStore();
 
   // Watch for config changes, reinit when executablePath changes
   useEffect(() => {
@@ -55,10 +55,10 @@ export function useAppInit(): AppInitState {
 
         // 3. Load config, MCP servers and check CLI in parallel
         const [extensionConfig, mcpServers, cliResult] = await Promise.all([bridge.getExtensionConfig(), bridge.getMCPServers(), bridge.checkCLI()]);
-
         if (cancelled) {
           return;
         }
+        setWireSlashCommands(cliResult.slashCommands ?? []);
 
         setExtensionConfig(extensionConfig);
         setMCPServers(mcpServers);

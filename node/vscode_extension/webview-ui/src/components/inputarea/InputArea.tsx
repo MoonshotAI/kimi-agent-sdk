@@ -338,7 +338,6 @@ export function InputArea() {
               "bg-transparent resize-none outline-none border-none overflow-y-auto",
               "placeholder:text-muted-foreground",
             )}
-            disabled={isStreaming}
           />
 
           <div className="flex items-center justify-between px-1.5 pb-1.5">
@@ -374,7 +373,7 @@ export function InputArea() {
             <div className="flex items-center gap-2 shrink-0">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon-xs" onClick={handleAddButtonClick} className="text-muted-foreground" disabled={isStreaming}>
+                  <Button variant="ghost" size="icon-xs" onClick={handleAddButtonClick} className="text-muted-foreground">
                     <IconPlus className="size-3.5" />
                   </Button>
                 </TooltipTrigger>

@@ -1,6 +1,6 @@
 import { Methods, Events } from "shared/bridge";
 import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult } from "@moonshot-ai/kimi-agent-sdk";
-import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus, DiffInfo } from "shared/types";
+import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus, DiffInfo, CLICheckResult } from "shared/types";
 import type { UIStreamEvent } from "shared/types";
 
 interface PendingRequest {
@@ -93,7 +93,7 @@ class Bridge {
   }
 
   checkCLI() {
-    return this.call<{ ok: boolean }>(Methods.CheckCLI);
+    return this.call<CLICheckResult>(Methods.CheckCLI);
   }
 
   isCliWarmed() {

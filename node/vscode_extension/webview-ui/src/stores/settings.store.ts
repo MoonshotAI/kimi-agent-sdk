@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { bridge } from "@/services";
-import { BUILTIN_SLASH_COMMANDS } from "@/services/commands";
 import type { ExtensionConfig } from "shared/types";
 import type { MCPServerConfig, ModelConfig, ThinkingMode, SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
 
@@ -55,29 +54,6 @@ export function getModelsForMedia(models: ModelConfig[], mediaReq: MediaRequirem
   });
 }
 
-function mergeSlashCommands(builtin: SlashCommandInfo[], wire: SlashCommandInfo[]): SlashCommandInfo[] {
-  const seen = new Set<string>();
-  const result: SlashCommandInfo[] = [];
-
-  // Add builtin commands first
-  for (const cmd of builtin) {
-    if (!seen.has(cmd.name)) {
-      seen.add(cmd.name);
-      result.push(cmd);
-    }
-  }
-
-  // Add wire commands (may override or add new ones)
-  for (const cmd of wire) {
-    if (!seen.has(cmd.name)) {
-      seen.add(cmd.name);
-      result.push(cmd);
-    }
-  }
-
-  return result;
-}
-
 interface SettingsState {
   currentModel: string;
   thinkingEnabled: boolean;
@@ -114,7 +90,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   defaultThinking: false,
   modelsLoaded: false,
   wireSlashCommands: [],
-  slashCommands: BUILTIN_SLASH_COMMANDS,
+  slashCommands: [],
 
   setCurrentModel: (currentModel) => set({ currentModel }),
 
@@ -191,10 +167,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   setWireSlashCommands: (commands) => {
-    const merged = mergeSlashCommands(BUILTIN_SLASH_COMMANDS, commands);
     set({
       wireSlashCommands: commands,
-      slashCommands: merged,
+      slashCommands: commands,
     });
   },
 
