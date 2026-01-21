@@ -1,7 +1,14 @@
 import { useState } from "react";
-import { IconPlus, IconChevronDown } from "@tabler/icons-react";
+import { IconPlus, IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { KimiLogo } from "./KimiLogo";
 import { SessionList } from "./SessionList";
 import { useChatStore } from "@/stores";
@@ -9,7 +16,8 @@ import { ChatStatus } from "./ChatStatus";
 
 export function Header() {
   const [showSessionList, setShowSessionList] = useState(false);
-  const { startNewConversation } = useChatStore();
+  const [showSessionInfo, setShowSessionInfo] = useState(false);
+  const { startNewConversation, sessionId, messages } = useChatStore();
 
   const handleNewSession = async () => {
     await startNewConversation();
@@ -23,6 +31,17 @@ export function Header() {
         <span className="text-sm font-semibold">Kimi Code</span>
       </div>
       <div className="flex items-center gap-1">
+        {sessionId && (
+          <Button
+            variant="ghost"
+            size="xs"
+            className="gap-1 h-6 border-0! pl-px! pr-1! text-muted-foreground hover:text-foreground @max-[320px]:hidden"
+            onClick={() => setShowSessionInfo(true)}
+          >
+            <span className="text-[11px] @max-[500px]:hidden">Session Info</span>
+            <IconInfoCircle className="size-3.5 hidden @max-[500px]:block" />
+          </Button>
+        )}
         <ChatStatus />
         <Popover open={showSessionList} onOpenChange={setShowSessionList}>
           <PopoverTrigger asChild>
@@ -39,6 +58,27 @@ export function Header() {
           <IconPlus className="size-3.5" />
         </Button>
       </div>
+
+      <Dialog open={showSessionInfo} onOpenChange={setShowSessionInfo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm">Session Information</DialogTitle>
+            <DialogDescription className="text-xs">
+              Current conversation session details.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Session ID</div>
+              <code className="text-xs font-mono text-foreground break-all select-all">{sessionId}</code>
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Messages</div>
+              <span className="text-xs text-foreground">{messages.length}</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }
