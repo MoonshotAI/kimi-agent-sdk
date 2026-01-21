@@ -160,3 +160,9 @@ access:
 - You can run multiple prompts within the same session.
 - You can resume previous sessions with `Session.resume(...)`.
 - It exposes raw [Wire](https://moonshotai.github.io/kimi-cli/en/customization/wire-mode.html#wire-mode) messages and approvals for fine-grained control.
+
+## What's Next
+
+- [Prompt API](./prompt.md) - Deep dive into the high-level `prompt()` helper
+- [Session API](./session.md) - Manage sessions, approvals, and raw Wire messages
+- [Customized Tools](./customized-tools.md) - Add your own tools via agent files
