@@ -3,8 +3,6 @@ from pathlib import Path
 
 from kaos.path import KaosPath
 from kimi_agent_sdk import Session, TextPart
-from dotenv import load_dotenv
-load_dotenv()
 
 SESSION_ID = "project-tracker-demo"
 
