@@ -209,21 +209,19 @@ export const ToolCallPartSchema = z.object({
 export type ToolCallPart = z.infer<typeof ToolCallPartSchema>;
 
 // Tool execution result
+export const ToolReturnValueSchema = z.object({
+  is_error: z.boolean(),
+  output: z.union([z.string(), z.array(ContentPartSchema)]),
+  message: z.string(),
+  display: z.array(DisplayBlockSchema),
+  extras: z.record(z.unknown()).nullable().optional(),
+});
+export type ToolReturnValue = z.infer<typeof ToolReturnValueSchema>;
+
 export const ToolResultSchema = z.object({
   // Corresponding tool call ID
   tool_call_id: z.string(),
-  return_value: z.object({
-    // Whether this is an error
-    is_error: z.boolean(),
-    // Output content for the model, can be plain text or array of content parts
-    output: z.union([z.string(), z.array(ContentPartSchema)]),
-    // Explanatory message for the model
-    message: z.string(),
-    // Display blocks shown to the user
-    display: z.array(DisplayBlockSchema),
-    // Extra debug info
-    extras: z.record(z.unknown()).nullable().optional(),
-  }),
+  return_value: ToolReturnValueSchema,
 });
 export type ToolResult = z.infer<typeof ToolResultSchema>;
 
@@ -231,7 +229,68 @@ export type ToolResult = z.infer<typeof ToolResultSchema>;
 // Event Payloads
 // ============================================================================
 
-// Turn begin event
+export const ClientInfoSchema = z.object({
+  name: z.string(),
+  version: z.string().optional(),
+});
+export type ClientInfo = z.infer<typeof ClientInfoSchema>;
+
+export const ServerInfoSchema = z.object({
+  name: z.string(),
+  version: z.string(),
+});
+export type ServerInfo = z.infer<typeof ServerInfoSchema>;
+
+export const SlashCommandInfoSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  aliases: z.array(z.string()),
+});
+export type SlashCommandInfo = z.infer<typeof SlashCommandInfoSchema>;
+
+export const ExternalToolDefinitionSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  parameters: z.record(z.unknown()),
+});
+export type ExternalToolDefinition = z.infer<typeof ExternalToolDefinitionSchema>;
+
+export const ExternalToolsResultSchema = z.object({
+  accepted: z.array(z.string()),
+  rejected: z.array(z.object({ name: z.string(), reason: z.string() })),
+});
+export type ExternalToolsResult = z.infer<typeof ExternalToolsResultSchema>;
+
+export const InitializeParamsSchema = z.object({
+  protocol_version: z.string(),
+  client: ClientInfoSchema.optional(),
+  external_tools: z.array(ExternalToolDefinitionSchema).optional(),
+});
+export type InitializeParams = z.infer<typeof InitializeParamsSchema>;
+
+export const InitializeResultSchema = z.object({
+  protocol_version: z.string(),
+  server: ServerInfoSchema,
+  slash_commands: z.array(SlashCommandInfoSchema),
+  external_tools: ExternalToolsResultSchema.optional(),
+});
+export type InitializeResult = z.infer<typeof InitializeResultSchema>;
+
+// ============================================================================
+// Tool Call Request (Wire 1.1)
+// ============================================================================
+
+export const ToolCallRequestSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  arguments: z.string().nullable().optional(),
+});
+export type ToolCallRequest = z.infer<typeof ToolCallRequestSchema>;
+
+// ============================================================================
+// Wire Events
+// ============================================================================
+
 export const TurnBeginSchema = z.object({
   // User input, can be plain text or array of content parts
   user_input: z.union([z.string(), z.array(ContentPartSchema)]),
@@ -283,13 +342,13 @@ export const ApprovalRequestPayloadSchema = z.object({
 export type ApprovalRequestPayload = z.infer<typeof ApprovalRequestPayloadSchema>;
 
 // Approval request resolved event
-export const ApprovalRequestResolvedSchema = z.object({
+export const ApprovalResponseEventSchema = z.object({
   // Resolved approval request ID
   request_id: z.string(),
   // Approval result
   response: ApprovalResponseSchema,
 });
-export type ApprovalRequestResolved = z.infer<typeof ApprovalRequestResolvedSchema>;
+export type ApprovalResponseEvent = z.infer<typeof ApprovalResponseEventSchema>;
 
 // Parse error payload
 export interface ParseErrorPayload {
@@ -324,10 +383,10 @@ export type WireEvent =
   | { type: "ToolCallPart"; payload: ToolCallPart }
   | { type: "ToolResult"; payload: ToolResult }
   | { type: "SubagentEvent"; payload: SubagentEvent }
-  | { type: "ApprovalRequestResolved"; payload: ApprovalRequestResolved }
+  | { type: "ApprovalResponse"; payload: ApprovalResponseEvent }
   | { type: "ParseError"; payload: ParseErrorPayload };
 
-export type WireRequest = { type: "ApprovalRequest"; payload: ApprovalRequestPayload };
+export type WireRequest = { type: "ApprovalRequest"; payload: ApprovalRequestPayload } | { type: "ToolCallRequest"; payload: ToolCallRequest };
 
 // Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
@@ -341,18 +400,23 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
   ToolCall: ToolCallSchema,
   ToolCallPart: ToolCallPartSchema,
   ToolResult: ToolResultSchema,
-  ApprovalRequestResolved: ApprovalRequestResolvedSchema,
+  ApprovalResponse: ApprovalResponseEventSchema,
+  // Legacy name support
+  ApprovalRequestResolved: ApprovalResponseEventSchema,
 };
 
 // Request type -> schema mapping
 export const RequestSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequest: ApprovalRequestPayloadSchema,
+  ToolCallRequest: ToolCallRequestSchema,
 };
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 // Parse wire event (internal use)
 export function parseEventPayload(type: string, payload: unknown): Result<WireEvent> {
+  // Handle legacy event name
+  const normalizedType = type === "ApprovalRequestResolved" ? "ApprovalResponse" : type;
   const schema = EventSchemas[type];
   if (!schema) {
     return { ok: false, error: `Unknown event type: ${type}` };
@@ -361,7 +425,7 @@ export function parseEventPayload(type: string, payload: unknown): Result<WireEv
   if (!result.success) {
     return { ok: false, error: `Invalid payload for ${type}: ${result.error.message}` };
   }
-  return { ok: true, value: { type, payload: result.data } as WireEvent };
+  return { ok: true, value: { type: normalizedType, payload: result.data } as WireEvent };
 }
 
 function parseWireEvent(raw: { type: string; payload?: unknown }): WireEvent {
@@ -453,6 +517,18 @@ export const RpcMessageSchema = z.object({
 });
 export type RpcMessage = z.infer<typeof RpcMessageSchema>;
 
+export function parseRequestPayload(type: string, payload: unknown): Result<WireRequest> {
+  const schema = RequestSchemas[type];
+  if (!schema) {
+    return { ok: false, error: `Unknown request type: ${type}` };
+  }
+  const result = schema.safeParse(payload);
+  if (!result.success) {
+    return { ok: false, error: `Invalid payload for ${type}: ${result.error.message}` };
+  }
+  return { ok: true, value: { type, payload: result.data } as WireRequest };
+}
+
 // ============================================================================
 // Config Types
 // ============================================================================
@@ -517,6 +593,7 @@ export interface SessionOptions {
   executable?: string;
   // Environment variables passed to CLI
   env?: Record<string, string>;
+  externalTools?: ExternalTool[];
 }
 
 // Session info
@@ -559,14 +636,13 @@ export const ContextRecordSchema = z.object({
 export type ContextRecord = z.infer<typeof ContextRecordSchema>;
 
 // Parse request payload
-export function parseRequestPayload(type: string, payload: unknown): Result<WireRequest> {
-  const schema = RequestSchemas[type];
-  if (!schema) {
-    return { ok: false, error: `Unknown request type: ${type}` };
-  }
-  const result = schema.safeParse(payload);
-  if (!result.success) {
-    return { ok: false, error: `Invalid payload for ${type}: ${result.error.message}` };
-  }
-  return { ok: true, value: { type, payload: result.data } as WireRequest };
+export interface ExternalToolHandler {
+  (params: Record<string, unknown>): Promise<{ output: string; message: string }>;
+}
+
+export interface ExternalTool {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  handler: ExternalToolHandler;
 }

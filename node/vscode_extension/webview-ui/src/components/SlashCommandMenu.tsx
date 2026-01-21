@@ -1,13 +1,9 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
-
-interface SlashCommand {
-  name: string;
-  description: string;
-}
+import type { SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
 
 interface SlashCommandMenuProps {
-  commands: SlashCommand[];
+  commands: SlashCommandInfo[];
   query: string;
   selectedIndex: number;
   onSelect: (name: string) => void;
@@ -15,7 +11,9 @@ interface SlashCommandMenuProps {
 }
 
 function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query) return text;
+  if (!query) {
+    return text;
+  }
 
   const lowerText = text.toLowerCase();
   const lowerQuery = query.toLowerCase();
@@ -25,7 +23,9 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 
   for (let i = 0; i < text.length && qi < lowerQuery.length; i++) {
     if (lowerText[i] === lowerQuery[qi]) {
-      if (i > lastIdx) parts.push(text.slice(lastIdx, i));
+      if (i > lastIdx) {
+        parts.push(text.slice(lastIdx, i));
+      }
       parts.push(
         <span key={i} className="text-primary font-semibold">
           {text[i]}
@@ -36,7 +36,9 @@ function highlightMatch(text: string, query: string): React.ReactNode {
     }
   }
 
-  if (lastIdx < text.length) parts.push(text.slice(lastIdx));
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx));
+  }
   return parts.length > 0 ? parts : text;
 }
 
@@ -62,7 +64,7 @@ export function SlashCommandMenu({ commands, query, selectedIndex, onSelect, onH
             onMouseEnter={() => onHover(idx)}
             className={cn("w-full px-2 py-1.5 text-left flex items-center justify-between gap-3", idx === selectedIndex ? "bg-accent" : "hover:bg-accent/50")}
           >
-            <span className="ftext-xs shrink-0">{highlightMatch(`/${cmd.name}`, query)}</span>
+            <span className="text-xs shrink-0">{highlightMatch(`/${cmd.name}`, query)}</span>
             <span className="text-[10px] text-muted-foreground truncate">{cmd.description}</span>
           </button>
         ))}

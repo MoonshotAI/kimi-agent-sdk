@@ -1,14 +1,22 @@
 import * as vscode from "vscode";
 import * as fs from "fs";
 import * as path from "path";
+import * as crypto from "crypto";
 import { spawn } from "child_process";
+import { ProtocolClient } from "@moonshot-ai/kimi-agent-sdk";
+import type { InitializeResult, SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
 
-const MIN_CLI_VERSION = "0.79";
-const MIN_WIRE_PROTOCOL_VERSION = "1";
+const MIN_CLI_VERSION = "0.81";
+const MIN_WIRE_PROTOCOL_VERSION = "1.1";
 
 interface CLIInfo {
   kimi_cli_version: string;
   wire_protocol_version: string;
+}
+
+export interface CLICheckResult {
+  ok: boolean;
+  slashCommands?: SlashCommandInfo[];
 }
 
 let instance: CLIManager | null = null;
@@ -28,6 +36,8 @@ export function getCLIManager(): CLIManager {
 function exec(cmd: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
     const proc = spawn(cmd, args, { stdio: ["ignore", "pipe", "pipe"] });
+    console.log(`[Kimi Code] Executing command: ${cmd} ${args.join(" ")}`);
+
     let stdout = "";
     proc.stdout.on("data", (d) => (stdout += d));
     proc.on("error", reject);
@@ -74,25 +84,66 @@ export class CLIManager {
     fs.writeFileSync(this.warmedPath, "");
   }
 
-  async checkInstalled(): Promise<boolean> {
+  async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const execPath = this.getExecutablePath();
-    if (!fs.existsSync(execPath)) {
-      return false;
+
+    // Step 3: Verify via wire initialize
+    try {
+      // Check version via info --json
+      console.log(`[Kimi Code] Checking CLI at path: ${execPath}`);
+
+      const info = await this.getInfo(execPath).catch((err) => console.error("[Kimi Code] Failed to get CLI info:", err));
+      console.log("[Kimi Code] CLI info retrieved:", info);
+
+      if (!info || !this.meetsRequirements(info)) {
+        console.error("[Kimi Code] CLI does not meet minimum version requirements.");
+        return { ok: false };
+      }
+
+      console.log(`[Kimi Code] CLI version: ${info.kimi_cli_version}, Wire protocol version: ${info.wire_protocol_version}`);
+
+      console.log("[Kimi Code] Verifying CLI via wire protocol...");
+      const initResult = await this.verifyWithWire(execPath, workDir);
+
+      console.log("[Kimi Code] CLI verified successfully via wire protocol.");
+      if (!(await this.isWarmed())) {
+        await this.markWarmed();
+      }
+
+      return {
+        ok: true,
+        slashCommands: initResult.slash_commands,
+      };
+    } catch (err) {
+      console.error("[Kimi Code] CLI verification failed:", err);
+      return { ok: false };
     }
-    const info = await this.getInfo(execPath).catch(() => null);
-    const ok = info !== null && this.meetsRequirements(info);
-    if (ok && !(await this.isWarmed())) {
-      await this.markWarmed();
-    }
-    return ok;
   }
 
   private async getInfo(execPath: string): Promise<CLIInfo> {
     const output = await exec(execPath, ["info", "--json"]);
+    console.log(`[Kimi Code] CLI info output: ${output}`);
     return JSON.parse(output);
   }
 
   private meetsRequirements(info: CLIInfo): boolean {
     return compareVersions(info.kimi_cli_version, MIN_CLI_VERSION) >= 0 && compareVersions(info.wire_protocol_version, MIN_WIRE_PROTOCOL_VERSION) >= 0;
+  }
+
+  private async verifyWithWire(execPath: string, workDir: string): Promise<InitializeResult> {
+    const client = new ProtocolClient();
+    const sessionId = crypto.randomUUID();
+
+    try {
+      const result = await client.start({
+        sessionId,
+        workDir,
+        executablePath: execPath,
+      });
+
+      return result;
+    } finally {
+      await client.stop();
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { Methods } from "../../shared/bridge";
-import { listSessions, parseSessionEvents, deleteSession } from "../../../agent_sdk";
+import { listSessions, parseSessionEvents, deleteSession } from "@moonshot-ai/kimi-agent-sdk";
 import { BaselineManager } from "../managers";
-import type { SessionInfo, StreamEvent } from "../../../agent_sdk";
+import type { SessionInfo, StreamEvent } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
 
 interface LoadHistoryParams {

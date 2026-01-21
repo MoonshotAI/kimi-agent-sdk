@@ -1,9 +1,9 @@
 import * as vscode from "vscode";
 import { Methods } from "../../shared/bridge";
 import { VSCodeSettings } from "../config/vscode-settings";
-import { parseConfig, saveDefaultModel } from "../../../agent_sdk";
+import { parseConfig, saveDefaultModel } from "@moonshot-ai/kimi-agent-sdk";
 import type { SessionConfig, ExtensionConfig } from "../../shared/types";
-import type { KimiConfig } from "../../../agent_sdk";
+import type { KimiConfig } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
 
 const saveConfig: Handler<SessionConfig, { ok: boolean }> = async (params) => {

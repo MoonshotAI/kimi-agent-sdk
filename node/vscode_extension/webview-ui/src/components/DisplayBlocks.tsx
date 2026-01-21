@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock, ShellBlock } from "@moonshot-ai/kimi-agent-sdk/schema";
+import type { DisplayBlock, DiffBlock, TodoBlock, BriefBlock, ShellBlock } from "@moonshot-ai/kimi-agent-sdk";
 import { cn } from "@/lib/utils";
 import * as Diff from "diff";
 

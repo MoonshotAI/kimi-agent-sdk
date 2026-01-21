@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import * as fs from "fs";
-import { KimiPaths } from "../../../agent_sdk/paths";
+import { KimiPaths } from "@moonshot-ai/kimi-agent-sdk";
 import type { FileChange } from "../../shared/types";
 
 function toRelative(workDir: string, absolutePath: string): string {

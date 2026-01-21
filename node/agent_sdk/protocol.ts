@@ -1,8 +1,25 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
-import { parseEventPayload, parseRequestPayload, type StreamEvent, type RunResult, type ContentPart, type ApprovalResponse, type ParseError } from "./schema";
+import {
+  parseEventPayload,
+  parseRequestPayload,
+  InitializeResultSchema,
+  type StreamEvent,
+  type RunResult,
+  type ContentPart,
+  type ApprovalResponse,
+  type ParseError,
+  type InitializeResult,
+  type ExternalTool,
+  type ToolCallRequest,
+  type ToolReturnValue,
+} from "./schema";
 import { TransportError, CliError } from "./errors";
 import { log } from "./logger";
+
+const PROTOCOL_VERSION = "1.1";
+const CLIENT_NAME = "kimi-agent-sdk";
+const CLIENT_VERSION = "0.0.2";
 
 // Client Options
 export interface ClientOptions {
@@ -13,6 +30,7 @@ export interface ClientOptions {
   yoloMode?: boolean;
   executablePath?: string;
   environmentVariables?: Record<string, string>;
+  externalTools?: ExternalTool[];
 }
 
 // Prompt Stream
@@ -70,7 +88,6 @@ export function createEventChannel<T>(): {
   };
 }
 
-// Protocol Client
 export class ProtocolClient {
   private process: ChildProcess | null = null;
   private readline: ReadlineInterface | null = null;
@@ -79,12 +96,13 @@ export class ProtocolClient {
 
   private pushEvent: ((event: StreamEvent) => void) | null = null;
   private finishEvents: (() => void) | null = null;
+  private externalToolHandlers = new Map<string, ExternalTool["handler"]>();
 
   get isRunning(): boolean {
     return this.process !== null && this.process.exitCode === null;
   }
 
-  start(options: ClientOptions): void {
+  async start(options: ClientOptions): Promise<InitializeResult> {
     if (this.process) {
       throw new TransportError("ALREADY_STARTED", "Client already started");
     }
@@ -116,6 +134,17 @@ export class ProtocolClient {
     this.process.stderr?.on("data", (data) => log.protocol("stderr: %s", data.toString().trim()));
     this.process.on("error", (err) => this.handleProcessError(err));
     this.process.on("exit", (code) => this.handleProcessExit(code));
+
+    // Register external tool handlers
+    if (options.externalTools) {
+      for (const tool of options.externalTools) {
+        this.externalToolHandlers.set(tool.name, tool.handler);
+      }
+    }
+
+    // Send initialize request
+    const initResult = await this.sendInitialize(options.externalTools);
+    return initResult;
   }
 
   async stop(): Promise<void> {
@@ -183,6 +212,37 @@ export class ProtocolClient {
     return Promise.resolve();
   }
 
+  private async sendInitialize(externalTools?: ExternalTool[]): Promise<InitializeResult> {
+    const params: Record<string, unknown> = {
+      protocol_version: PROTOCOL_VERSION,
+      client: {
+        name: CLIENT_NAME,
+        version: CLIENT_VERSION,
+      },
+    };
+
+    if (externalTools && externalTools.length > 0) {
+      params.external_tools = externalTools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        parameters: tool.parameters,
+      }));
+    }
+
+    log.protocol("Sending initialize request: %O", params);
+    const result = await this.sendRequest("initialize", params);
+    const parsed = InitializeResultSchema.safeParse(result);
+
+    log.protocol("Received initialize response: %O", result);
+    if (!parsed.success) {
+      throw new TransportError("SPAWN_FAILED", `Invalid initialize response: ${parsed.error.message}`);
+    }
+
+    log.protocol("Initialized: protocol=%s, server=%s/%s", parsed.data.protocol_version, parsed.data.server.name, parsed.data.server.version);
+
+    return parsed.data;
+  }
+
   // Private: Args Building
   private buildArgs(options: ClientOptions): string[] {
     const args = ["--session", options.sessionId, "--work-dir", options.workDir, "--wire"];
@@ -238,7 +298,13 @@ export class ProtocolClient {
       return;
     }
 
-    const msg = parsed as { id?: string; method?: string; params?: unknown; result?: unknown; error?: { code: number; message: string } };
+    const msg = parsed as {
+      id?: string;
+      method?: string;
+      params?: unknown;
+      result?: unknown;
+      error?: { code: number; message: string };
+    };
 
     // Response to a pending request
     if (msg.id && this.pendingRequests.has(msg.id)) {
@@ -255,7 +321,11 @@ export class ProtocolClient {
 
     // Notification (event or request from server)
     if (msg.method) {
-      this.handleNotification(msg.method, msg.params);
+      if (msg.method === "request" && msg.id) {
+        this.handleServerRequest(msg.id, msg.params);
+      } else {
+        this.handleNotification(msg.method, msg.params);
+      }
     }
   }
 
@@ -272,19 +342,71 @@ export class ProtocolClient {
       } else {
         this.emitParseError("UNKNOWN_EVENT_TYPE", result.error);
       }
-    } else if (method === "request") {
-      const p = params as { type?: string; payload?: unknown } | undefined;
-      if (!p?.type) {
-        this.emitParseError("SCHEMA_MISMATCH", "Request missing type");
-        return;
-      }
-      const result = parseRequestPayload(p.type, p.payload);
-      if (result.ok) {
-        this.pushEvent?.(result.value);
-      } else {
-        this.emitParseError("UNKNOWN_REQUEST_TYPE", result.error);
+    }
+  }
+
+  private handleServerRequest(requestId: string, params: unknown): void {
+    const p = params as { type?: string; payload?: unknown } | undefined;
+    if (!p?.type) {
+      this.emitParseError("SCHEMA_MISMATCH", "Request missing type");
+      return;
+    }
+
+    if (p.type === "ToolCallRequest") {
+      this.handleToolCallRequest(requestId, p.payload as ToolCallRequest);
+      return;
+    }
+
+    // For other request types (ApprovalRequest), emit as event
+    const result = parseRequestPayload(p.type, p.payload);
+    if (result.ok) {
+      this.pushEvent?.(result.value);
+    } else {
+      this.emitParseError("UNKNOWN_REQUEST_TYPE", result.error);
+    }
+  }
+
+  private async handleToolCallRequest(requestId: string, request: ToolCallRequest): Promise<void> {
+    const handler = this.externalToolHandlers.get(request.name);
+
+    let returnValue: ToolReturnValue;
+
+    if (!handler) {
+      returnValue = {
+        is_error: true,
+        output: `Unknown external tool: ${request.name}`,
+        message: `Tool "${request.name}" is not registered`,
+        display: [],
+      };
+    } else {
+      try {
+        const params = request.arguments ? JSON.parse(request.arguments) : {};
+        const result = await handler(params);
+        returnValue = {
+          is_error: false,
+          output: result.output,
+          message: result.message,
+          display: [],
+        };
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        returnValue = {
+          is_error: true,
+          output: message,
+          message: `Tool execution failed: ${message}`,
+          display: [],
+        };
       }
     }
+
+    this.writeLine({
+      jsonrpc: "2.0",
+      id: requestId,
+      result: {
+        tool_call_id: request.id,
+        return_value: returnValue,
+      },
+    });
   }
 
   private emitParseError(code: string, message: string, raw?: string): void {
@@ -330,5 +452,6 @@ export class ProtocolClient {
     this.pushEvent = null;
     this.finishEvents = null;
     this.pendingRequests.clear();
+    this.externalToolHandlers.clear();
   }
 }

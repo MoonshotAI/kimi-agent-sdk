@@ -2,7 +2,7 @@ import * as crypto from "node:crypto";
 import { ProtocolClient } from "./protocol";
 import { SessionError } from "./errors";
 import { log } from "./logger";
-import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse } from "./schema";
+import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse, InitializeResult, SlashCommandInfo, ExternalTool } from "./schema";
 
 export type SessionState = "idle" | "active" | "closed";
 
@@ -13,6 +13,7 @@ interface ActiveConfig {
   yoloMode: boolean;
   executable: string;
   env: string; // JSON stringified for comparison
+  externalTools: string;
 }
 
 /** Turn interface, represents a single conversation turn */
@@ -35,7 +36,9 @@ export interface Session {
   readonly workDir: string;
   /** Current state: idle | active | closed */
   readonly state: SessionState;
-  /** Model ID, can be changed between turns */
+  // Slash commands available in this session
+  readonly slashCommands: SlashCommandInfo[];
+
   model: string | undefined;
   /** Whether thinking mode is enabled, can be changed between turns */
   thinking: boolean;
@@ -45,6 +48,8 @@ export interface Session {
   executable: string;
   /** Environment variables, can be changed between turns */
   env: Record<string, string>;
+  // Exported external tools
+  externalTools: ExternalTool[];
   /** Send a message, returns a Turn object */
   prompt(content: string | ContentPart[]): Turn;
   /** Close the session, release resources */
@@ -129,6 +134,9 @@ class SessionImpl implements Session {
   private _yoloMode: boolean;
   private _executable: string;
   private _env: Record<string, string>;
+  private _externalTools: ExternalTool[];
+  private _slashCommands: SlashCommandInfo[] = [];
+
   private _state: SessionState = "idle";
 
   private client: ProtocolClient | null = null;
@@ -144,6 +152,7 @@ class SessionImpl implements Session {
     this._yoloMode = options.yoloMode ?? false;
     this._executable = options.executable ?? "kimi";
     this._env = options.env ?? {};
+    this._externalTools = options.externalTools ?? [];
 
     log.session("Created session %s in %s", this._sessionId, this._workDir);
   }
@@ -156,6 +165,9 @@ class SessionImpl implements Session {
   }
   get state(): SessionState {
     return this._state;
+  }
+  get slashCommands(): SlashCommandInfo[] {
+    return this._slashCommands;
   }
   get model(): string | undefined {
     return this._model;
@@ -186,6 +198,12 @@ class SessionImpl implements Session {
   }
   set env(v: Record<string, string>) {
     this._env = v;
+  }
+  get externalTools(): ExternalTool[] {
+    return this._externalTools;
+  }
+  set externalTools(v: ExternalTool[]) {
+    this._externalTools = v;
   }
 
   prompt(content: string | ContentPart[]): Turn {
@@ -260,7 +278,7 @@ class SessionImpl implements Session {
     }
 
     this.client = new ProtocolClient();
-    this.client.start({
+    const initResult = await this.client.start({
       sessionId: this._sessionId,
       workDir: this._workDir,
       model: this._model,
@@ -268,7 +286,10 @@ class SessionImpl implements Session {
       yoloMode: this._yoloMode,
       executablePath: this._executable,
       environmentVariables: this._env,
+      externalTools: this._externalTools,
     });
+
+    this._slashCommands = initResult.slash_commands;
     this.activeConfig = currentConfig;
 
     return this.client;
@@ -281,6 +302,7 @@ class SessionImpl implements Session {
       yoloMode: this._yoloMode,
       executable: this._executable,
       env: JSON.stringify(this._env),
+      externalTools: JSON.stringify(this._externalTools.map((t) => t.name)),
     };
   }
 
@@ -291,7 +313,8 @@ class SessionImpl implements Session {
       current.thinking !== active.thinking ||
       current.yoloMode !== active.yoloMode ||
       current.executable !== active.executable ||
-      current.env !== active.env
+      current.env !== active.env ||
+      current.externalTools !== active.externalTools
     );
   }
 }

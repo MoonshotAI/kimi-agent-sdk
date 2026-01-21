@@ -45,6 +45,8 @@ export { KimiPaths } from "./paths";
 export { authMCP, resetAuthMCP, testMCP } from "./cli/commands";
 export type { MCPTestResult } from "./cli/commands";
 
+export { createExternalTool } from "./external-tool";
+
 // Errors
 export {
   AgentSdkError,
@@ -79,6 +81,7 @@ export type {
   ToolCall,
   ToolCallPart,
   ToolResult,
+  ToolReturnValue,
   TurnBegin,
   StepBegin,
   StatusUpdate,
@@ -92,7 +95,32 @@ export type {
   SessionOptions,
   SessionInfo,
   ContextRecord,
+  InitializeParams,
+  InitializeResult,
+  SlashCommandInfo,
+  ExternalTool,
+  ExternalToolDefinition,
+  ExternalToolHandler,
+  ToolCallRequest,
+  ClientInfo,
+  ServerInfo,
 } from "./schema";
 
 // Schemas
-export { ContentPartSchema, DisplayBlockSchema, ToolCallSchema, ToolResultSchema, RunResultSchema, parseEventPayload, parseRequestPayload } from "./schema";
+export {
+  ContentPartSchema,
+  DisplayBlockSchema,
+  ToolCallSchema,
+  ToolResultSchema,
+  RunResultSchema,
+  InitializeResultSchema,
+  SlashCommandInfoSchema,
+  parseEventPayload,
+  parseRequestPayload,
+} from "./schema";
+
+// Protocol
+export { ProtocolClient } from "./protocol";
+
+// Logging
+export { enableLogs, disableLogs, setLogSink } from "./logger";

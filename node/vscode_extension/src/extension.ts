@@ -3,12 +3,19 @@ import { KimiWebviewProvider } from "./KimiWebviewProvider";
 import { onSettingsChange, VSCodeSettings } from "./config/vscode-settings";
 import { initCLIManager, BaselineManager } from "./managers";
 import { Events } from "../shared/bridge";
+import { enableLogs, setLogSink } from "@moonshot-ai/kimi-agent-sdk";
 
 let outputChannel: vscode.OutputChannel;
 let provider: KimiWebviewProvider;
 
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("Kimi Code");
+
+  enableLogs("kimi-sdk:*");
+  setLogSink((...args: any[]) => {
+    console.log(...args);
+  });
+  console.log("Kimi SDK logs enabled");
 
   const remoteInfo = vscode.env.remoteName ? ` (remote: ${vscode.env.remoteName})` : "";
   log(`Kimi Code extension activating...${remoteInfo}`);

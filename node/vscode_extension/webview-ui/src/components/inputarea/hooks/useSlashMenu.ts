@@ -1,10 +1,6 @@
 import { useMemo, useState, useCallback } from "react";
-import { SLASH_COMMANDS } from "@/services";
-
-interface SlashCommand {
-  name: string;
-  description: string;
-}
+import { useSettingsStore } from "@/stores";
+import type { SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
 
 interface ActiveToken {
   trigger: "/" | "@";
@@ -43,7 +39,7 @@ export function findActiveToken(text: string, cursorPos: number): ActiveToken | 
 
 interface UseSlashMenuResult {
   showSlashMenu: boolean;
-  filteredCommands: SlashCommand[];
+  filteredCommands: SlashCommandInfo[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   handleSlashMenuKey: (e: React.KeyboardEvent) => boolean;
@@ -52,6 +48,7 @@ interface UseSlashMenuResult {
 
 export function useSlashMenu(activeToken: ActiveToken | null, onSelectCommand: (name: string) => void, onCancel: () => void): UseSlashMenuResult {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const { slashCommands } = useSettingsStore();
 
   const showSlashMenu = activeToken?.trigger === "/";
 
@@ -61,10 +58,10 @@ export function useSlashMenu(activeToken: ActiveToken | null, onSelectCommand: (
     }
     const q = activeToken.query;
     if (!q) {
-      return [...SLASH_COMMANDS];
+      return slashCommands;
     }
-    return SLASH_COMMANDS.filter((cmd) => fuzzyMatch(cmd.name, q) || fuzzyMatch(cmd.description, q));
-  }, [showSlashMenu, activeToken?.query]);
+    return slashCommands.filter((cmd) => fuzzyMatch(cmd.name, q) || fuzzyMatch(cmd.description, q));
+  }, [showSlashMenu, activeToken?.query, slashCommands]);
 
   const resetSlashMenu = useCallback(() => {
     setSelectedIndex(0);

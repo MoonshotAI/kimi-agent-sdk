@@ -19,7 +19,9 @@
       "@/*": ["src/*"],
       "shared/*": ["../shared/*"],
       "@moonshot-ai/kimi-agent-sdk": ["../../agent_sdk/index.ts"],
-      "@moonshot-ai/kimi-agent-sdk/*": ["../../agent_sdk/*"]
+      "@moonshot-ai/kimi-agent-sdk/schema": ["../../agent_sdk/schema.ts"],
+      "@moonshot-ai/kimi-agent-sdk/errors": ["../../agent_sdk/errors.ts"],
+      "@moonshot-ai/kimi-agent-sdk/utils": ["../../agent_sdk/utils.ts"]
     }
   },
   "include": ["src"]

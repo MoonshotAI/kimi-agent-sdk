@@ -1,6 +1,6 @@
 import { Methods, Events } from "../../shared/bridge";
 import { MCPManager } from "../managers";
-import type { MCPServerConfig, MCPTestResult } from "../../../agent_sdk";
+import type { MCPServerConfig, MCPTestResult } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
 
 interface RemoveServerParams {

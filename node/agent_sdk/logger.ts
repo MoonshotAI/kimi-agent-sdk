@@ -38,3 +38,7 @@ export function disableLogs(): void {
 export function isLogEnabled(namespace: string): boolean {
   return createDebug.enabled(namespace);
 }
+
+export function setLogSink(sink: (...args: any[]) => void): void {
+  (createDebug as any).log = sink;
+}

@@ -1,5 +1,5 @@
 import type { FileManager } from "../managers/file.manager";
-import type { Session, Turn } from "../../../agent_sdk";
+import type { Session, Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => void;
 

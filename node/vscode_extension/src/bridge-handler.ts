@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn } from "./handlers";
-import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "../../agent_sdk";
+import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 interface RpcMessage {
   id: string;

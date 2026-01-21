@@ -57,7 +57,8 @@
   "dependencies": {
     "debug": "^4.4.3",
     "toml": "^3.0.0",
-    "zod": "^3.24.0"
+    "zod": "^3.24.0",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
     "@types/debug": "^4.1.12",
