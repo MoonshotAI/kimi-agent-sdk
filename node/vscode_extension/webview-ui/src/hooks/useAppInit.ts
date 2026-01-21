@@ -46,6 +46,7 @@ export function useAppInit(): AppInitState {
 
         // 2. Check if CLI been warmed up
         const { warmed } = await bridge.isCliWarmed();
+        console.log(`[Kimi Code] CLI warmed: ${warmed}`);
         if (cancelled) {
           return;
         }

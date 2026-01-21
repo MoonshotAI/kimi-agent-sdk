@@ -59,8 +59,8 @@ export class CLIManager {
 
   constructor(private context: vscode.ExtensionContext) {
     const binName = process.platform === "win32" ? "kimi.exe" : "kimi";
-    this.bundledPath = path.join(context.extensionUri.fsPath, "bin", "kimi", binName);
-    this.warmedPath = path.join(context.globalStorageUri.fsPath, ".warmed");
+    this.bundledPath = path.join(context.globalStorageUri.fsPath, "bin", "kimi", binName);
+    this.warmedPath = path.join(context.globalStorageUri.fsPath, "bin", ".warmed");
   }
 
   getExecutablePath(): string {
@@ -86,18 +86,18 @@ export class CLIManager {
     // Step 3: Verify via wire initialize
     try {
       // Check version via info --json
-      console.log(`[Kimi Code] Checking CLI at path: ${execPath}`);
+      console.log(`[Kimi Code] ${new Date().toISOString()} Checking CLI at path: ${execPath}`);
 
       const info = await this.getInfo(execPath);
       if (!info || !this.meetsRequirements(info)) {
-        console.error("[Kimi Code] CLI does not meet minimum version requirements.");
+        console.error(`[Kimi Code] ${new Date().toISOString()} CLI does not meet minimum version requirements.`);
         return { ok: false };
       }
 
-      console.log("[Kimi Code] Verifying CLI via wire protocol...");
+      console.log(`[Kimi Code] ${new Date().toISOString()} Verifying CLI via wire protocol...`);
       const initResult = await this.verifyWithWire(execPath, workDir);
 
-      console.log("[Kimi Code] CLI verified successfully via wire protocol.");
+      console.log(`[Kimi Code] ${new Date().toISOString()} CLI verified successfully via wire protocol.`);
       if (!(await this.isWarmed())) {
         await this.markWarmed();
       }
@@ -107,14 +107,14 @@ export class CLIManager {
         slashCommands: initResult.slash_commands,
       };
     } catch (err) {
-      console.error("[Kimi Code] CLI verification failed:", err);
+      console.error(`[Kimi Code] ${new Date().toISOString()} CLI verification failed:`, err);
       return { ok: false };
     }
   }
 
   private async getInfo(execPath: string): Promise<CLIInfo> {
     const output = await exec(execPath, ["info", "--json"]);
-    console.log(`[Kimi Code] CLI info output: ${output}`);
+    console.log(`[Kimi Code] ${new Date().toISOString()} CLI info output: ${output}`);
     return JSON.parse(output);
   }
 
