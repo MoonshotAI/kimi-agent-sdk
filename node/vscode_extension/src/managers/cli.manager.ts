@@ -124,11 +124,35 @@ export class CLIManager {
       throw new Error(`Archive missing: ${archive}`);
     }
     fs.mkdirSync(this.globalBin, { recursive: true });
-    console.log(`[Kimi Code] Extracting to ${this.globalBin}...`);
-    if (process.platform === "win32") {
-      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archive}' -DestinationPath '${this.globalBin}' -Force"`, { stdio: "ignore" });
+
+    let hasTar = true;
+    try {
+      execSync("tar --version", { stdio: "ignore" });
+    } catch {
+      hasTar = false;
+    }
+
+    console.log(`[Kimi Code] Extracting to ${this.globalBin}..., using ${hasTar ? "tar" : "powershell"}`);
+
+    if (hasTar) {
+      execSync(`tar -xf "${archive}" -C "${this.globalBin}" --strip-components=1`, { stdio: "ignore" });
     } else {
-      execSync(`tar -xzf "${archive}" -C "${this.globalBin}" --strip-components=1`, { stdio: "ignore" });
+      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archive}' -DestinationPath '${this.globalBin}' -Force"`, { stdio: "ignore" });
+
+      // Move files out of nested folder
+      const entries = fs.readdirSync(this.globalBin);
+      if (entries.length === 1) {
+        const nested = path.join(this.globalBin, entries[0]);
+        if (fs.statSync(nested).isDirectory()) {
+          for (const f of fs.readdirSync(nested)) {
+            fs.renameSync(path.join(nested, f), path.join(this.globalBin, f));
+          }
+          fs.rmdirSync(nested);
+        }
+      }
+    }
+
+    if (process.platform !== "win32") {
       fs.chmodSync(path.join(this.globalBin, "kimi"), 0o755);
     }
   }
