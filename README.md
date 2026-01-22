@@ -2,7 +2,8 @@
 
 [![Go SDK Version](https://img.shields.io/github/v/tag/MoonshotAI/kimi-agent-sdk?label=go%20sdk&sort=semver&filter=go-v*)](https://pkg.go.dev/github.com/MoonshotAI/kimi-agent-sdk/go)
 [![Node SDK Version](https://img.shields.io/npm/v/%40moonshot-ai%2Fkimi-agent-sdk?label=node%20sdk)](https://www.npmjs.com/package/@moonshot-ai/kimi-agent-sdk)
-[![Python SDK Version](https://img.shields.io/pypi/v/kimi-agent-sdk?label=python%20sdk)](https://pypi.org/project/kimi-agent-sdk/)
+[![Python SDK Version](https://img.shields.io/pypi/v/kimi-agent-sdk?label=python%20sdk)](https://pypi.org/project/kimi-agent-sdk/)  
+
 [![License](https://img.shields.io/github/license/MoonshotAI/kimi-agent-sdk)](./LICENSE)
 
 Kimi Agent SDK is a set of multi-language libraries that expose the Kimi Code (Kimi CLI) agent runtime in your applications. Use it to build products, automations, and custom tooling while keeping the CLI as the execution engine.
