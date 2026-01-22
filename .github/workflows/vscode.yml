@@ -53,7 +53,7 @@ jobs:
         working-directory: node/vscode_extension
 
       - name: Package
-        run: pnpm package
+        run: pnpm run package:no-embedded
         working-directory: node/vscode_extension
 
       - name: Upload VSIX artifact

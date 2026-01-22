@@ -206,7 +206,8 @@
     "build:webview": "pnpm --filter @moonshot-ai/vscode_extension-webview-ui build",
     "build:extension": "tsc --noEmit && node esbuild.js --production",
     "download:cli": "node scripts/download-cli.js",
-    "package:platform": "node scripts/vsix-package.js"
+    "package:platform": "node scripts/vsix-package.js",
+    "package:no-embedded": "vsce package --no-dependencies --out kimi-code.vsix"
   },
   "devDependencies": {
     "@types/node": "22.x",
