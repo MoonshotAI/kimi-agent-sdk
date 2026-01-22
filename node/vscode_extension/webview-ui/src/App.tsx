@@ -20,12 +20,9 @@ function MainContent() {
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
       processEvent(event);
-
-      // Pre-flight 错误显示 Toast
       if (event.type === "error") {
         const streamError = event as StreamError;
         const code = streamError.code || "UNKNOWN";
-
         if (isPreflightError(code)) {
           const message = getUserMessage(code, streamError.message);
           toast.error(message);
@@ -71,13 +68,13 @@ function MainContent() {
 }
 
 export default function App() {
-  const { status, errorType, errorMessage } = useAppInit();
+  const { status, errorType, errorMessage, cliResult } = useAppInit();
 
   if (status !== "ready") {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
         <Header />
-        <ConfigErrorScreen type={errorType ?? "loading"} errorMessage={errorMessage} />
+        <ConfigErrorScreen type={errorType ?? "loading"} cliResult={cliResult} errorMessage={errorMessage} />
         <Toaster position="top-center" />
       </div>
     );
