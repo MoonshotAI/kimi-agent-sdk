@@ -97,7 +97,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
               <IconLoader2 className="size-4 animate-spin" />
               <span className="text-sm">Loading...</span>
             </div>
-            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 15 seconds. Please wait.</p>
+            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 30 seconds. Please wait.</p>
           </div>
         </div>
       </div>
