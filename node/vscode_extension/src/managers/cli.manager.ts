@@ -5,7 +5,7 @@ import * as crypto from "crypto";
 import { execFile, execSync } from "child_process";
 import { promisify } from "util";
 import { ProtocolClient, type InitializeResult } from "@moonshot-ai/kimi-agent-sdk";
-import type { CLICheckResult, CLIErrorType } from "../../shared/types";
+import type { CLICheckResult } from "shared/types";
 
 const execAsync = promisify(execFile);
 
@@ -34,20 +34,6 @@ function compareVersion(current: string, min: string): number {
   return 0;
 }
 
-function classifyError(err: unknown): CLIErrorType {
-  const message = err instanceof Error ? err.message : String(err);
-  if (message.includes("ENOENT") || message.includes("not found") || message.includes("spawn")) {
-    return "not_found";
-  }
-  if (message.includes("extract") || message.includes("Archive") || message.includes("tar")) {
-    return "extract_failed";
-  }
-  if (message.includes("protocol") || message.includes("wire") || message.includes("Initialize")) {
-    return "protocol_error";
-  }
-  return "not_found";
-}
-
 export class CLIManager {
   private globalBin: string;
   private bundledExec: string;
@@ -68,55 +54,68 @@ export class CLIManager {
     return !!vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
   }
 
+  private createCheckResult(ok: boolean, extra: Partial<CLICheckResult> = {}): CLICheckResult {
+    return {
+      ok,
+      resolved: { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() },
+      ...extra,
+    };
+  }
+
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const execPath = this.getExecutablePath();
-    const resolved = { isCustomPath: this.isCustomPath(), path: execPath };
+    console.log(`[Kimi Code] Checking CLI: ${execPath} (custom: ${this.isCustomPath()})`);
 
-    console.log(`[Kimi Code] Checking CLI: ${execPath} (custom: ${resolved.isCustomPath})`);
-
-    try {
-      if (execPath === this.bundledExec && !fs.existsSync(execPath)) {
+    // Step 1: Extract bundled CLI if needed
+    if (execPath === this.bundledExec && !fs.existsSync(execPath)) {
+      try {
         this.extractArchive();
+      } catch (err) {
+        console.error(`[Kimi Code] Extract failed:`, err);
+        return this.createCheckResult(false, {
+          error: { type: "extract_failed", message: err instanceof Error ? err.message : String(err) },
+        });
       }
-
-      const { kimi_cli_version, wire_protocol_version } = await this.getInfo(execPath);
-
-      if (compareVersion(kimi_cli_version, MIN_CLI_VERSION) < 0) {
-        return {
-          ok: false,
-          resolved,
-          error: {
-            type: "version_low",
-            message: `CLI version ${kimi_cli_version} is below minimum required ${MIN_CLI_VERSION}`,
-          },
-        };
-      }
-
-      if (compareVersion(wire_protocol_version, MIN_WIRE_VERSION) < 0) {
-        return {
-          ok: false,
-          resolved,
-          error: {
-            type: "version_low",
-            message: `Wire protocol ${wire_protocol_version} is below minimum required ${MIN_WIRE_VERSION}`,
-          },
-        };
-      }
-
-      const { slash_commands } = await this.verifyWire(execPath, workDir);
-
-      return { ok: true, slashCommands: slash_commands, resolved };
-    } catch (err) {
-      console.error(`[Kimi Code] CLI check failed:`, err);
-      return {
-        ok: false,
-        resolved,
-        error: {
-          type: classifyError(err),
-          message: err instanceof Error ? err.message : String(err),
-        },
-      };
     }
+
+    // Step 2: Get CLI info
+    let cliVersion: string;
+    let wireVersion: string;
+    try {
+      const info = await this.getInfo(execPath);
+      cliVersion = info.kimi_cli_version;
+      wireVersion = info.wire_protocol_version;
+    } catch (err) {
+      console.error(`[Kimi Code] CLI not found or failed to execute:`, err);
+      return this.createCheckResult(false, {
+        error: { type: "not_found", message: err instanceof Error ? err.message : String(err) },
+      });
+    }
+
+    // Step 3: Check version
+    if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
+      return this.createCheckResult(false, {
+        error: { type: "version_low", message: `CLI version ${cliVersion} is below minimum required ${MIN_CLI_VERSION}` },
+      });
+    }
+    if (compareVersion(wireVersion, MIN_WIRE_VERSION) < 0) {
+      return this.createCheckResult(false, {
+        error: { type: "version_low", message: `Wire protocol ${wireVersion} is below minimum required ${MIN_WIRE_VERSION}` },
+      });
+    }
+
+    // Step 4: Verify wire protocol
+    let initResult: InitializeResult;
+    try {
+      initResult = await this.verifyWire(execPath, workDir);
+    } catch (err) {
+      console.error(`[Kimi Code] Wire protocol verification failed:`, err);
+      return this.createCheckResult(false, {
+        error: { type: "protocol_error", message: err instanceof Error ? err.message : String(err) },
+      });
+    }
+
+    return this.createCheckResult(true, { slashCommands: initResult.slash_commands });
   }
 
   private extractArchive(): void {
