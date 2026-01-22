@@ -2,7 +2,7 @@ import * as crypto from "node:crypto";
 import { ProtocolClient } from "./protocol";
 import { SessionError } from "./errors";
 import { log } from "./logger";
-import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse, InitializeResult, SlashCommandInfo, ExternalTool } from "./schema";
+import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse, SlashCommandInfo, ExternalTool } from "./schema";
 
 export type SessionState = "idle" | "active" | "closed";
 
