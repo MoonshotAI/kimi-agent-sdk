@@ -6,7 +6,7 @@
 
 [![License](https://img.shields.io/github/license/MoonshotAI/kimi-agent-sdk)](./LICENSE)
 
-Kimi Agent SDK is a set of multi-language libraries that expose the Kimi Code (Kimi CLI) agent runtime in your applications. Use it to build products, automations, and custom tooling while keeping the CLI as the execution engine.
+Kimi Agent SDK is a set of multi-language libraries that expose the [Kimi Code (Kimi CLI)]((https://github.com/MoonshotAI/kimi-cli)) agent runtime in your applications. Use it to build products, automations, and custom tooling while keeping the CLI as the execution engine.
 
 The SDKs are thin, language-native clients that reuse the same Kimi CLI configuration, tools, skills, and MCP servers. They stream responses in real time, surface approvals and tool calls, and let you orchestrate sessions programmatically.
 
