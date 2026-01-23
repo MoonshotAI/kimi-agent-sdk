@@ -24,9 +24,13 @@ const getToken = () =>
 const request = async (url) => {
   const headers = { "User-Agent": "kimi-vscode" };
   const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
   const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${url}`);
+  }
   return Buffer.from(await res.arrayBuffer());
 };
 
@@ -47,8 +51,12 @@ async function main() {
 
   const asset = release.assets.find((a) => a.name === filename);
   const sha256Asset = release.assets.find((a) => a.name === `${filename}.sha256`);
-  if (!asset) throw new Error(`Asset not found: ${filename}`);
-  if (!sha256Asset) throw new Error(`SHA256 not found: ${filename}.sha256`);
+  if (!asset) {
+    throw new Error(`Asset not found: ${filename}`);
+  }
+  if (!sha256Asset) {
+    throw new Error(`SHA256 not found: ${filename}.sha256`);
+  }
 
   console.log(`Downloading ${filename}...`);
   const data = await request(asset.browser_download_url);

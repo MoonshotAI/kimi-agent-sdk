@@ -66,6 +66,7 @@ interface SettingsState {
   modelsLoaded: boolean;
   wireSlashCommands: SlashCommandInfo[];
   slashCommands: SlashCommandInfo[];
+  isLoggedIn: boolean;
 
   setCurrentModel: (model: string) => void;
   setThinkingEnabled: (enabled: boolean) => void;
@@ -76,6 +77,7 @@ interface SettingsState {
   setMCPModalOpen: (open: boolean) => void;
   initModels: (models: ModelConfig[], defaultModel: string | null, defaultThinking: boolean) => void;
   setWireSlashCommands: (commands: SlashCommandInfo[]) => void;
+  setIsLoggedIn: (loggedIn: boolean) => void;
   getCurrentThinkingMode: () => ThinkingMode;
 }
 
@@ -91,6 +93,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   modelsLoaded: false,
   wireSlashCommands: [],
   slashCommands: [],
+  isLoggedIn: false,
 
   setCurrentModel: (currentModel) => set({ currentModel }),
 
@@ -172,6 +175,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       slashCommands: commands,
     });
   },
+
+  setIsLoggedIn: (isLoggedIn) => set({ isLoggedIn }),
 
   getCurrentThinkingMode: () => {
     const { models, currentModel } = get();

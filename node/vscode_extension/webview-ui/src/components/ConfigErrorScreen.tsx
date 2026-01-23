@@ -5,7 +5,7 @@ import { bridge } from "@/services";
 import type { CLICheckResult, CLIErrorType } from "shared/types";
 
 interface Props {
-  type: "loading" | "cli-error" | "no-models" | "no-workspace";
+  type: "loading" | "cli-error" | "no-models" | "no-workspace" | "not-logged-in";
   cliResult?: CLICheckResult | null;
   errorMessage?: string | null;
 }
@@ -136,7 +136,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
     );
   }
 
-  // no-models
+  // Fallback for "no-models" and "not-logged-in" (when login is skipped)
   return (
     <div className="h-full flex items-center justify-center p-6">
       <div className="max-w-sm text-center space-y-6">

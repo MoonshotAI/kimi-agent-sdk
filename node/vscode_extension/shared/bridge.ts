@@ -12,6 +12,9 @@
 export const Methods = {
   CheckWorkspace: "checkWorkspace",
   CheckCLI: "checkCLI",
+  CheckLoginStatus: "checkLoginStatus",
+  Login: "login",
+  Logout: "logout",
   SaveConfig: "saveConfig",
   GetExtensionConfig: "getExtensionConfig",
   OpenSettings: "openSettings",
@@ -57,4 +60,5 @@ export const Events = {
   NewConversation: "newConversation",
   FileChangesUpdated: "fileChangesUpdated",
   RollbackInput: "rollbackInput",
+  LoginUrl: "loginUrl",
 } as const;

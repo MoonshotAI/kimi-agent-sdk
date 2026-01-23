@@ -1,6 +1,6 @@
 import { Methods, Events } from "shared/bridge";
-import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult } from "@moonshot-ai/kimi-agent-sdk";
-import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus, DiffInfo, CLICheckResult } from "shared/types";
+import type { ApprovalResponse, ContentPart, MCPServerConfig, SessionInfo, KimiConfig, MCPTestResult, LoginResult } from "@moonshot-ai/kimi-agent-sdk";
+import type { FileChange, SessionConfig, ExtensionConfig, WorkspaceStatus, DiffInfo, CLICheckResult, LoginStatus } from "shared/types";
 import type { UIStreamEvent } from "shared/types";
 
 interface PendingRequest {
@@ -94,6 +94,18 @@ class Bridge {
 
   checkCLI() {
     return this.call<CLICheckResult>(Methods.CheckCLI);
+  }
+
+  checkLoginStatus() {
+    return this.call<LoginStatus>(Methods.CheckLoginStatus);
+  }
+
+  login() {
+    return this.call<LoginResult>(Methods.Login);
+  }
+
+  logout() {
+    return this.call<LoginResult>(Methods.Logout);
   }
 
   saveConfig(sessionConfig: SessionConfig) {

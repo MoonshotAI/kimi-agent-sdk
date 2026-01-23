@@ -3,6 +3,7 @@ import { KimiWebviewProvider } from "./KimiWebviewProvider";
 import { onSettingsChange, VSCodeSettings } from "./config/vscode-settings";
 import { initCLIManager, BaselineManager } from "./managers";
 import { Events } from "../shared/bridge";
+import { updateLoginContext } from "./utils/context";
 import { enableLogs, setLogSink } from "@moonshot-ai/kimi-agent-sdk";
 
 let outputChannel: vscode.OutputChannel;
@@ -24,8 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   provider = new KimiWebviewProvider(context.extensionUri);
 
-  // TODO: Temporarily set isLoggedIn to true, should be based on actual login status
-  vscode.commands.executeCommand("setContext", "kimi.isLoggedIn", true);
+  // Initialize context state
+  updateLoginContext();
 
   context.subscriptions.push(provider);
   context.subscriptions.push(outputChannel);
@@ -113,14 +114,10 @@ export function activate(context: vscode.ExtensionContext) {
     "kimi.showLogs": () => {
       outputChannel.show();
     },
-    // Temporarily disable login commands
-    // "kimi.login": async () => {
-    //   log("Login requested");
-    //   vscode.window.showInformationMessage("Kimi: Login feature coming soon. Currently using local Kimi CLI.");
-    // },
     "kimi.logout": async () => {
-      log("Logout requested");
-      vscode.window.showInformationMessage("Kimi: Logout feature coming soon.");
+      log("Logout requested via command palette");
+      await vscode.commands.executeCommand("kimi.webview.focus");
+      vscode.window.showInformationMessage("Please use the logout button in Kimi settings.");
     },
   };
 

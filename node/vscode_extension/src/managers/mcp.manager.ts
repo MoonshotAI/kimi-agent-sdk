@@ -166,22 +166,9 @@ export const MCPManager = {
   },
 
   async test(name: string): Promise<MCPTestResult> {
+    vscode.window.showInformationMessage(`Kimi: Testing MCP server "${name}"...`);
+
     const executable = getCLIManager().getExecutablePath();
-    return vscode.window.withProgress(
-      {
-        location: vscode.ProgressLocation.Notification,
-        title: `Kimi: Testing connection to "${name}"...`,
-        cancellable: false,
-      },
-      async () => {
-        const result = await testMCP(name, executable);
-        if (result.success) {
-          vscode.window.showInformationMessage(`Kimi: "${name}" connected successfully, result:\n ${result.output}`);
-        } else {
-          vscode.window.showErrorMessage(`Kimi: "${name}" connection failed, error: ${result.output}`);
-        }
-        return result;
-      },
-    );
+    return await testMCP(name, executable);
   },
 };

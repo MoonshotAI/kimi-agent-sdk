@@ -21,7 +21,11 @@ import { useMediaUpload } from "./hooks/useMediaUpload";
 import { useClickOutside } from "./hooks/useClickOutside";
 import { computeMentionInsert } from "./utils";
 
-export function InputArea() {
+interface InputAreaProps {
+  onAuthAction?: () => void;
+}
+
+export function InputArea({ onAuthAction }: InputAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
@@ -380,7 +384,7 @@ export function InputArea() {
                 <TooltipContent>Add files or media</TooltipContent>
               </Tooltip>
 
-              <ActionMenu />
+              <ActionMenu onAuthAction={onAuthAction} />
 
               {isStreaming ? (
                 <Button variant="destructive" size="icon-xs" onClick={abort}>

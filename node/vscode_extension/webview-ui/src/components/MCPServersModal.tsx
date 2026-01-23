@@ -203,6 +203,7 @@ function ServerForm({
       </div>
 
       {error && <p className="text-[10px] text-destructive">{error}</p>}
+
       <div className="flex justify-end gap-2">
         <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancel}>
           Cancel
@@ -230,7 +231,7 @@ function ServerItem({ server, onDelete }: { server: MCPServerConfig; onDelete: (
       const servers = await bridge.updateMCPServer(formToConfig(form));
       setMCPServers(servers);
       setExpanded(false);
-    } catch {}
+    } catch { }
   };
 
   const handleAction = async (action: () => Promise<any>) => {
@@ -245,6 +246,7 @@ function ServerItem({ server, onDelete }: { server: MCPServerConfig; onDelete: (
 
   const handleTest = () =>
     handleAction(async () => {
+      setExpanded(true);
       const result = await bridge.testMCP(server.name);
       setTestOutput(result.output);
     });
@@ -288,7 +290,15 @@ function ServerItem({ server, onDelete }: { server: MCPServerConfig; onDelete: (
 
       {expanded && (
         <div className="px-2.5 pb-2.5">
-          {testOutput && <pre className="text-[10px] font-mono bg-muted/50 rounded p-2 mb-2 whitespace-pre-wrap max-h-48 overflow-auto">{testOutput}</pre>}
+          {testOutput && (
+            <div className="text-[10px] font-mono bg-muted/50 rounded p-2 mb-2 max-h-48 overflow-auto border border-border/50">
+              {testOutput.split('\n').map((line, i) => (
+                <div key={i} className="whitespace-pre-wrap break-all min-h-[1.2em]">
+                  {line}
+                </div>
+              ))}
+            </div>
+          )}
           <ServerForm data={form} onChange={setForm} onSubmit={handleUpdate} onCancel={() => setExpanded(false)} submitLabel="Update" />
         </div>
       )}
@@ -350,7 +360,7 @@ export function MCPServersModal() {
       const servers = await bridge.addMCPServer(formToConfig(addForm));
       setMCPServers(servers);
       setShowAdd(false);
-    } catch {}
+    } catch { }
   };
 
   const handleDelete = async () => {
@@ -359,7 +369,7 @@ export function MCPServersModal() {
     try {
       const servers = await bridge.removeMCPServer(deleteTarget);
       setMCPServers(servers);
-    } catch {}
+    } catch { }
     setIsDeleting(false);
     setDeleteTarget(null);
   };
@@ -370,7 +380,7 @@ export function MCPServersModal() {
       const config = recommendedToConfig(server);
       const servers = await bridge.addMCPServer(config);
       setMCPServers(servers);
-    } catch {}
+    } catch { }
     setInstallingRecommended(null);
   };
 
@@ -394,7 +404,6 @@ export function MCPServersModal() {
             </Button>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-2xl mx-auto px-3 py-3 space-y-4">
             {showAdd && (
