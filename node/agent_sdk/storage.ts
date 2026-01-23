@@ -130,9 +130,7 @@ function extractUserText(userInput: unknown): string {
   }
 
   if (Array.isArray(userInput)) {
-    const textParts = (userInput as ContentPart[])
-      .filter((p): p is ContentPart & { type: "text" } => p.type === "text")
-      .map((p) => p.text);
+    const textParts = (userInput as ContentPart[]).filter((p): p is ContentPart & { type: "text" } => p.type === "text").map((p) => p.text);
     return stripFileTags(textParts.join("\n"));
   }
 

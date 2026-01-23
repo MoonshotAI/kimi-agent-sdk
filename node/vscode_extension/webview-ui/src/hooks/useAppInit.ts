@@ -44,7 +44,9 @@ export function useAppInit(): AppInitState {
     async function init() {
       try {
         const workspace = await bridge.checkWorkspace();
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         if (!workspace.hasWorkspace) {
           setState({
@@ -57,7 +59,9 @@ export function useAppInit(): AppInitState {
         }
 
         const [extensionConfig, mcpServers, cliResult] = await Promise.all([bridge.getExtensionConfig(), bridge.getMCPServers(), bridge.checkCLI()]);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         setExtensionConfig(extensionConfig);
         setMCPServers(mcpServers);
@@ -74,7 +78,9 @@ export function useAppInit(): AppInitState {
         }
 
         const [loginStatus, kimiConfig] = await Promise.all([bridge.checkLoginStatus(), bridge.getModels()]);
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         setIsLoggedIn(loginStatus.loggedIn);
 

@@ -180,7 +180,9 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
         // 普通代码块
         return (
           <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-[11px]">
-            <code {...props} className="bg-transparent!">{code}</code>
+            <code {...props} className="bg-transparent!">
+              {code}
+            </code>
           </pre>
         );
       },
