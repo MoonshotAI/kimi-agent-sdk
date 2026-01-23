@@ -3,7 +3,7 @@
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code",
   "description": "Official Kimi Code plugin for VS Code",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -26,6 +26,20 @@
     "AI",
     "Chat",
     "Programming Languages"
+  ],
+  "keywords": [
+    "ai",
+    "assistant",
+    "code",
+    "chat",
+    "agent",
+    "mcp",
+    "skills",
+    "json",
+    "autocomplete",
+    "moonshot",
+    "kimi",
+    "moonshot-ai"
   ],
   "activationEvents": [],
   "main": "./dist/extension.js",
@@ -207,7 +221,8 @@
     "build:extension": "tsc --noEmit && node esbuild.js --production",
     "download:cli": "node scripts/download-cli.js",
     "package:platform": "node scripts/vsix-package.js",
-    "package:no-embedded": "vsce package --no-dependencies --out kimi-code.vsix"
+    "package:no-embedded": "vsce package --no-dependencies --out kimi-code.vsix",
+    "publish:vsix": "node scripts/vsix-publish.js"
   },
   "devDependencies": {
     "@types/node": "22.x",
