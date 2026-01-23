@@ -1,42 +1,42 @@
-#!/usr/bin/env node
-
 const { execSync } = require("child_process");
-const path = require("path");
+const { rmSync, existsSync } = require("fs");
+const { join } = require("path");
 
-const PLATFORMS = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64"];
+const ALL_TARGETS = ["darwin-arm64", "linux-arm64", "linux-x64", "win32-x64"];
 
-const platform = process.argv[2];
+// Use provided args or fallback to all targets
+const args = process.argv.slice(2);
+const targets = args.length > 0 ? args : ALL_TARGETS;
 
-if (!platform) {
-  console.log("Usage: node vsix-package.js <platform|all>");
-  console.log("Platforms:", PLATFORMS.join(", "), "all");
-  process.exit(1);
-}
+const rootDir = join(__dirname, "..");
+const binDir = join(rootDir, "bin", "kimi");
 
-const targets = platform === "all" ? PLATFORMS : [platform];
+console.log(`Building for: ${targets.join(", ")}`);
 
 for (const target of targets) {
-  if (!PLATFORMS.includes(target)) {
-    console.error(`Unknown platform: ${target}`);
+  console.log(`Packaging [${target}]...`);
+
+  try {
+    // 1. Clean previous binary to prevent mixing architectures
+    if (existsSync(binDir)) {
+      rmSync(binDir, { recursive: true, force: true });
+    }
+
+    // 2. Download CLI binary for specific target
+    execSync(`node scripts/download-cli.js ${target}`, {
+      cwd: rootDir,
+      stdio: "inherit",
+    });
+
+    // 3. Package extension
+    execSync(`npx vsce package --target ${target} --out kimi-code-${target}.vsix`, {
+      cwd: rootDir,
+      stdio: "inherit",
+    });
+  } catch (e) {
+    console.error(`❌ Failed to build for ${target}`);
     process.exit(1);
   }
 }
 
-const rootDir = path.join(__dirname, "..");
-
-function run(cmd) {
-  console.log(`> ${cmd}`);
-  execSync(cmd, { cwd: rootDir, stdio: "inherit" });
-}
-
-for (const target of targets) {
-  console.log(`\n========== Packaging for ${target} ==========\n`);
-
-  run(`node scripts/download-cli.js ${target}`);
-  run("pnpm run build");
-  run(`vsce package --no-dependencies --target ${target}`);
-
-  console.log(`Done: ${target}\n`);
-}
-
-console.log("All done!");
+console.log("\n✅ All builds completed.");
