@@ -401,8 +401,6 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
   ToolCallPart: ToolCallPartSchema,
   ToolResult: ToolResultSchema,
   ApprovalResponse: ApprovalResponseEventSchema,
-  // Legacy name support
-  ApprovalRequestResolved: ApprovalResponseEventSchema,
 };
 
 // Request type -> schema mapping
@@ -415,8 +413,6 @@ type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
 // Parse wire event (internal use)
 export function parseEventPayload(type: string, payload: unknown): Result<WireEvent> {
-  // Handle legacy event name
-  const normalizedType = type === "ApprovalRequestResolved" ? "ApprovalResponse" : type;
   const schema = EventSchemas[type];
   if (!schema) {
     return { ok: false, error: `Unknown event type: ${type}` };
@@ -425,7 +421,7 @@ export function parseEventPayload(type: string, payload: unknown): Result<WireEv
   if (!result.success) {
     return { ok: false, error: `Invalid payload for ${type}: ${result.error.message}` };
   }
-  return { ok: true, value: { type: normalizedType, payload: result.data } as WireEvent };
+  return { ok: true, value: { type, payload: result.data } as WireEvent };
 }
 
 function parseWireEvent(raw: { type: string; payload?: unknown }): WireEvent {
