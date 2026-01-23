@@ -41,6 +41,7 @@
     "kimi",
     "moonshot-ai"
   ],
+  "pricing": "Free",
   "activationEvents": [],
   "main": "./dist/extension.js",
   "icon": "resources/kimi-icon-storefront.png",
