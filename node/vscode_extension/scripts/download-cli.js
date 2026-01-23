@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -47,10 +48,12 @@ async function main() {
   console.log("Fetching release info...");
   const release = JSON.parse((await request(`https://api.github.com/repos/${REPO}/releases/latest`)).toString());
   const version = release.tag_name.replace(/^v/, "");
-  const filename = `kimi-${version}-${info.t}.${info.ext}`;
+  const tag = release.tag_name;
 
+  const filename = `kimi-${version}-${info.t}.${info.ext}`;
   const asset = release.assets.find((a) => a.name === filename);
   const sha256Asset = release.assets.find((a) => a.name === `${filename}.sha256`);
+
   if (!asset) {
     throw new Error(`Asset not found: ${filename}`);
   }
@@ -71,7 +74,10 @@ async function main() {
 
   fs.mkdirSync(binDir, { recursive: true });
   fs.writeFileSync(path.join(binDir, archiveName), data);
+  fs.writeFileSync(path.join(binDir, "version.json"), JSON.stringify({ version, tag }, null, 2));
+
   console.log(`Saved to bin/kimi/${archiveName}`);
+  console.log(`Version: ${version} (${tag})`);
 }
 
 main().catch((e) => {
