@@ -463,9 +463,52 @@ type DisplayBlock struct {
 	OldText  Optional[string]                 `json:"old_text,omitzero"`
 	NewText  Optional[string]                 `json:"new_text,omitzero"`
 	Items    Optional[[]DisplayBlockTodoItem] `json:"items,omitzero"`
-	Data     Optional[map[string]any]         `json:"data,omitzero"`
+	Data     Optional[DisplayBlockData]       `json:"data,omitzero"`
 	Language Optional[string]                 `json:"language,omitzero"`
 	Command  Optional[string]                 `json:"command,omitzero"`
+}
+
+type DisplayBlockDataType string
+
+const (
+	DisplayBlockDataTypeText   DisplayBlockDataType = "text"
+	DisplayBlockDataTypeObject DisplayBlockDataType = "object"
+)
+
+type DisplayBlockData struct {
+	Type   DisplayBlockDataType
+	Text   Optional[string]
+	Object Optional[map[string]any]
+}
+
+func (d DisplayBlockData) MarshalJSON() ([]byte, error) {
+	switch d.Type {
+	case DisplayBlockDataTypeText:
+		return json.Marshal(d.Text)
+	case DisplayBlockDataTypeObject:
+		return json.Marshal(d.Object)
+	default:
+		return nil, fmt.Errorf("invalid display block data type: %q, expected one of %q or %q", d.Type, DisplayBlockDataTypeText, DisplayBlockDataTypeObject)
+	}
+}
+
+func (d *DisplayBlockData) UnmarshalJSON(data []byte) error {
+	data = bytes.TrimSpace(data)
+	switch data[0] {
+	case '"':
+		if err := json.Unmarshal(data, &d.Text); err != nil {
+			return err
+		}
+		d.Type = DisplayBlockDataTypeText
+	case '{':
+		if err := json.Unmarshal(data, &d.Object); err != nil {
+			return err
+		}
+		d.Type = DisplayBlockDataTypeObject
+	default:
+		return fmt.Errorf("invalid display block data type, expected one of %q or %q", DisplayBlockDataTypeText, DisplayBlockDataTypeObject)
+	}
+	return nil
 }
 
 type TodoStatus string
