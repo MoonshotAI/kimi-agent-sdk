@@ -2,7 +2,7 @@
   "name": "kimi-code",
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code",
-  "description": "AI-powered coding assistant with Kimi Code",
+  "description": "AI coding assistant for VS Code",
   "version": "0.0.7",
   "license": "Apache-2.0",
   "repository": {
@@ -37,7 +37,7 @@
         "kimi.yoloMode": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically approve all tool calls without prompting"
+          "description": "Auto-approve all tool calls"
         },
         "kimi.autosave": {
           "type": "boolean",
@@ -62,7 +62,7 @@
         "kimi.environmentVariables": {
           "type": "object",
           "default": {},
-          "description": "Environment variables to pass to the Kimi Code",
+          "description": "Environment variables passed to the Kimi Code CLI",
           "additionalProperties": {
             "type": "string"
           }

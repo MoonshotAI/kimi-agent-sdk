@@ -38,7 +38,7 @@ export function ApprovalDialog() {
 
   const options = [
     { key: "approve", label: "Yes", index: 1 },
-    { key: "approve_for_session", label: "Yes, and don't ask again", index: 2 },
+    { key: "approve_for_session", label: "Yes, for this session", index: 2 },
     { key: "reject", label: "No", index: 3 },
   ] as const;
 

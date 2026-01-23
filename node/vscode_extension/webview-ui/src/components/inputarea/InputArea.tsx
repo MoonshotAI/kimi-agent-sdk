@@ -332,7 +332,7 @@ export function InputArea() {
             onKeyDown={handleKeyDown}
             onSelect={handleSelect}
             onPaste={handlePaste}
-            placeholder="Ask Kimi... (/ for commands, @ for files)"
+            placeholder="Ask Kimi Code... (/ for commands, @ for files)"
             className={cn(
               "w-full min-h-12 max-h-35 px-2.5 py-1.5 text-xs leading-relaxed",
               "bg-transparent resize-none outline-none border-none overflow-y-auto",
@@ -350,7 +350,7 @@ export function InputArea() {
                     className="gap-0.5 text-accent-foreground border-0! h-6 px-1.5 min-w-0 max-w-[calc(100%-4rem)]"
                     disabled={isStreaming || !hasModels}
                   >
-                    <span className="text-xs truncate block">{currentModelConfig?.name || "No model available"}</span>
+                    <span className="text-xs truncate block">{currentModelConfig?.name || "No models available"}</span>
                     {hasModels && <IconChevronDown className="size-3.5 shrink-0" />}
                   </Button>
                 </DropdownMenuTrigger>

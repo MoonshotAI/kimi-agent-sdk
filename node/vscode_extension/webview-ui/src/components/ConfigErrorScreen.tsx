@@ -144,9 +144,9 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 text-amber-500">
             <IconAlertTriangle className="size-5" />
-            <span className="text-sm font-medium">Configuration Required</span>
+            <span className="text-sm font-medium">Setup Required</span>
           </div>
-          <p className="text-xs text-muted-foreground">Kimi Code is not configured. Please run setup first.</p>
+          <p className="text-xs text-muted-foreground">Run setup to continue.</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
