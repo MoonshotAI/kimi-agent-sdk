@@ -32,7 +32,7 @@ export function Header() {
             className="gap-1 h-6 border-0! pl-px! pr-1! text-muted-foreground hover:text-foreground @max-[320px]:hidden"
             onClick={() => setShowSessionInfo(true)}
           >
-            <span className="text-[11px] @max-[500px]:hidden">Session Info</span>
+            <span className="text-[11px] @max-[500px]:hidden">Session</span>
             <IconInfoCircle className="size-3.5 hidden @max-[500px]:block" />
           </Button>
         )}
@@ -56,8 +56,8 @@ export function Header() {
       <Dialog open={showSessionInfo} onOpenChange={setShowSessionInfo}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm">Session Information</DialogTitle>
-            <DialogDescription className="text-xs">Current conversation session details.</DialogDescription>
+            <DialogTitle className="text-sm">Session Details</DialogTitle>
+            <DialogDescription className="text-xs">Details for this conversation.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div>

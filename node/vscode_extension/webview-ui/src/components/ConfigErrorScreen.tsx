@@ -5,7 +5,7 @@ import { bridge } from "@/services";
 import type { CLICheckResult, CLIErrorType } from "shared/types";
 
 interface Props {
-  type: "loading" | "cli-error" | "no-models" | "no-workspace";
+  type: "loading" | "cli-error" | "no-models" | "no-workspace" | "not-logged-in";
   cliResult?: CLICheckResult | null;
   errorMessage?: string | null;
 }
@@ -97,7 +97,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
               <IconLoader2 className="size-4 animate-spin" />
               <span className="text-sm">Loading...</span>
             </div>
-            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 15 seconds. Please wait.</p>
+            <p className="text-xs text-muted-foreground/70">Kimi Code is initializing. May take up to 30 seconds. Please wait.</p>
           </div>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
     );
   }
 
-  // no-models
+  // Fallback for "no-models" and "not-logged-in" (when login is skipped)
   return (
     <div className="h-full flex items-center justify-center p-6">
       <div className="max-w-sm text-center space-y-6">
@@ -144,9 +144,9 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 text-amber-500">
             <IconAlertTriangle className="size-5" />
-            <span className="text-sm font-medium">Configuration Required</span>
+            <span className="text-sm font-medium">Setup Required</span>
           </div>
-          <p className="text-xs text-muted-foreground">Kimi Code is not configured. Please run setup first.</p>
+          <p className="text-xs text-muted-foreground">Run setup to continue.</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">

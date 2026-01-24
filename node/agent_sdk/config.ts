@@ -9,6 +9,11 @@ import type { KimiConfig, ModelConfig } from "./schema";
 // Config Schema
 // ============================================================================
 
+const OAuthConfigSchema = z.object({
+  storage: z.string(),
+  key: z.string(),
+});
+
 const ProviderTypeSchema = z.enum(["kimi", "openai_legacy", "openai_responses", "anthropic", "google_genai", "gemini", "vertexai"]);
 
 const LLMProviderSchema = z.object({
@@ -17,6 +22,7 @@ const LLMProviderSchema = z.object({
   api_key: z.string(),
   env: z.record(z.string()).optional(),
   custom_headers: z.record(z.string()).optional(),
+  oauth: OAuthConfigSchema.optional(),
 });
 
 const ModelCapabilitySchema = z.enum(["thinking", "always_thinking", "image_in", "video_in"]);
@@ -84,21 +90,34 @@ const ConfigSchema = z.object({
 type Config = z.infer<typeof ConfigSchema>;
 
 // Config Parsing
-export function parseConfig(): KimiConfig {
+function readConfigToml(): unknown | null {
   if (!fs.existsSync(KimiPaths.config)) {
+    return null;
+  }
+  try {
+    return toml.parse(fs.readFileSync(KimiPaths.config, "utf-8"));
+  } catch (err) {
+    log.config("Failed to read/parse config.toml: %O", err);
+    return null;
+  }
+}
+
+export function parseConfig(): KimiConfig {
+  const raw = readConfigToml();
+  if (!raw) {
     log.config("Config file not found: %s", KimiPaths.config);
     return { defaultModel: null, defaultThinking: false, models: [] };
   }
 
-  try {
-    const raw = toml.parse(fs.readFileSync(KimiPaths.config, "utf-8"));
-    const config = ConfigSchema.parse(raw);
-    log.config("Parsed config with %d models", Object.keys(config.models).length);
-    return toKimiConfig(config);
-  } catch (err) {
-    log.config("Failed to parse config.toml: %O", err);
+  const parsed = ConfigSchema.safeParse(raw);
+  if (!parsed.success) {
+    log.config("Failed to validate config.toml: %O", parsed.error);
     return { defaultModel: null, defaultThinking: false, models: [] };
   }
+
+  const config = parsed.data;
+  log.config("Parsed config with %d models", Object.keys(config.models).length);
+  return toKimiConfig(config);
 }
 
 function toKimiConfig(config: Config): KimiConfig {
@@ -115,6 +134,35 @@ function toKimiConfig(config: Config): KimiConfig {
     defaultThinking: config.default_thinking,
     models,
   };
+}
+
+function isPlainObject(val: unknown): val is Record<string, unknown> {
+  return !!val && typeof val === "object" && !Array.isArray(val);
+}
+
+export function isLoggedIn(): boolean {
+  const raw = readConfigToml();
+  if (!raw || !isPlainObject(raw)) {
+    return false;
+  }
+
+  const providers = raw["providers"];
+  if (!isPlainObject(providers)) {
+    return false;
+  }
+
+  const provider = providers["managed:kimi-code"];
+  if (!isPlainObject(provider)) {
+    return false;
+  }
+
+  const apiKey = provider["api_key"];
+  const hasApiKey = typeof apiKey === "string" && apiKey.length > 0;
+
+  const oauth = provider["oauth"];
+  const hasOAuth = isPlainObject(oauth);
+
+  return hasApiKey || hasOAuth;
 }
 
 // Config Saving
@@ -135,16 +183,13 @@ export function saveDefaultModel(modelId: string, thinking?: boolean): void {
 
   let content = fs.readFileSync(configPath, "utf-8");
 
-  // Update default_model
   const modelRegex = /^default_model\s*=\s*"[^"]*"/m;
-
   if (modelRegex.test(content)) {
     content = content.replace(modelRegex, `default_model = "${modelId}"`);
   } else {
     content = `default_model = "${modelId}"\n` + content;
   }
 
-  // Update default_thinking if provided
   if (thinking !== undefined) {
     const thinkingRegex = /^default_thinking\s*=\s*(?:true|false|"[^"]*")/m;
     const thinkingValue = thinking ? "true" : "false";
@@ -159,7 +204,6 @@ export function saveDefaultModel(modelId: string, thinking?: boolean): void {
   log.config("Updated default model: %s, thinking: %s", modelId, thinking);
 }
 
-// Model Utilities
 export function getModelById(models: ModelConfig[], modelId: string): ModelConfig | undefined {
   return models.find((m) => m.id === modelId);
 }
@@ -167,15 +211,12 @@ export function getModelById(models: ModelConfig[], modelId: string): ModelConfi
 export type ThinkingMode = "none" | "switch" | "always";
 
 export function getModelThinkingMode(model: ModelConfig): ThinkingMode {
-  // Model name contains "think" → always_thinking
   if (model.name.toLowerCase().includes("think")) {
     return "always";
   }
-  // capabilities contains always_thinking
   if (model.capabilities.includes("always_thinking")) {
     return "always";
   }
-  // capabilities contains thinking
   if (model.capabilities.includes("thinking")) {
     return "switch";
   }

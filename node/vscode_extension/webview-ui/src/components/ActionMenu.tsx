@@ -1,16 +1,21 @@
 import { useState } from "react";
-import { IconTrash, IconSettings, IconServer } from "@tabler/icons-react";
+import { IconSettings, IconServer, IconLogout, IconLogin, IconLoader2 } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useChatStore, useSettingsStore } from "@/stores";
+import { useSettingsStore } from "@/stores";
 import { bridge } from "@/services";
 import { cn } from "@/lib/utils";
 
-export function ActionMenu({ className }: { className?: string }) {
+interface ActionMenuProps {
+  className?: string;
+  onAuthAction?: () => void;
+}
+
+export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
-  const { startNewConversation } = useChatStore();
-  const { setMCPModalOpen } = useSettingsStore();
+  const [loading, setLoading] = useState(false);
+  const { setMCPModalOpen, isLoggedIn, setIsLoggedIn } = useSettingsStore();
 
   const handleOpenSettings = () => {
     bridge.openSettings();
@@ -20,6 +25,20 @@ export function ActionMenu({ className }: { className?: string }) {
   const handleOpenMCPServers = () => {
     setMCPModalOpen(true);
     setOpen(false);
+  };
+
+  const handleAuthAction = async () => {
+    if (isLoggedIn) {
+      setLoading(true);
+      try {
+        await bridge.logout();
+        setIsLoggedIn(false);
+      } finally {
+        setLoading(false);
+      }
+    }
+    setOpen(false);
+    onAuthAction?.();
   };
 
   return (
@@ -41,6 +60,18 @@ export function ActionMenu({ className }: { className?: string }) {
           <IconSettings className="size-3.5 text-muted-foreground" />
           <span className="flex-1">Settings</span>
           <span className="text-[10px] text-muted-foreground">↗</span>
+        </button>
+        <Separator className="my-1" />
+        <button
+          onClick={handleAuthAction}
+          disabled={loading}
+          className={cn(
+            "w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors text-left cursor-pointer",
+            isLoggedIn && "text-red-500 hover:text-red-600",
+          )}
+        >
+          {loading ? <IconLoader2 className="size-3.5 animate-spin" /> : isLoggedIn ? <IconLogout className="size-3.5" /> : <IconLogin className="size-3.5" />}
+          <span className="flex-1">{loading ? "Processing..." : isLoggedIn ? "Sign out" : "Sign in"}</span>
         </button>
       </PopoverContent>
     </Popover>

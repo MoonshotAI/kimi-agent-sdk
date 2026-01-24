@@ -37,21 +37,26 @@ export async function listSessions(workDir: string): Promise<SessionInfo[]> {
     const sessionId = entry.name;
     const sessionDir = path.join(sessionsDir, sessionId);
     const wireFile = path.join(sessionDir, "wire.jsonl");
-    const contextFile = path.join(sessionDir, "context.jsonl");
 
-    const targetFile = fs.existsSync(wireFile) ? wireFile : contextFile;
-    if (!fs.existsSync(targetFile)) {
+    if (!fs.existsSync(wireFile)) {
       continue;
     }
 
     try {
-      const stat = await fsp.stat(targetFile);
-      const brief = await getFirstUserMessage(sessionDir);
+      const stat = await fsp.stat(wireFile);
+      if (stat.size === 0) {
+        continue;
+      }
+
+      const brief = await getFirstUserMessage(wireFile);
+      if (!brief) {
+        continue;
+      }
 
       sessions.push({
         id: sessionId,
         workDir,
-        contextFile: targetFile,
+        contextFile: wireFile,
         updatedAt: stat.mtimeMs,
         brief,
       });
@@ -84,18 +89,9 @@ export async function deleteSession(workDir: string, sessionId: string): Promise
 }
 
 // Get First User Message (Stream-based, early exit)
-async function getFirstUserMessage(sessionDir: string): Promise<string> {
-  const wireFile = path.join(sessionDir, "wire.jsonl");
-  const contextFile = path.join(sessionDir, "context.jsonl");
-
-  // Try wire.jsonl first, fallback to context.jsonl
-  const targetFile = fs.existsSync(wireFile) ? wireFile : fs.existsSync(contextFile) ? contextFile : null;
-  if (!targetFile) {
-    return "";
-  }
-
+async function getFirstUserMessage(wireFile: string): Promise<string> {
   try {
-    const stream = fs.createReadStream(targetFile, { encoding: "utf-8" });
+    const stream = fs.createReadStream(wireFile, { encoding: "utf-8" });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
     for await (const line of rl) {

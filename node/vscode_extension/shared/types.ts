@@ -73,3 +73,7 @@ export interface CLICheckResult {
     path: string;
   };
 }
+
+export interface LoginStatus {
+  loggedIn: boolean;
+}

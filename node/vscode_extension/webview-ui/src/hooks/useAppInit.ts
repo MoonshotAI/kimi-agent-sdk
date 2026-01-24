@@ -1,37 +1,42 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { bridge, Events } from "@/services";
 import { useSettingsStore } from "@/stores";
 import type { ExtensionConfig, CLICheckResult } from "shared/types";
 
 export type InitStatus = "loading" | "ready" | "error";
-export type ErrorType = "cli-error" | "no-models" | "no-workspace" | null;
+export type ErrorType = "cli-error" | "no-models" | "no-workspace" | "not-logged-in" | null;
 
 export interface AppInitState {
   status: InitStatus;
   errorType: ErrorType;
   errorMessage: string | null;
   cliResult: CLICheckResult | null;
+  refresh: () => void;
 }
 
 export function useAppInit(): AppInitState {
-  const [state, setState] = useState<AppInitState>({
+  const [state, setState] = useState<Omit<AppInitState, "refresh">>({
     status: "loading",
     errorType: null,
     errorMessage: null,
     cliResult: null,
   });
   const [initKey, setInitKey] = useState(0);
-  const { initModels, setExtensionConfig, setMCPServers, setWireSlashCommands } = useSettingsStore();
+  const { initModels, setExtensionConfig, setMCPServers, setWireSlashCommands, setIsLoggedIn } = useSettingsStore();
+
+  const refresh = useCallback(() => {
+    setState((prev) => ({ ...prev, status: "loading", errorType: null, errorMessage: null }));
+    setInitKey((k) => k + 1);
+  }, []);
 
   useEffect(() => {
     return bridge.on<{ config: ExtensionConfig; changedKeys: string[] }>(Events.ExtensionConfigChanged, ({ config, changedKeys }) => {
       setExtensionConfig(config);
       if (changedKeys.includes("executablePath")) {
-        setState({ status: "loading", errorType: null, errorMessage: null, cliResult: null });
-        setInitKey((k) => k + 1);
+        refresh();
       }
     });
-  }, [setExtensionConfig]);
+  }, [setExtensionConfig, refresh]);
 
   useEffect(() => {
     let cancelled = false;
@@ -72,8 +77,20 @@ export function useAppInit(): AppInitState {
           return;
         }
 
-        const kimiConfig = await bridge.getModels();
+        const [loginStatus, kimiConfig] = await Promise.all([bridge.checkLoginStatus(), bridge.getModels()]);
         if (cancelled) {
+          return;
+        }
+
+        setIsLoggedIn(loginStatus.loggedIn);
+
+        if (!kimiConfig.defaultModel && !loginStatus.loggedIn) {
+          setState({
+            status: "error",
+            errorType: "not-logged-in",
+            errorMessage: "Please sign in to continue.",
+            cliResult,
+          });
           return;
         }
 
@@ -81,10 +98,9 @@ export function useAppInit(): AppInitState {
           setState({
             status: "error",
             errorType: "no-models",
-            errorMessage: "No models configured. Please run setup first.",
+            errorMessage: "No default model configured. Please run setup.",
             cliResult,
           });
-          return;
         }
 
         initModels(kimiConfig.models, kimiConfig.defaultModel, kimiConfig.defaultThinking);
@@ -102,10 +118,11 @@ export function useAppInit(): AppInitState {
     }
 
     init();
+
     return () => {
       cancelled = true;
     };
-  }, [initKey, initModels, setExtensionConfig, setMCPServers, setWireSlashCommands]);
+  }, [initKey, initModels, setExtensionConfig, setMCPServers, setWireSlashCommands, setIsLoggedIn]);
 
-  return state;
+  return { ...state, refresh };
 }

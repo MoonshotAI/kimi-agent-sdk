@@ -2,10 +2,10 @@
 src/**
 webview-ui/src/**
 webview-ui/public/**
+shared/**
 
-# Node modules
-node_modules/**
-webview-ui/node_modules/**
+# Node modules (bundled via esbuild/vite)
+**/node_modules/**
 
 # Build configs
 tsconfig.json
@@ -16,7 +16,14 @@ webview-ui/tsconfig.json
 webview-ui/vite.config.ts
 webview-ui/components.json
 
+# Scripts
+scripts/**
+
 # Other
 .gitignore
 **/*.map
 *.vsix
+**/.DS_Store
+
+# Prevent parent directory traversal via symlinks
+../**

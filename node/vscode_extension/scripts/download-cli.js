@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
@@ -8,16 +9,16 @@ const REPO = "MoonshotAI/kimi-cli";
 const PLATFORMS = {
   "darwin-arm64": { t: "aarch64-apple-darwin-onedir", ext: "tar.gz" },
   "darwin-x64": { t: "x86_64-apple-darwin-onedir", ext: "tar.gz" },
-  "linux-arm64": { t: "aarch64-unknown-linux-gnu", ext: "tar.gz" },
-  "linux-x64": { t: "x86_64-unknown-linux-gnu", ext: "tar.gz" },
-  "win32-x64": { t: "x86_64-pc-windows-msvc", ext: "zip" },
+  "linux-arm64": { t: "aarch64-unknown-linux-gnu-onedir", ext: "tar.gz" },
+  "linux-x64": { t: "x86_64-unknown-linux-gnu-onedir", ext: "tar.gz" },
+  "win32-x64": { t: "x86_64-pc-windows-msvc-onedir", ext: "zip" },
 };
 
 const getToken = () =>
   process.env.GITHUB_TOKEN ||
   (() => {
     try {
-      return execSync("gh auth token", { encoding: "utf8", stdio: "ignore" }).trim();
+      return execSync("gh auth token", { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }).trim();
     } catch {}
   })();
 
@@ -27,7 +28,6 @@ const request = async (url) => {
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
   }
-
   const res = await fetch(url, { headers });
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}: ${url}`);
@@ -43,28 +43,41 @@ async function main() {
   }
 
   const binDir = path.join(__dirname, "..", "bin", "kimi");
-  fs.rmSync(binDir, { recursive: true, force: true });
-  fs.mkdirSync(binDir, { recursive: true });
+  const archiveName = `archive.${info.ext}`;
 
   console.log("Fetching release info...");
   const release = JSON.parse((await request(`https://api.github.com/repos/${REPO}/releases/latest`)).toString());
+  const version = release.tag_name.replace(/^v/, "");
+  const tag = release.tag_name;
 
-  const version = release.tag_name.replace(/^v/, ""); // 文件名通常不带v
   const filename = `kimi-${version}-${info.t}.${info.ext}`;
-  const baseUrl = `https://github.com/${REPO}/releases/download/${release.tag_name}`;
+  const asset = release.assets.find((a) => a.name === filename);
+  const sha256Asset = release.assets.find((a) => a.name === `${filename}.sha256`);
 
-  console.log(`Downloading ${filename}...`);
-  const [fileBuf, sumBuf] = await Promise.all([request(`${baseUrl}/${filename}`), request(`${baseUrl}/${filename}.sha256`)]);
-
-  const expected = sumBuf.toString().trim().split(/\s+/)[0];
-  const actual = crypto.createHash("sha256").update(fileBuf).digest("hex");
-  if (actual !== expected) {
-    throw new Error(`Checksum mismatch!\nExp: ${expected}\nAct: ${actual}`);
+  if (!asset) {
+    throw new Error(`Asset not found: ${filename}`);
+  }
+  if (!sha256Asset) {
+    throw new Error(`SHA256 not found: ${filename}.sha256`);
   }
 
-  const dest = path.join(binDir, info.ext === "zip" ? "archive.zip" : "archive.tar.gz");
-  fs.writeFileSync(dest, fileBuf);
-  console.log(`Verified & Saved to ${dest}`);
+  console.log(`Downloading ${filename}...`);
+  const data = await request(asset.browser_download_url);
+
+  console.log("Verifying checksum...");
+  const expectedHash = (await request(sha256Asset.browser_download_url)).toString().trim().split(/\s+/)[0];
+  const actualHash = crypto.createHash("sha256").update(data).digest("hex");
+  if (actualHash !== expectedHash) {
+    throw new Error(`Checksum mismatch!\nExpected: ${expectedHash}\nActual:   ${actualHash}`);
+  }
+  console.log("Checksum verified ✓");
+
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, archiveName), data);
+  fs.writeFileSync(path.join(binDir, "version.json"), JSON.stringify({ version, tag }, null, 2));
+
+  console.log(`Saved to bin/kimi/${archiveName}`);
+  console.log(`Version: ${version} (${tag})`);
 }
 
 main().catch((e) => {

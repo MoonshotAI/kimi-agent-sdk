@@ -23,7 +23,7 @@ const CLIENT_VERSION = "0.0.2";
 
 // Client Options
 export interface ClientOptions {
-  sessionId: string;
+  sessionId?: string;
   workDir: string;
   model?: string;
   thinking?: boolean;
@@ -245,7 +245,11 @@ export class ProtocolClient {
 
   // Private: Args Building
   private buildArgs(options: ClientOptions): string[] {
-    const args = ["--session", options.sessionId, "--work-dir", options.workDir, "--wire"];
+    const args = [];
+    if (options.sessionId) {
+      args.push("--session", options.sessionId);
+    }
+    args.push("--work-dir", options.workDir, "--wire");
 
     if (options.model) {
       args.push("--model", options.model);

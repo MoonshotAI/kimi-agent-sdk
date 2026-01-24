@@ -8,8 +8,8 @@ export interface WelcomeHint {
 }
 
 const HINT_AGENT_MD: WelcomeHint = {
-  title: "Help me understand your codebase",
-  description: "Type /init and I'll analyze your project and generate documentation",
+  title: "Let me map your codebase",
+  description: "Run /init to scan the project and generate docs",
   slashCommand: "/init",
 };
 
@@ -41,7 +41,7 @@ const HINTS_POOL: WelcomeHint[] = [
   },
   {
     title: "Prefer fewer interruptions?",
-    description: "Enable YOLO mode to auto-approve actions",
+    description: "Enable YOLO mode to auto-approve",
   },
   {
     title: "Context getting long?",

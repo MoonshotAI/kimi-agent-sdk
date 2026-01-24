@@ -17,10 +17,10 @@ export const PREFLIGHT_CODES = new Set<string>([
 // User-friendly error messages
 export const ERROR_MESSAGES: Record<string, string> = {
   // Pre-flight
-  [TransportErrorCodes.CLI_NOT_FOUND]: "Kimi Code not found.",
-  [TransportErrorCodes.SPAWN_FAILED]: "Failed to start Kimi Code.",
+  [TransportErrorCodes.CLI_NOT_FOUND]: "Kimi Code CLI not found.",
+  [TransportErrorCodes.SPAWN_FAILED]: "Failed to start Kimi Code CLI.",
   [TransportErrorCodes.ALREADY_STARTED]: "A session is already running.",
-  [TransportErrorCodes.STDIN_NOT_WRITABLE]: "Failed to communicate with Kimi Code.",
+  [TransportErrorCodes.STDIN_NOT_WRITABLE]: "Failed to communicate with Kimi Code CLI.",
   [TransportErrorCodes.HANDSHAKE_TIMEOUT]: "Connection timed out.",
   [TransportErrorCodes.PROCESS_CRASHED]: "Process connection lost.",
 

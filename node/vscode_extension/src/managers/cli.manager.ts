@@ -5,12 +5,17 @@ import * as crypto from "crypto";
 import { execFile, execSync } from "child_process";
 import { promisify } from "util";
 import { ProtocolClient, type InitializeResult } from "@moonshot-ai/kimi-agent-sdk";
-import type { CLICheckResult, CLIErrorType } from "../../shared/types";
+import type { CLICheckResult } from "shared/types";
 
 const execAsync = promisify(execFile);
 
 const MIN_CLI_VERSION = "0.82";
 const MIN_WIRE_VERSION = "1.1";
+
+interface VersionInfo {
+  version: string;
+  tag: string;
+}
 
 let instance: CLIManager;
 
@@ -22,9 +27,9 @@ export const getCLIManager = () => {
   return instance;
 };
 
-function compareVersion(current: string, min: string): number {
-  const v1 = current.split(".").map(Number);
-  const v2 = min.split(".").map(Number);
+export function compareVersion(a: string, b: string): number {
+  const v1 = a.split(".").map(Number);
+  const v2 = b.split(".").map(Number);
   for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
     const diff = (v1[i] || 0) - (v2[i] || 0);
     if (diff !== 0) {
@@ -34,103 +39,155 @@ function compareVersion(current: string, min: string): number {
   return 0;
 }
 
-function classifyError(err: unknown): CLIErrorType {
-  const message = err instanceof Error ? err.message : String(err);
-  if (message.includes("ENOENT") || message.includes("not found") || message.includes("spawn")) {
-    return "not_found";
-  }
-  if (message.includes("extract") || message.includes("Archive") || message.includes("tar")) {
-    return "extract_failed";
-  }
-  if (message.includes("protocol") || message.includes("wire") || message.includes("Initialize")) {
-    return "protocol_error";
-  }
-  return "not_found";
-}
-
 export class CLIManager {
-  private globalBin: string;
-  private bundledExec: string;
-  private extBin: string;
+  private globalBinDir: string;
+  private bundledBinDir: string;
 
-  constructor(ctx: vscode.ExtensionContext) {
-    const binName = process.platform === "win32" ? "kimi.exe" : "kimi";
-    this.globalBin = path.join(ctx.globalStorageUri.fsPath, "bin", "kimi");
-    this.bundledExec = path.join(this.globalBin, binName);
-    this.extBin = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
+  constructor(private ctx: vscode.ExtensionContext) {
+    this.globalBinDir = path.join(ctx.globalStorageUri.fsPath, "bin", "kimi");
+    this.bundledBinDir = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
   }
 
   getExecutablePath(): string {
-    return vscode.workspace.getConfiguration("kimi").get<string>("executablePath") || this.bundledExec;
+    const customPath = vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
+    if (customPath) {
+      return customPath;
+    }
+    const binName = process.platform === "win32" ? "kimi.exe" : "kimi";
+    return path.join(this.globalBinDir, binName);
   }
 
   private isCustomPath(): boolean {
     return !!vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
   }
 
+  private createCheckResult(ok: boolean, extra: Partial<CLICheckResult> = {}): CLICheckResult {
+    return {
+      ok,
+      resolved: { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() },
+      ...extra,
+    };
+  }
+
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const execPath = this.getExecutablePath();
-    const resolved = { isCustomPath: this.isCustomPath(), path: execPath };
+    console.log(`[Kimi Code] Checking CLI: ${execPath} (custom: ${this.isCustomPath()})`);
 
-    console.log(`[Kimi Code] Checking CLI: ${execPath} (custom: ${resolved.isCustomPath})`);
+    // Step 1: Extract bundled CLI if needed
+    if (!this.isCustomPath()) {
+      try {
+        this.ensureExtracted();
+      } catch (err) {
+        console.error(`[Kimi Code] Extract failed:`, err);
+        return this.createCheckResult(false, {
+          error: { type: "extract_failed", message: err instanceof Error ? err.message : String(err) },
+        });
+      }
+    }
 
+    // Step 2: Get CLI info
+    let cliVersion: string;
+    let wireVersion: string;
     try {
-      if (execPath === this.bundledExec && !fs.existsSync(execPath)) {
-        this.extractArchive();
-      }
-
-      const { kimi_cli_version, wire_protocol_version } = await this.getInfo(execPath);
-
-      if (compareVersion(kimi_cli_version, MIN_CLI_VERSION) < 0) {
-        return {
-          ok: false,
-          resolved,
-          error: {
-            type: "version_low",
-            message: `CLI version ${kimi_cli_version} is below minimum required ${MIN_CLI_VERSION}`,
-          },
-        };
-      }
-
-      if (compareVersion(wire_protocol_version, MIN_WIRE_VERSION) < 0) {
-        return {
-          ok: false,
-          resolved,
-          error: {
-            type: "version_low",
-            message: `Wire protocol ${wire_protocol_version} is below minimum required ${MIN_WIRE_VERSION}`,
-          },
-        };
-      }
-
-      const { slash_commands } = await this.verifyWire(execPath, workDir);
-
-      return { ok: true, slashCommands: slash_commands, resolved };
+      const info = await this.getInfo(execPath);
+      cliVersion = info.kimi_cli_version;
+      wireVersion = info.wire_protocol_version;
     } catch (err) {
-      console.error(`[Kimi Code] CLI check failed:`, err);
-      return {
-        ok: false,
-        resolved,
-        error: {
-          type: classifyError(err),
-          message: err instanceof Error ? err.message : String(err),
-        },
-      };
+      console.error(`[Kimi Code] CLI not found or failed to execute:`, err);
+      return this.createCheckResult(false, {
+        error: { type: "not_found", message: err instanceof Error ? err.message : String(err) },
+      });
+    }
+
+    // Step 3: Check version
+    if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
+      return this.createCheckResult(false, {
+        error: { type: "version_low", message: `CLI version ${cliVersion} is below minimum required ${MIN_CLI_VERSION}` },
+      });
+    }
+    if (compareVersion(wireVersion, MIN_WIRE_VERSION) < 0) {
+      return this.createCheckResult(false, {
+        error: { type: "version_low", message: `Wire protocol ${wireVersion} is below minimum required ${MIN_WIRE_VERSION}` },
+      });
+    }
+
+    // Step 4: Verify wire protocol
+    let initResult: InitializeResult;
+    try {
+      initResult = await this.verifyWire(execPath, workDir);
+    } catch (err) {
+      console.error(`[Kimi Code] Wire protocol verification failed:`, err);
+      return this.createCheckResult(false, {
+        error: { type: "protocol_error", message: err instanceof Error ? err.message : String(err) },
+      });
+    }
+
+    return this.createCheckResult(true, { slashCommands: initResult.slash_commands });
+  }
+
+  private ensureExtracted(): void {
+    const bundledVersion = this.readVersionJson(path.join(this.bundledBinDir, "version.json"));
+    const extractedVersion = this.readVersionJson(path.join(this.globalBinDir, "version.json"));
+
+    if (bundledVersion && bundledVersion.version === extractedVersion?.version) {
+      console.log(`[Kimi Code] CLI already extracted: ${bundledVersion.version}`);
+      return;
+    }
+
+    console.log(`[Kimi Code] Extracting CLI: ${bundledVersion?.version ?? "unknown"} (was: ${extractedVersion?.version ?? "none"})`);
+    this.extractArchive(bundledVersion);
+  }
+
+  private readVersionJson(filePath: string): VersionInfo | null {
+    try {
+      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    } catch {
+      return null;
     }
   }
 
-  private extractArchive(): void {
-    const archive = path.join(this.extBin, process.platform === "win32" ? "archive.zip" : "archive.tar.gz");
+  private extractArchive(bundledVersion: VersionInfo | null): void {
+    const archive = path.join(this.bundledBinDir, process.platform === "win32" ? "archive.zip" : "archive.tar.gz");
     if (!fs.existsSync(archive)) {
       throw new Error(`Archive missing: ${archive}`);
     }
-    fs.mkdirSync(this.globalBin, { recursive: true });
-    console.log(`[Kimi Code] Extracting to ${this.globalBin}...`);
-    if (process.platform === "win32") {
-      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archive}' -DestinationPath '${this.globalBin}' -Force"`, { stdio: "ignore" });
+
+    if (fs.existsSync(this.globalBinDir)) {
+      fs.rmSync(this.globalBinDir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(this.globalBinDir, { recursive: true });
+
+    let hasTar = true;
+    try {
+      execSync("tar --version", { stdio: "ignore" });
+    } catch {
+      hasTar = false;
+    }
+
+    console.log(`[Kimi Code] Extracting to ${this.globalBinDir}... (using ${hasTar ? "tar" : "powershell"})`);
+
+    if (hasTar) {
+      execSync(`tar -xf "${archive}" -C "${this.globalBinDir}" --strip-components=1`, { stdio: "ignore" });
     } else {
-      execSync(`tar -xzf "${archive}" -C "${this.globalBin}" --strip-components=1`, { stdio: "ignore" });
-      fs.chmodSync(path.join(this.globalBin, "kimi"), 0o755);
+      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archive}' -DestinationPath '${this.globalBinDir}' -Force"`, { stdio: "ignore" });
+      const entries = fs.readdirSync(this.globalBinDir);
+      if (entries.length === 1) {
+        const nested = path.join(this.globalBinDir, entries[0]);
+        if (fs.statSync(nested).isDirectory()) {
+          for (const f of fs.readdirSync(nested)) {
+            fs.renameSync(path.join(nested, f), path.join(this.globalBinDir, f));
+          }
+          fs.rmdirSync(nested);
+        }
+      }
+    }
+
+    if (process.platform !== "win32") {
+      fs.chmodSync(path.join(this.globalBinDir, "kimi"), 0o755);
+    }
+
+    if (bundledVersion) {
+      fs.writeFileSync(path.join(this.globalBinDir, "version.json"), JSON.stringify(bundledVersion, null, 2));
     }
   }
 
@@ -142,7 +199,7 @@ export class CLIManager {
   private async verifyWire(executablePath: string, workDir: string): Promise<InitializeResult> {
     const client = new ProtocolClient();
     try {
-      return await client.start({ sessionId: crypto.randomUUID(), workDir, executablePath });
+      return await client.start({ sessionId: undefined, workDir, executablePath });
     } finally {
       await client.stop();
     }

@@ -2,8 +2,8 @@
   "name": "kimi-code",
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code",
-  "description": "AI-powered coding assistant with Kimi Code",
-  "version": "0.0.7",
+  "description": "Official Kimi Code plugin for VS Code",
+  "version": "0.0.9",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -27,6 +27,21 @@
     "Chat",
     "Programming Languages"
   ],
+  "keywords": [
+    "ai",
+    "assistant",
+    "code",
+    "chat",
+    "agent",
+    "mcp",
+    "skills",
+    "json",
+    "autocomplete",
+    "moonshot",
+    "kimi",
+    "moonshot-ai"
+  ],
+  "pricing": "Free",
   "activationEvents": [],
   "main": "./dist/extension.js",
   "icon": "resources/kimi-icon-storefront.png",
@@ -37,7 +52,7 @@
         "kimi.yoloMode": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically approve all tool calls without prompting"
+          "description": "Auto-approve all tool calls"
         },
         "kimi.autosave": {
           "type": "boolean",
@@ -62,7 +77,7 @@
         "kimi.environmentVariables": {
           "type": "object",
           "default": {},
-          "description": "Environment variables to pass to the Kimi Code",
+          "description": "Environment variables passed to the Kimi Code CLI",
           "additionalProperties": {
             "type": "string"
           }
@@ -207,7 +222,8 @@
     "build:extension": "tsc --noEmit && node esbuild.js --production",
     "download:cli": "node scripts/download-cli.js",
     "package:platform": "node scripts/vsix-package.js",
-    "package:no-embedded": "vsce package --no-dependencies --out kimi-code.vsix"
+    "package:no-embedded": "vsce package --no-dependencies --out kimi-code.vsix",
+    "publish:vsix": "node scripts/vsix-publish.js"
   },
   "devDependencies": {
     "@types/node": "22.x",

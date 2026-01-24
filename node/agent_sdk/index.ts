@@ -35,15 +35,15 @@ export { listSessions, deleteSession } from "./storage";
 export { parseSessionEvents } from "./history/context-extract";
 
 // Config
-export { parseConfig, saveDefaultModel, getModelById, isModelThinking, getModelThinkingMode } from "./config";
+export { parseConfig, saveDefaultModel, getModelById, isModelThinking, getModelThinkingMode, isLoggedIn } from "./config";
 export type { ThinkingMode } from "./config";
 
 // Paths
 export { KimiPaths } from "./paths";
 
 // CLI Commands
-export { authMCP, resetAuthMCP, testMCP } from "./cli/commands";
-export type { MCPTestResult } from "./cli/commands";
+export { authMCP, resetAuthMCP, testMCP, login, logout } from "./cli/commands";
+export type { MCPTestResult, LoginResult, LoginCallbacks } from "./cli/commands";
 
 export { createExternalTool } from "./external-tool";
 
