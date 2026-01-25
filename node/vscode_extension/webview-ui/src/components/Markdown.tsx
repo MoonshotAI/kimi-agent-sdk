@@ -13,6 +13,7 @@ interface MarkdownProps {
   content: string;
   className?: string;
   enableEnrichment?: boolean;
+  enableLocalImageRender?: boolean;
 }
 
 function useIsDark(): boolean {
@@ -117,7 +118,7 @@ function ColorEnrichedText({ text }: { text: string }) {
   );
 }
 
-export const Markdown = memo(function Markdown({ content, className, enableEnrichment = true }: MarkdownProps) {
+export const Markdown = memo(function Markdown({ content, className, enableEnrichment = true, enableLocalImageRender = true }: MarkdownProps) {
   const isDark = useIsDark();
   const [fileMap, setFileMap] = useState<Record<string, boolean>>({});
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
@@ -172,6 +173,8 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
       hr: () => <hr className="my-3 border-border" />,
       img: ({ src, alt }) => {
         if (!src) return null;
+        if (!enableLocalImageRender) return src;
+
         if (isLocalPath(src)) return <LocalImage src={src} alt={alt} onPreview={setPreviewSrc} />;
         return <StreamImagePreview src={src} alt={alt} onPreview={setPreviewSrc} />;
       },

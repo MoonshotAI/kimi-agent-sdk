@@ -108,7 +108,7 @@ function UserMessage({ message }: { message: ChatMessageType }) {
       <div className={cn("max-w-[85%] px-3.5 py-1.5 rounded-2xl rounded-br-md", "bg-zinc-100 dark:bg-zinc-800", "text-foreground")}>
         {displayContent && (
           <div className="text-xs leading-relaxed whitespace-pre-wrap wrap-break-word">
-            <Markdown content={displayContent} enableEnrichment />
+            <Markdown content={displayContent} enableEnrichment enableLocalImageRender={false} />
           </div>
         )}
         <MessageMedia images={images} videos={videos} onPreview={setPreviewMedia} />
