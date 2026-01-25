@@ -104,8 +104,8 @@ export function hasColors(text: string): boolean {
 }
 
 // File Existence Cache
-const CACHE_TTL = 30_000;
-const cache = new Map<string, { exists: boolean; ts: number }>();
+const CACHE_TTL = 10_000;
+const fileExistsCache = new Map<string, { exists: boolean; ts: number }>();
 
 export async function checkFilesExist(paths: string[]): Promise<Record<string, boolean>> {
   if (!paths.length) {
@@ -117,7 +117,7 @@ export async function checkFilesExist(paths: string[]): Promise<Record<string, b
   const now = Date.now();
 
   for (const p of new Set(paths)) {
-    const entry = cache.get(p);
+    const entry = fileExistsCache.get(p);
     if (entry && now - entry.ts < CACHE_TTL) {
       result[p] = entry.exists;
     } else {
@@ -130,7 +130,7 @@ export async function checkFilesExist(paths: string[]): Promise<Record<string, b
       const fetched = await bridge.checkFilesExist(uncached);
       for (const p of uncached) {
         const exists = fetched[p] ?? false;
-        cache.set(p, { exists, ts: now });
+        fileExistsCache.set(p, { exists, ts: now });
         result[p] = exists;
       }
     } catch {
@@ -141,4 +141,8 @@ export async function checkFilesExist(paths: string[]): Promise<Record<string, b
   }
 
   return result;
+}
+
+export function isLocalPath(src: string): boolean {
+  return !!src && !src.startsWith("data:") && !src.startsWith("http://") && !src.startsWith("https://") && !src.startsWith("blob:");
 }

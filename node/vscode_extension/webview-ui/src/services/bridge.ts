@@ -231,6 +231,10 @@ class Bridge {
   keepChanges(filePath?: string) {
     return this.call<{ ok: boolean }>(Methods.KeepChanges, { filePath });
   }
+
+  getImageDataUri(filePath: string) {
+    return this.call<string | null>(Methods.GetImageDataUri, { filePath });
+  }
 }
 
 export const bridge = new Bridge();

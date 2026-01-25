@@ -49,6 +49,7 @@ export const Methods = {
   ClearTrackedFiles: "clearTrackedFiles",
   RevertFiles: "revertFiles",
   KeepChanges: "keepChanges",
+  GetImageDataUri: "getImageDataUri",
 } as const;
 
 export const Events = {

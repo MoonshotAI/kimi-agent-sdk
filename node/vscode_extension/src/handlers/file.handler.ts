@@ -44,6 +44,17 @@ interface CheckFilesExistParams {
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp"];
 const VIDEO_EXTENSIONS = ["mp4", "webm", "mov"];
 
+const IMAGE_MIME_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
+  ".ico": "image/x-icon",
+};
+
 function toAbsolute(workDir: string, filePath: string): string {
   return path.isAbsolute(filePath) ? filePath : path.join(workDir, filePath);
 }
@@ -299,6 +310,29 @@ const checkFilesExist: Handler<CheckFilesExistParams, Record<string, boolean>> =
   return result;
 };
 
+const getImageDataUri: Handler<FilePathParams, string | null> = async (params, ctx) => {
+  if (!ctx.workDir) {
+    return null;
+  }
+  const filePath = decodeURIComponent(params.filePath);
+  const absolutePath = toAbsolute(ctx.workDir, filePath);
+  if (!isInsideWorkDir(ctx.workDir, absolutePath)) {
+    return null;
+  }
+  const ext = path.extname(absolutePath).toLowerCase();
+  const mime = IMAGE_MIME_TYPES[ext];
+  if (!mime) {
+    return null;
+  }
+  try {
+    const data = fs.readFileSync(absolutePath);
+    return `data:${mime};base64,${data.toString("base64")}`;
+  } catch (err) {
+    console.error(`Failed to read image file: ${absolutePath}`, err);
+    return null;
+  }
+};
+
 export const fileHandlers: Record<string, Handler<any, any>> = {
   [Methods.GetProjectFiles]: getProjectFiles,
   [Methods.GetEditorContext]: getEditorContext,
@@ -312,4 +346,5 @@ export const fileHandlers: Record<string, Handler<any, any>> = {
   [Methods.KeepChanges]: keepChanges,
   [Methods.CheckFileExists]: checkFileExists,
   [Methods.CheckFilesExist]: checkFilesExist,
+  [Methods.GetImageDataUri]: getImageDataUri,
 };
