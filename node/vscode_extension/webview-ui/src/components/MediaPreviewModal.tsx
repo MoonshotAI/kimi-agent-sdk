@@ -13,6 +13,15 @@ export function ImagePlaceholder() {
   );
 }
 
+export function ImageLoadFail({ path }: { path: string }) {
+  return (
+    <span className="flex flex-col items-center justify-center bg-muted rounded my-2" style={{ width: 192, height: IMG_HEIGHT }}>
+      <IconPhoto className="size-6 text-red-400" />
+      <span className="text-xs">{path}</span>
+    </span>
+  );
+}
+
 export interface StreamImagePreviewProps {
   src: string;
   alt?: string;

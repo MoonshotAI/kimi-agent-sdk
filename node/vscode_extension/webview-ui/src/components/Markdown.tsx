@@ -6,7 +6,7 @@ import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/pris
 import { useRequest } from "ahooks";
 import type { Components } from "react-markdown";
 import { parseSegments, parseColorSegments, extractPaths, checkFilesExist, hasColors, isLocalPath } from "@/lib/text-enrichment";
-import { MediaPreviewModal, StreamImagePreview, ImagePlaceholder } from "@/components/MediaPreviewModal";
+import { MediaPreviewModal, StreamImagePreview, ImagePlaceholder, ImageLoadFail } from "@/components/MediaPreviewModal";
 import { bridge } from "@/services";
 
 interface MarkdownProps {
@@ -95,7 +95,7 @@ function LocalImage({ src, alt, onPreview }: { src: string; alt?: string; onPrev
     staleTime: 10000,
   });
 
-  if (!data) return <ImagePlaceholder />;
+  if (!data) return <ImageLoadFail path={src} />;
   return <StreamImagePreview src={data} alt={alt || src} onPreview={onPreview} />;
 }
 
