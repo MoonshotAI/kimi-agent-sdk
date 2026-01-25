@@ -1,10 +1,9 @@
-// webview-ui/src/components/inputarea/hooks/useFilePicker.tsx
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { useRequest } from "ahooks";
 import Fuse from "fuse.js";
 import { bridge } from "@/services";
 import { useChatStore } from "@/stores";
-import { MEDIA_CONFIG } from "@/lib/media-utils";
+import { MEDIA_CONFIG } from "@/services/config";
 
 export type FilePickerMode = "search" | "folder";
 

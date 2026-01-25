@@ -1,14 +1,8 @@
 import { heicTo } from "heic-to/csp";
-import { IMAGE_CONFIG, VIDEO_CONFIG, MEDIA_CONFIG } from "@/services/config";
 
-export { IMAGE_CONFIG, VIDEO_CONFIG, MEDIA_CONFIG };
+import { IMAGE_CONFIG, VIDEO_CONFIG, MEDIA_CONFIG, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS } from "@/services/config";
 
 export type MediaType = "image" | "video";
-
-export interface MediaValidationError {
-  type: "format" | "size" | "count" | "total_size";
-  message: string;
-}
 
 const IMAGE_TYPES = new Set<string>(IMAGE_CONFIG.allowedTypes);
 const VIDEO_TYPES = new Set<string>(VIDEO_CONFIG.allowedTypes);
@@ -18,23 +12,24 @@ function getExtension(filename: string): string {
 }
 
 function isHeicFile(file: File): boolean {
-  if (file.type === "image/heic" || file.type === "image/heif") {
-    return true;
-  }
+  if (file.type === "image/heic" || file.type === "image/heif") return true;
   const ext = getExtension(file.name);
   return ext === "heic" || ext === "heif";
 }
 
 export function getMediaType(file: File): MediaType | null {
-  if (IMAGE_TYPES.has(file.type)) {
-    return "image";
-  }
-  if (VIDEO_TYPES.has(file.type)) {
-    return "video";
-  }
-  if (isHeicFile(file)) {
-    return "image";
-  }
+  if (IMAGE_TYPES.has(file.type)) return "image";
+  if (VIDEO_TYPES.has(file.type)) return "video";
+  if (isHeicFile(file)) return "image";
+  return null;
+}
+
+export function getMediaTypeFromSrc(src: string): MediaType | null {
+  if (src.startsWith("data:image/")) return "image";
+  if (src.startsWith("data:video/")) return "video";
+  const ext = src.split(".").pop()?.toLowerCase().split("?")[0];
+  if (ext && IMAGE_EXTENSIONS.has(ext)) return "image";
+  if (ext && VIDEO_EXTENSIONS.has(ext)) return "video";
   return null;
 }
 
@@ -55,6 +50,11 @@ export function getDataUriByteSize(dataUri: string): number {
   }
   const base64 = dataUri.slice(commaIndex + 1);
   return Math.ceil((base64.length * 3) / 4);
+}
+
+export interface MediaValidationError {
+  type: "format" | "size" | "count" | "total_size";
+  message: string;
 }
 
 export function validateMediaFile(file: File, currentCount: number): MediaValidationError | null {

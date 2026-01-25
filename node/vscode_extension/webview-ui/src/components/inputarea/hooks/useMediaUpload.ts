@@ -1,8 +1,9 @@
 import { useCallback, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import { bridge } from "@/services";
-import { MEDIA_CONFIG, validateMediaFile, validateTotalSize, processMediaFile, getMediaType } from "@/lib/media-utils";
+import { validateMediaFile, validateTotalSize, processMediaFile, getMediaType } from "@/lib/media-utils";
 import { useChatStore } from "@/stores";
+import { MEDIA_CONFIG } from "@/services/config";
 
 interface UseMediaUploadResult {
   canAddMedia: boolean;
