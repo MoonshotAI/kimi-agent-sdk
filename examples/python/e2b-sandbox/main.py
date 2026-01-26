@@ -42,8 +42,9 @@ async def main() -> None:
             agent_file=AGENT_FILE,
             yolo=True,
         ):
-            print(msg.extract_text(), end="", flush=True)
-        print()
+            print("─" * 60)
+            print(msg)
+        print("─" * 60)
     finally:
         reset_current_kaos(token)
 
