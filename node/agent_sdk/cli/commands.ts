@@ -13,32 +13,43 @@ export interface LoginResult {
   error?: string;
 }
 
-export interface LoginCallbacks {
+export interface CliOptions {
+  executable?: string;
+  env?: Record<string, string>;
+}
+
+export interface LoginOptions extends CliOptions {
   onUrl?: (url: string) => void;
 }
 
 interface RunOptions {
+  env?: Record<string, string>;
   onLine?: (line: string) => void;
 }
+
+const DEFAULT_EXECUTABLE = "kimi";
 
 const handleError = (err: unknown): LoginResult => ({
   success: false,
   error: err instanceof Error ? err.message : String(err),
 });
 
-export async function authMCP(serverName: string, executable = "kimi"): Promise<void> {
+export async function authMCP(serverName: string, options?: CliOptions): Promise<void> {
+  const executable = options?.executable ?? DEFAULT_EXECUTABLE;
   log.cli("Running MCP auth for: %s", serverName);
-  await runCliCommand(executable, ["mcp", "auth", serverName]);
+  await runCliCommand(executable, ["mcp", "auth", serverName], { env: options?.env });
 }
 
-export async function resetAuthMCP(serverName: string, executable = "kimi"): Promise<void> {
+export async function resetAuthMCP(serverName: string, options?: CliOptions): Promise<void> {
+  const executable = options?.executable ?? DEFAULT_EXECUTABLE;
   log.cli("Running MCP reset-auth for: %s", serverName);
-  await runCliCommand(executable, ["mcp", "reset-auth", serverName]);
+  await runCliCommand(executable, ["mcp", "reset-auth", serverName], { env: options?.env });
 }
 
-export function testMCP(serverName: string, executable = "kimi"): Promise<MCPTestResult> {
+export function testMCP(serverName: string, options?: CliOptions): Promise<MCPTestResult> {
+  const executable = options?.executable ?? DEFAULT_EXECUTABLE;
   log.cli("Running MCP test for: %s", serverName);
-  return runCliCommand(executable, ["mcp", "test", serverName])
+  return runCliCommand(executable, ["mcp", "test", serverName], { env: options?.env })
     .then((output) => ({ success: true, output }))
     .catch((err) => ({
       success: false,
@@ -46,27 +57,28 @@ export function testMCP(serverName: string, executable = "kimi"): Promise<MCPTes
     }));
 }
 
-export function login(executable = "kimi", callbacks?: LoginCallbacks): Promise<LoginResult> {
+export function login(options?: LoginOptions): Promise<LoginResult> {
+  const executable = options?.executable ?? DEFAULT_EXECUTABLE;
   log.cli("Running login --json");
   return runCliCommand(executable, ["login", "--json"], {
+    env: options?.env,
     onLine: (line) => {
       try {
         const msg = JSON.parse(line);
         if (msg.type === "verification_url" && msg.data?.verification_url) {
-          callbacks?.onUrl?.(msg.data.verification_url);
+          options?.onUrl?.(msg.data.verification_url);
         }
-      } catch {
-        /** Ignore non-JSON lines */
-      }
+      } catch {}
     },
   })
     .then(() => ({ success: true }))
     .catch(handleError);
 }
 
-export function logout(executable = "kimi"): Promise<LoginResult> {
+export function logout(options?: CliOptions): Promise<LoginResult> {
+  const executable = options?.executable ?? DEFAULT_EXECUTABLE;
   log.cli("Running logout");
-  return runCliCommand(executable, ["logout"])
+  return runCliCommand(executable, ["logout"], { env: options?.env })
     .then(() => ({ success: true }))
     .catch(handleError);
 }
@@ -74,8 +86,10 @@ export function logout(executable = "kimi"): Promise<LoginResult> {
 function runCliCommand(executable: string, args: string[], options: RunOptions = {}): Promise<string> {
   return new Promise((resolve, reject) => {
     log.cli("Executing: %s %o", executable, args);
-    const proc = spawn(executable, args, { stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, NO_COLOR: "1" } });
-
+    const proc = spawn(executable, args, {
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, ...options.env, NO_COLOR: "1" },
+    });
     let stdout = "";
     let stderr = "";
 

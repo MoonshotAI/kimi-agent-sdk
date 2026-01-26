@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { KimiPaths, authMCP, resetAuthMCP, testMCP, type MCPTestResult, type MCPServerConfig } from "@moonshot-ai/kimi-agent-sdk";
 import { getCLIManager } from "./cli.manager";
+import { VSCodeSettings } from "../config/vscode-settings";
 
 interface MCPConfigFile {
   mcpServers?: Record<string, MCPServerEntry>;
@@ -84,6 +85,13 @@ function configToEntry(config: MCPServerConfig): MCPServerEntry {
   return entry;
 }
 
+function getCliOptions() {
+  return {
+    executable: getCLIManager().getExecutablePath(),
+    env: VSCodeSettings.environmentVariables,
+  };
+}
+
 export const MCPManager = {
   getServers(): MCPServerConfig[] {
     const config = readConfigFile();
@@ -124,7 +132,7 @@ export const MCPManager = {
   },
 
   async auth(name: string): Promise<void> {
-    const executable = getCLIManager().getExecutablePath();
+    const options = getCliOptions();
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -133,7 +141,7 @@ export const MCPManager = {
       },
       async () => {
         try {
-          await authMCP(name, executable);
+          await authMCP(name, options);
           vscode.window.showInformationMessage(`Kimi: OAuth completed for "${name}"`);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -145,7 +153,7 @@ export const MCPManager = {
   },
 
   async resetAuth(name: string): Promise<void> {
-    const executable = getCLIManager().getExecutablePath();
+    const options = getCliOptions();
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Notification,
@@ -154,7 +162,7 @@ export const MCPManager = {
       },
       async () => {
         try {
-          await resetAuthMCP(name, executable);
+          await resetAuthMCP(name, options);
           vscode.window.showInformationMessage(`Kimi: Auth reset for "${name}"`);
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
@@ -167,8 +175,6 @@ export const MCPManager = {
 
   async test(name: string): Promise<MCPTestResult> {
     vscode.window.showInformationMessage(`Kimi: Testing MCP server "${name}"...`);
-
-    const executable = getCLIManager().getExecutablePath();
-    return await testMCP(name, executable);
+    return await testMCP(name, getCliOptions());
   },
 };

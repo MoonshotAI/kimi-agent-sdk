@@ -43,8 +43,7 @@ export { KimiPaths } from "./paths";
 
 // CLI Commands
 export { authMCP, resetAuthMCP, testMCP, login, logout } from "./cli/commands";
-export type { MCPTestResult, LoginResult, LoginCallbacks } from "./cli/commands";
-
+export type { MCPTestResult, LoginResult, CliOptions, LoginOptions } from "./cli/commands";
 export { createExternalTool } from "./external-tool";
 
 // Errors

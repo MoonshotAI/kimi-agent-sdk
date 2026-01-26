@@ -176,7 +176,7 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
       ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
       ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
       a: ({ href, children }) => (
-        <a href={href} className="text-primary underline hover:no-underline" target="_blank" rel="noopener noreferrer">
+        <a href={href} className="text-blue-600 dark:text-blue-400 underline hover:no-underline" target="_blank" rel="noopener noreferrer">
           {children}
         </a>
       ),
