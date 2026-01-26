@@ -1,6 +1,9 @@
 # Example: E2B Sandbox
 
-This example runs Kimi Agent SDK on an E2B sandbox by swapping KAOS to `E2BKaos`.
+This example demonstrates how to extend KAOS with a custom backend.
+
+It vendors an `E2BKaos` implementation in `e2b_kaos.py`, then installs it via `set_current_kaos`
+so Kimi Code tools operate on the E2B sandbox environment.
 
 ## Run
 

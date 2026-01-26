@@ -6,9 +6,9 @@ from pathlib import Path
 
 from e2b import AsyncSandbox
 from kaos import reset_current_kaos, set_current_kaos
-from kaos.contrib.e2b import E2BKaos
 from kaos.path import KaosPath
 
+from e2b_kaos import E2BKaos
 from kimi_agent_sdk import prompt
 
 
