@@ -15,14 +15,15 @@ AI coding assistant for VS Code, built for long-context workflows and complex co
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=moonshot-ai.kimi-code)
 2. Open a folder in VS Code
 3. Click the Kimi icon in the Activity Bar
-4. Sign in at [kimi.com/code](https://www.kimi.com/code) to start using Kimi Code
+4. Sign in with [kimi.com/code](https://www.kimi.com/code) subscription to start using Kimi Code
 
 > **Using your own Kimi CLI?** Set a custom executable path in Settings → `kimi.executablePath`
 
 ## Docs
 
-Documentation will be published soon.
+Official doc for Kimi Code can be found at [www.kimi.com/code/docs](https://www.kimi.com/code/docs/kimi-code-for-vscode/guides/getting-started.html)
 
 ## License
 
 [Apache-2.0](LICENSE)
+
