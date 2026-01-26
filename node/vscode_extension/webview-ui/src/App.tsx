@@ -84,6 +84,7 @@ export default function App() {
   }, []);
 
   const handleAuthAction = useCallback(() => {
+    refresh();
     setShowLoginScreen(true);
   }, []);
 
