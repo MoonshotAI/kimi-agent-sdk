@@ -92,6 +92,7 @@ export class ProtocolClient {
   private process: ChildProcess | null = null;
   private readline: ReadlineInterface | null = null;
   private requestId = 0;
+  private stderrBuffer = '';
   private pendingRequests = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 
   private pushEvent: ((event: StreamEvent) => void) | null = null;
@@ -131,7 +132,11 @@ export class ProtocolClient {
     this.readline = createInterface({ input: this.process.stdout });
     this.readline.on("line", (line) => this.handleLine(line));
 
-    this.process.stderr?.on("data", (data) => log.protocol("stderr: %s", data.toString().trim()));
+    this.process.stderr?.on("data", (data) => {
+      const chunk = data.toString();
+      this.stderrBuffer += chunk;
+      log.protocol("stderr: %s", chunk.trim());
+    });
     this.process.on("error", (err) => this.handleProcessError(err));
     this.process.on("exit", (code) => this.handleProcessExit(code));
 
@@ -200,7 +205,7 @@ export class ProtocolClient {
   }
 
   sendCancel(): Promise<void> {
-    return this.sendRequest("cancel").then(() => {});
+    return this.sendRequest("cancel").then(() => { });
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
@@ -432,9 +437,12 @@ export class ProtocolClient {
 
   private handleProcessExit(code: number | null): void {
     log.protocol("Process exited with code: %d", code);
-
     if (code !== 0 && code !== null) {
-      const error = new TransportError("PROCESS_CRASHED", `CLI exited with code ${code}`);
+      const errorMsg = this.stderrBuffer.trim()
+        ? `CLI exited with code ${code}: ${this.stderrBuffer.trim()}`
+        : `CLI exited with code ${code}`;
+      const error = new TransportError("PROCESS_CRASHED", errorMsg);
+
       for (const pending of this.pendingRequests.values()) {
         pending.reject(error);
       }
