@@ -81,30 +81,29 @@ export function useAppInit(): AppInitState {
         if (cancelled) {
           return;
         }
+        console.log(`Login status: ${loginStatus.loggedIn}, Kimi Config:`, kimiConfig);
 
         setIsLoggedIn(loginStatus.loggedIn);
-
-        if (!kimiConfig.defaultModel && !loginStatus.loggedIn) {
-          setState({
-            status: "error",
-            errorType: "not-logged-in",
-            errorMessage: "Please sign in to continue.",
-            cliResult,
-          });
-          return;
-        }
 
         if (!kimiConfig.models || kimiConfig.models.length === 0) {
           setState({
             status: "error",
             errorType: "no-models",
-            errorMessage: "No default model configured. Please run setup.",
+            errorMessage: "No models configured. Please run setup.",
             cliResult,
           });
+          return;
         }
 
         initModels(kimiConfig.models, kimiConfig.defaultModel, kimiConfig.defaultThinking);
-        setState({ status: "ready", errorType: null, errorMessage: null, cliResult });
+
+        const needsLoginPrompt = !kimiConfig.defaultModel && !loginStatus.loggedIn;
+        setState({
+          status: "ready",
+          errorType: needsLoginPrompt ? "not-logged-in" : null,
+          errorMessage: null,
+          cliResult,
+        });
       } catch (err) {
         if (!cancelled) {
           setState({
