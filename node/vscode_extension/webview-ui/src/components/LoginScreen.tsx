@@ -106,9 +106,9 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
           </div>
 
           <div className="text-left space-y-1">
-            <Button type="button" variant="outline" onClick={onSkip} className="w-full justify-between font-normal">
+            <Button type="button" variant="outline" onClick={onSkip} className="w-full relative justify-center font-normal">
               <span>Skip</span>
-              <IconArrowRight className="size-4 text-muted-foreground" />
+              <IconArrowRight className="size-4 text-muted-foreground absolute right-3" />
             </Button>
             <p className="text-[11px] text-muted-foreground leading-4">Use your existing API key configuration.</p>
           </div>
