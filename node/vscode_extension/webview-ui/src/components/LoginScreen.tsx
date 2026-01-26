@@ -61,7 +61,7 @@ export function LoginScreen({ onLoginSuccess, onSkip }: LoginScreenProps) {
             <p className="text-xs leading-5 text-muted-foreground text-left">A browser window should open automatically. Complete the sign-in process there.</p>
           </div>
           {url && (
-            <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
+            <div className="bg-muted/50 rounded-lg p-2 text-left space-y-3">
               <p className="text-xs text-muted-foreground">If the browser didn&apos;t open, visit this URL:</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 text-xs bg-background rounded px-2 py-1.5 font-mono break-all select-all">{url}</code>
