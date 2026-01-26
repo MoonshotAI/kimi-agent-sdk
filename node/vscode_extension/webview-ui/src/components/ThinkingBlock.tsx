@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconChevronDown, IconBrain, IconLoader3 } from "@tabler/icons-react";
+import { IconChevronDown, IconLoader3, IconBulb } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Markdown } from "./Markdown";
 
@@ -24,7 +24,7 @@ export function ThinkingBlock({ content, finished, compact }: ThinkingBlockProps
         className={cn("w-full flex items-center gap-2 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/20 transition-colors", compact ? "px-2 py-1.5" : "px-3 py-2")}
       >
         <div className="inline-flex items-center gap-2">
-          <IconBrain className={cn("text-zinc-500", compact ? "size-3" : "size-3.5")} />
+          <IconBulb className={cn("text-zinc-500", compact ? "size-3" : "size-3.5")} />
           <span className={cn("font-medium text-zinc-700 dark:text-zinc-300", compact ? "text-[0.75rem]" : "text-xs")}>Thinking</span>
           {isStreaming && <IconLoader3 className={cn("text-zinc-400 ml-auto animate-spin", compact ? "size-3" : "size-3.5")} />}
         </div>

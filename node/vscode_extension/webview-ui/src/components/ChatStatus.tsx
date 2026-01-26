@@ -29,8 +29,10 @@ export function ChatStatus() {
       <div className="flex items-center gap-1.5" title="Context Window Usage">
         <Tooltip>
           <TooltipTrigger asChild>
-            <IconBrandSpeedtest className="size-3 opacity-70" />
-            <span className={cn(contextPercent > 80 && "text-amber-500", contextPercent > 95 && "text-destructive")}>{contextPercent}%</span>
+            <span className="flex items-center gap-1.5">
+              <IconBrandSpeedtest className="size-3 opacity-70" />
+              <span className={cn(contextPercent > 80 && "text-amber-500", contextPercent > 95 && "text-destructive")}>{contextPercent}%</span>
+            </span>
           </TooltipTrigger>
           <TooltipContent>Context Window Usage</TooltipContent>
         </Tooltip>
@@ -39,8 +41,10 @@ export function ChatStatus() {
       <div className="flex items-center gap-1.5 @max-[440px]:hidden" title="Total Input Tokens">
         <Tooltip>
           <TooltipTrigger asChild>
-            <IconArrowUp className="size-3 opacity-70" />
-            <span>{inputTotal.toLocaleString()}</span>
+            <span className="flex items-center gap-1.5">
+              <IconArrowUp className="size-3 opacity-70" />
+              <span>{inputTotal.toLocaleString()}</span>
+            </span>
           </TooltipTrigger>
           <TooltipContent>Total Input Tokens</TooltipContent>
         </Tooltip>
@@ -49,8 +53,10 @@ export function ChatStatus() {
       <div className="flex items-center gap-1.5 @max-[440px]:hidden" title="Output Tokens">
         <Tooltip>
           <TooltipTrigger asChild>
-            <IconArrowDown className="size-3 opacity-70" />
-            <span>{outputTotal.toLocaleString()}</span>
+            <span className="flex items-center gap-1.5">
+              <IconArrowDown className="size-3 opacity-70" />
+              <span>{outputTotal.toLocaleString()}</span>
+            </span>
           </TooltipTrigger>
           <TooltipContent>Total Output Tokens</TooltipContent>
         </Tooltip>
