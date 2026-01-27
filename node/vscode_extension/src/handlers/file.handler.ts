@@ -61,7 +61,7 @@ function toAbsolute(workDir: string, filePath: string): string {
 
 function isInsideWorkDir(workDir: string, absolutePath: string): boolean {
   const rel = path.relative(workDir, absolutePath);
-  return !rel.startsWith("..") && !path.isAbsolute(rel);
+  return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
 function getMimeType(ext: string): string {
@@ -82,7 +82,9 @@ const getProjectFiles: Handler<GetProjectFilesParams, ProjectFile[]> = async (pa
   if (!ctx.workDir) {
     return [];
   }
-  return params.directory !== undefined ? ctx.fileManager.listDirectory(ctx.workDir, params.directory) : ctx.fileManager.searchFiles(params.query);
+  return params.directory !== undefined
+    ? ctx.fileManager.listDirectory(ctx.workDir, params.directory)
+    : ctx.fileManager.searchFiles(params.query);
 };
 
 const getEditorContext: Handler<void, EditorContext | null> = async () => {
@@ -165,15 +167,7 @@ const pickMedia: Handler<PickMediaParams, string[]> = async (params) => {
 
 const openFile: Handler<FilePathParams, { ok: boolean }> = async (params, ctx) => {
   const workDir = ctx.requireWorkDir();
-
-  let absolutePath = toAbsolute(workDir, params.filePath);
-
-  // If the path is "workDir/workDir/xxx", remove the duplicate prefix
-  const doubledPrefix = path.join(workDir, workDir);
-  if (absolutePath.startsWith(doubledPrefix)) {
-    absolutePath = absolutePath.slice(workDir.length);
-  }
-
+  const absolutePath = toAbsolute(workDir, params.filePath);
   if (!isInsideWorkDir(workDir, absolutePath)) {
     return { ok: false };
   }
@@ -192,14 +186,22 @@ const openFileDiff: Handler<FilePathParams, { ok: boolean }> = async (params, ct
   }
 
   const absolutePath = toAbsolute(workDir, params.filePath);
+  if (!isInsideWorkDir(workDir, absolutePath)) {
+    return { ok: false };
+  }
+  const relativePath = path.relative(workDir, absolutePath);
   const currentUri = vscode.Uri.file(absolutePath);
   const baselineUri = vscode.Uri.from({
     scheme: "kimi-baseline",
-    path: "/" + params.filePath,
+    path: "/" + relativePath,
     query: new URLSearchParams({ workDir, sessionId }).toString(),
   });
-
-  await vscode.commands.executeCommand("vscode.diff", baselineUri, currentUri, `${path.basename(params.filePath)} (changes from Kimi)`);
+  await vscode.commands.executeCommand(
+    "vscode.diff",
+    baselineUri,
+    currentUri,
+    `${path.basename(relativePath)} (changes from Kimi)`
+  );
   return { ok: true };
 };
 
@@ -252,7 +254,12 @@ const revertFiles: Handler<OptionalFilePathParams, { ok: boolean }> = async (par
   const trackedFiles = ctx.fileManager.getTracked(ctx.webviewId);
 
   if (params.filePath) {
-    BaselineManager.revertFile(workDir, sessionId, params.filePath);
+    const absolutePath = toAbsolute(workDir, params.filePath);
+    if (!isInsideWorkDir(workDir, absolutePath)) {
+      return { ok: false };
+    }
+    const relativePath = path.relative(workDir, absolutePath);
+    BaselineManager.revertFile(workDir, sessionId, relativePath);
   } else {
     BaselineManager.revertAll(workDir, sessionId, trackedFiles);
     ctx.fileManager.clearTracked(ctx.webviewId);
@@ -276,7 +283,11 @@ const keepChanges: Handler<OptionalFilePathParams, { ok: boolean }> = async (par
 
   if (params.filePath) {
     const absolutePath = toAbsolute(workDir, params.filePath);
-    BaselineManager.clearBaseline(workDir, sessionId, params.filePath);
+    if (!isInsideWorkDir(workDir, absolutePath)) {
+      return { ok: false };
+    }
+    const relativePath = path.relative(workDir, absolutePath);
+    BaselineManager.clearBaseline(workDir, sessionId, relativePath);
     trackedFiles.delete(absolutePath);
   } else {
     BaselineManager.clearBaselines(workDir, sessionId, trackedFiles);
@@ -295,6 +306,9 @@ const checkFileExists: Handler<CheckFileExistsParams, boolean> = async (params, 
     return false;
   }
   const absolutePath = toAbsolute(ctx.workDir, params.filePath);
+  if (!isInsideWorkDir(ctx.workDir, absolutePath)) {
+    return false;
+  }
   return fs.existsSync(absolutePath);
 };
 
@@ -305,7 +319,7 @@ const checkFilesExist: Handler<CheckFilesExistParams, Record<string, boolean>> =
   const result: Record<string, boolean> = {};
   for (const filePath of params.paths) {
     const absolutePath = toAbsolute(ctx.workDir, filePath);
-    result[filePath] = fs.existsSync(absolutePath);
+    result[filePath] = isInsideWorkDir(ctx.workDir, absolutePath) && fs.existsSync(absolutePath);
   }
   return result;
 };
@@ -327,8 +341,7 @@ const getImageDataUri: Handler<FilePathParams, string | null> = async (params, c
   try {
     const data = fs.readFileSync(absolutePath);
     return `data:${mime};base64,${data.toString("base64")}`;
-  } catch (err) {
-    console.error(`Failed to read image file: ${absolutePath}`, err);
+  } catch {
     return null;
   }
 };
