@@ -82,9 +82,7 @@ const getProjectFiles: Handler<GetProjectFilesParams, ProjectFile[]> = async (pa
   if (!ctx.workDir) {
     return [];
   }
-  return params.directory !== undefined
-    ? ctx.fileManager.listDirectory(ctx.workDir, params.directory)
-    : ctx.fileManager.searchFiles(params.query);
+  return params.directory !== undefined ? ctx.fileManager.listDirectory(ctx.workDir, params.directory) : ctx.fileManager.searchFiles(params.query);
 };
 
 const getEditorContext: Handler<void, EditorContext | null> = async () => {
@@ -196,12 +194,7 @@ const openFileDiff: Handler<FilePathParams, { ok: boolean }> = async (params, ct
     path: "/" + relativePath,
     query: new URLSearchParams({ workDir, sessionId }).toString(),
   });
-  await vscode.commands.executeCommand(
-    "vscode.diff",
-    baselineUri,
-    currentUri,
-    `${path.basename(relativePath)} (changes from Kimi)`
-  );
+  await vscode.commands.executeCommand("vscode.diff", baselineUri, currentUri, `${path.basename(relativePath)} (changes from Kimi)`);
   return { ok: true };
 };
 

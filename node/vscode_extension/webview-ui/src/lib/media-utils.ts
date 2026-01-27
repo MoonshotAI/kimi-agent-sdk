@@ -12,24 +12,40 @@ function getExtension(filename: string): string {
 }
 
 function isHeicFile(file: File): boolean {
-  if (file.type === "image/heic" || file.type === "image/heif") return true;
+  if (file.type === "image/heic" || file.type === "image/heif") {
+    return true;
+  }
   const ext = getExtension(file.name);
   return ext === "heic" || ext === "heif";
 }
 
 export function getMediaType(file: File): MediaType | null {
-  if (IMAGE_TYPES.has(file.type)) return "image";
-  if (VIDEO_TYPES.has(file.type)) return "video";
-  if (isHeicFile(file)) return "image";
+  if (IMAGE_TYPES.has(file.type)) {
+    return "image";
+  }
+  if (VIDEO_TYPES.has(file.type)) {
+    return "video";
+  }
+  if (isHeicFile(file)) {
+    return "image";
+  }
   return null;
 }
 
 export function getMediaTypeFromSrc(src: string): MediaType | null {
-  if (src.startsWith("data:image/")) return "image";
-  if (src.startsWith("data:video/")) return "video";
+  if (src.startsWith("data:image/")) {
+    return "image";
+  }
+  if (src.startsWith("data:video/")) {
+    return "video";
+  }
   const ext = src.split(".").pop()?.toLowerCase().split("?")[0];
-  if (ext && IMAGE_EXTENSIONS.has(ext)) return "image";
-  if (ext && VIDEO_EXTENSIONS.has(ext)) return "video";
+  if (ext && IMAGE_EXTENSIONS.has(ext)) {
+    return "image";
+  }
+  if (ext && VIDEO_EXTENSIONS.has(ext)) {
+    return "video";
+  }
   return null;
 }
 
