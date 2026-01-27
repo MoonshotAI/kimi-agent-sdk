@@ -43,9 +43,7 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
   }, [setMCPServers, setExtensionConfig, startNewConversation]);
 
   useEffect(() => {
-    if (!extensionConfig.enableNewConversationShortcut) {
-      return;
-    }
+    if (!extensionConfig.enableNewConversationShortcut) return;
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "n") {
         e.preventDefault();
@@ -69,28 +67,24 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
 }
 
 export default function App() {
-  const { status, errorType, errorMessage, cliResult, refresh } = useAppInit();
-  const [showLoginScreen, setShowLoginScreen] = useState(false);
+  const { status, errorMessage, cliResult, modelsCount, refresh } = useAppInit();
   const [skippedLogin, setSkippedLogin] = useState(false);
 
   const handleLoginSuccess = useCallback(() => {
-    setShowLoginScreen(false);
     refresh();
   }, [refresh]);
 
   const handleSkip = useCallback(() => {
     setSkippedLogin(true);
-    setShowLoginScreen(false);
   }, []);
 
   const handleAuthAction = useCallback(() => {
+    setSkippedLogin(false);
     refresh();
-    setShowLoginScreen(true);
-  }, []);
+  }, [refresh]);
 
-  const shouldShowLogin = showLoginScreen || (errorType === "not-logged-in" && !skippedLogin);
-
-  if (shouldShowLogin) {
+  // 未登录且未 skip → 显示登录页
+  if (status === "not-logged-in" && !skippedLogin) {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
         <Header />
@@ -100,16 +94,29 @@ export default function App() {
     );
   }
 
-  if (status !== "ready") {
+  // skip 登录但没有 models → 显示 no-models
+  if (skippedLogin && modelsCount === 0) {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
         <Header />
-        <ConfigErrorScreen type={errorType ?? "loading"} cliResult={cliResult} errorMessage={errorMessage} />
+        <ConfigErrorScreen type="no-models" cliResult={cliResult} errorMessage={errorMessage} onRefresh={refresh} />
         <Toaster position="top-center" />
       </div>
     );
   }
 
+  // 其他错误状态
+  if (status !== "ready" && status !== "not-logged-in") {
+    return (
+      <div className="flex flex-col h-screen text-foreground overflow-hidden">
+        <Header />
+        <ConfigErrorScreen type={status} cliResult={cliResult} errorMessage={errorMessage} />
+        <Toaster position="top-center" />
+      </div>
+    );
+  }
+
+  // ready 或 skip 登录但有 models
   return (
     <div className="flex flex-col h-screen text-foreground overflow-hidden">
       <Header />

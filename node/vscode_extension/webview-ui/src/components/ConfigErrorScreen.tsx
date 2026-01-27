@@ -1,13 +1,14 @@
-import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings } from "@tabler/icons-react";
+import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { KimiMascot } from "./KimiMascot";
 import { bridge } from "@/services";
 import type { CLICheckResult, CLIErrorType } from "shared/types";
 
 interface Props {
-  type: "loading" | "cli-error" | "no-models" | "no-workspace" | "not-logged-in";
+  type: "loading" | "cli-error" | "no-models" | "no-workspace";
   cliResult?: CLICheckResult | null;
   errorMessage?: string | null;
+  onRefresh?: () => void;
 }
 
 const CLI_ERROR_TITLES: Record<CLIErrorType, string> = {
@@ -17,7 +18,7 @@ const CLI_ERROR_TITLES: Record<CLIErrorType, string> = {
   protocol_error: "Connection Error",
 };
 
-function CLIErrorContent({ cliResult, errorMessage }: { cliResult?: CLICheckResult | null; errorMessage?: string | null }) {
+function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
   const isCustomPath = cliResult?.resolved?.isCustomPath ?? false;
   const errorType = cliResult?.error?.type ?? "not_found";
   const title = CLI_ERROR_TITLES[errorType];
@@ -86,7 +87,53 @@ function CLIErrorContent({ cliResult, errorMessage }: { cliResult?: CLICheckResu
   );
 }
 
-export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
+function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
+  return (
+    <>
+      <div className="space-y-2">
+        <div className="inline-flex items-center gap-2 text-amber-500">
+          <IconAlertTriangle className="size-5" />
+          <span className="text-sm font-medium">Setup Required</span>
+        </div>
+        <p className="text-xs text-muted-foreground">No models configured. Choose one of the following options:</p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
+          <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Kimi Code</p>
+          <a
+            href="https://kimi.com/code"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-xs text-primary hover:underline"
+          >
+            <IconExternalLink className="size-4" />
+            kimi.com/code
+          </a>
+        </div>
+
+        <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
+          <p className="text-xs font-medium text-foreground">Option 2: Use your own API key</p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <IconTerminal2 className="size-4" />
+            <span>Run in terminal:</span>
+          </div>
+          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">kimi</code>
+          <p className="text-xs text-muted-foreground">Then type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key.</p>
+        </div>
+      </div>
+
+      {onRefresh && (
+        <Button onClick={onRefresh} variant="outline" className="gap-2">
+          <IconRefresh className="size-4" />
+          Reload Configuration
+        </Button>
+      )}
+    </>
+  );
+}
+
+export function ConfigErrorScreen({ type, cliResult, onRefresh }: Props) {
   if (type === "loading") {
     return (
       <div className="h-full flex items-center justify-center p-6">
@@ -130,32 +177,22 @@ export function ConfigErrorScreen({ type, cliResult, errorMessage }: Props) {
       <div className="h-full flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-6">
           <KimiMascot className="h-10 mx-auto opacity-50" />
-          <CLIErrorContent cliResult={cliResult} errorMessage={errorMessage} />
+          <CLIErrorContent cliResult={cliResult} />
         </div>
       </div>
     );
   }
 
-  // Fallback for "no-models" and "not-logged-in" (when login is skipped)
-  return (
-    <div className="h-full flex items-center justify-center p-6">
-      <div className="max-w-sm text-center space-y-6">
-        <KimiMascot className="h-10 mx-auto opacity-50" />
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 text-amber-500">
-            <IconAlertTriangle className="size-5" />
-            <span className="text-sm font-medium">Setup Required</span>
-          </div>
-          <p className="text-xs text-muted-foreground">Run setup to continue.</p>
-        </div>
-        <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <IconTerminal2 className="size-4" />
-            <span>Run in terminal:</span>
-          </div>
-          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">kimi /setup</code>
+  if (type === "no-models") {
+    return (
+      <div className="h-full flex items-center justify-center p-6">
+        <div className="max-w-sm text-center space-y-6">
+          <KimiMascot className="h-10 mx-auto opacity-50" />
+          <NoModelsContent onRefresh={onRefresh} />
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }
