@@ -1,21 +1,16 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import * as crypto from "crypto";
-import { execFile, execSync } from "child_process";
+import { execSync, execFile } from "child_process";
 import { promisify } from "util";
 import { ProtocolClient, type InitializeResult } from "@moonshot-ai/kimi-agent-sdk";
+import { getPlatformKey, readManifest, readInstalled, writeInstalled, downloadAndInstall } from "./cli-downloader";
 import type { CLICheckResult } from "shared/types";
 
 const execAsync = promisify(execFile);
 
 const MIN_CLI_VERSION = "0.82";
 const MIN_WIRE_VERSION = "1.1";
-
-interface VersionInfo {
-  version: string;
-  tag: string;
-}
 
 let instance: CLIManager;
 
@@ -40,12 +35,12 @@ export function compareVersion(a: string, b: string): number {
 }
 
 export class CLIManager {
-  private globalBinDir: string;
-  private bundledBinDir: string;
+  private globalStorageBinPath: string;
+  private extensionBinPath: string;
 
   constructor(private ctx: vscode.ExtensionContext) {
-    this.globalBinDir = path.join(ctx.globalStorageUri.fsPath, "bin", "kimi");
-    this.bundledBinDir = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
+    this.globalStorageBinPath = path.join(ctx.globalStorageUri.fsPath, "bin", "kimi");
+    this.extensionBinPath = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
   }
 
   getExecutablePath(): string {
@@ -53,39 +48,57 @@ export class CLIManager {
     if (customPath) {
       return customPath;
     }
-    const binName = process.platform === "win32" ? "kimi.exe" : "kimi";
-    return path.join(this.globalBinDir, binName);
+    return path.join(this.globalStorageBinPath, process.platform === "win32" ? "kimi.exe" : "kimi");
+  }
+
+  async checkInstalled(workDir: string): Promise<CLICheckResult> {
+    const resolved = { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() };
+
+    if (!await this.ensureCLI()) {
+      return { ok: false, resolved, error: { type: "extract_failed", message: "Failed to install CLI" } };
+    }
+
+    return this.verify(workDir, resolved);
   }
 
   private isCustomPath(): boolean {
     return !!vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
   }
 
-  private createCheckResult(ok: boolean, extra: Partial<CLICheckResult> = {}): CLICheckResult {
-    return {
-      ok,
-      resolved: { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() },
-      ...extra,
-    };
-  }
+  private async ensureCLI(): Promise<boolean> {
+    if (this.isCustomPath()) return true;
 
-  async checkInstalled(workDir: string): Promise<CLICheckResult> {
-    const execPath = this.getExecutablePath();
-    console.log(`[Kimi Code] Checking CLI: ${execPath} (custom: ${this.isCustomPath()})`);
+    const manifest = readManifest(this.extensionBinPath);
+    if (!manifest) return false;
 
-    // Step 1: Extract bundled CLI if needed
-    if (!this.isCustomPath()) {
-      try {
-        this.ensureExtracted();
-      } catch (err) {
-        console.error(`[Kimi Code] Extract failed:`, err);
-        return this.createCheckResult(false, {
-          error: { type: "extract_failed", message: err instanceof Error ? err.message : String(err) },
-        });
-      }
+    const platform = getPlatformKey();
+    const installed = readInstalled(this.globalStorageBinPath);
+
+    // 已安装且匹配 → 跳过
+    if (installed?.version === manifest.version && installed?.platform === platform) {
+      return true;
     }
 
-    // Step 2: Get CLI info
+    // 需要安装：解压或下载
+    const useBundle = manifest.bundledPlatform === platform;
+    if (useBundle) {
+      console.log(`Using bundled CLI for platform: ${platform}, extracting...`);
+      this.extractBundled();
+    } else {
+      vscode.window.showInformationMessage(`System Architecture (${platform}) not supported by bundled CLI. Downloading compatible version...`);
+
+      const asset = manifest.platforms[platform];
+      if (!asset) return false;
+      await downloadAndInstall(asset, this.globalStorageBinPath);
+    }
+
+    writeInstalled(this.globalStorageBinPath, { version: manifest.version, platform });
+    return true;
+  }
+
+  private async verify(workDir: string, resolved: { isCustomPath: boolean; path: string }): Promise<CLICheckResult> {
+    const execPath = this.getExecutablePath();
+
     let cliVersion: string;
     let wireVersion: string;
     try {
@@ -93,101 +106,64 @@ export class CLIManager {
       cliVersion = info.kimi_cli_version;
       wireVersion = info.wire_protocol_version;
     } catch (err) {
-      console.error(`[Kimi Code] CLI not found or failed to execute:`, err);
-      return this.createCheckResult(false, {
-        error: { type: "not_found", message: err instanceof Error ? err.message : String(err) },
-      });
+      return { ok: false, resolved, error: { type: "not_found", message: String(err) } };
     }
 
-    // Step 3: Check version
     if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
-      return this.createCheckResult(false, {
-        error: { type: "version_low", message: `CLI version ${cliVersion} is below minimum required ${MIN_CLI_VERSION}` },
-      });
+      return { ok: false, resolved, error: { type: "version_low", message: `CLI ${cliVersion} < ${MIN_CLI_VERSION}` } };
     }
     if (compareVersion(wireVersion, MIN_WIRE_VERSION) < 0) {
-      return this.createCheckResult(false, {
-        error: { type: "version_low", message: `Wire protocol ${wireVersion} is below minimum required ${MIN_WIRE_VERSION}` },
-      });
+      return { ok: false, resolved, error: { type: "version_low", message: `Wire ${wireVersion} < ${MIN_WIRE_VERSION}` } };
     }
 
-    // Step 4: Verify wire protocol
-    let initResult: InitializeResult;
     try {
-      initResult = await this.verifyWire(execPath, workDir);
+      const initResult = await this.verifyWire(execPath, workDir);
+      return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
-      console.error(`[Kimi Code] Wire protocol verification failed:`, err);
-      return this.createCheckResult(false, {
-        error: { type: "protocol_error", message: err instanceof Error ? err.message : String(err) },
-      });
-    }
-
-    return this.createCheckResult(true, { slashCommands: initResult.slash_commands });
-  }
-
-  private ensureExtracted(): void {
-    const bundledVersion = this.readVersionJson(path.join(this.bundledBinDir, "version.json"));
-    const extractedVersion = this.readVersionJson(path.join(this.globalBinDir, "version.json"));
-
-    if (bundledVersion && bundledVersion.version === extractedVersion?.version) {
-      console.log(`[Kimi Code] CLI already extracted: ${bundledVersion.version}`);
-      return;
-    }
-
-    console.log(`[Kimi Code] Extracting CLI: ${bundledVersion?.version ?? "unknown"} (was: ${extractedVersion?.version ?? "none"})`);
-    this.extractArchive(bundledVersion);
-  }
-
-  private readVersionJson(filePath: string): VersionInfo | null {
-    try {
-      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    } catch {
-      return null;
+      return { ok: false, resolved, error: { type: "protocol_error", message: String(err) } };
     }
   }
 
-  private extractArchive(bundledVersion: VersionInfo | null): void {
-    const archive = path.join(this.bundledBinDir, process.platform === "win32" ? "archive.zip" : "archive.tar.gz");
-    if (!fs.existsSync(archive)) {
-      throw new Error(`Archive missing: ${archive}`);
+  private extractBundled(): void {
+    const isZip = process.platform === "win32";
+    const archivePath = path.join(this.extensionBinPath, isZip ? "archive.zip" : "archive.tar.gz");
+
+    if (!fs.existsSync(archivePath)) {
+      throw new Error(`Bundled archive not found: ${archivePath}`);
     }
 
-    if (fs.existsSync(this.globalBinDir)) {
-      fs.rmSync(this.globalBinDir, { recursive: true, force: true });
+    if (fs.existsSync(this.globalStorageBinPath)) {
+      fs.rmSync(this.globalStorageBinPath, { recursive: true, force: true });
     }
-    fs.mkdirSync(this.globalBinDir, { recursive: true });
+    fs.mkdirSync(this.globalStorageBinPath, { recursive: true });
 
-    let hasTar = true;
-    try {
-      execSync("tar --version", { stdio: "ignore" });
-    } catch {
-      hasTar = false;
-    }
+    const hasTar = (() => {
+      try {
+        execSync("tar --version", { stdio: "ignore" });
+        return true;
+      } catch {
+        return false;
+      }
+    })();
 
-    console.log(`[Kimi Code] Extracting to ${this.globalBinDir}... (using ${hasTar ? "tar" : "powershell"})`);
-
-    if (hasTar) {
-      execSync(`tar -xf "${archive}" -C "${this.globalBinDir}" --strip-components=1`, { stdio: "ignore" });
-    } else {
-      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archive}' -DestinationPath '${this.globalBinDir}' -Force"`, { stdio: "ignore" });
-      const entries = fs.readdirSync(this.globalBinDir);
+    if (isZip && !hasTar) {
+      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${this.globalStorageBinPath}' -Force"`, { stdio: "ignore" });
+      const entries = fs.readdirSync(this.globalStorageBinPath);
       if (entries.length === 1) {
-        const nested = path.join(this.globalBinDir, entries[0]);
+        const nested = path.join(this.globalStorageBinPath, entries[0]);
         if (fs.statSync(nested).isDirectory()) {
           for (const f of fs.readdirSync(nested)) {
-            fs.renameSync(path.join(nested, f), path.join(this.globalBinDir, f));
+            fs.renameSync(path.join(nested, f), path.join(this.globalStorageBinPath, f));
           }
           fs.rmdirSync(nested);
         }
       }
+    } else {
+      execSync(`tar -xf "${archivePath}" -C "${this.globalStorageBinPath}" --strip-components=1`, { stdio: "ignore" });
     }
 
     if (process.platform !== "win32") {
-      fs.chmodSync(path.join(this.globalBinDir, "kimi"), 0o755);
-    }
-
-    if (bundledVersion) {
-      fs.writeFileSync(path.join(this.globalBinDir, "version.json"), JSON.stringify(bundledVersion, null, 2));
+      fs.chmodSync(path.join(this.globalStorageBinPath, "kimi"), 0o755);
     }
   }
 
@@ -196,10 +172,10 @@ export class CLIManager {
     return JSON.parse(stdout);
   }
 
-  private async verifyWire(executablePath: string, workDir: string): Promise<InitializeResult> {
+  private async verifyWire(execPath: string, workDir: string): Promise<InitializeResult> {
     const client = new ProtocolClient();
     try {
-      return await client.start({ sessionId: undefined, workDir, executablePath });
+      return await client.start({ sessionId: undefined, workDir, executablePath: execPath });
     } finally {
       await client.stop();
     }
