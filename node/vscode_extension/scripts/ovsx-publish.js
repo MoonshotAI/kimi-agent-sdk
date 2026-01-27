@@ -5,9 +5,9 @@ const path = require("path");
 
 const rootDir = path.join(__dirname, "..");
 
-if (!process.env.VSCE_PAT) {
-  console.error("Error: VSCE_PAT environment variable not set");
-  console.error("Get your token from: https://dev.azure.com");
+if (!process.env.OVSX_PAT) {
+  console.error("Error: OVSX_PAT environment variable not set");
+  console.error("Get your token from: https://open-vsx.org/user-settings/tokens");
   process.exit(1);
 }
 
@@ -22,15 +22,15 @@ if (vsixFiles.length === 0) {
   process.exit(1);
 }
 
-console.log(`Found ${vsixFiles.length} vsix file(s) to publish:\n`);
+console.log(`Found ${vsixFiles.length} vsix file(s) to publish to OpenVSX:\n`);
 vsixFiles.forEach((f) => console.log(`  - ${f}`));
 console.log();
 
 for (const file of vsixFiles) {
   const filePath = path.join(rootDir, file);
-  console.log(`\n========== Publishing ${file} ==========\n`);
+  console.log(`\n========== Publishing ${file} to OpenVSX ==========\n`);
   try {
-    execFileSync("npx", ["-y", "vsce", "publish", "--packagePath", filePath, "-p", process.env.VSCE_PAT], {
+    execFileSync("npx", ["-y", "ovsx", "publish", filePath, "-p", process.env.OVSX_PAT], {
       cwd: rootDir,
       stdio: "inherit",
     });

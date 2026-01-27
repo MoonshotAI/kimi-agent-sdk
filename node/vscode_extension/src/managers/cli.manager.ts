@@ -54,7 +54,7 @@ export class CLIManager {
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const resolved = { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() };
 
-    if (!await this.ensureCLI()) {
+    if (!(await this.ensureCLI())) {
       return { ok: false, resolved, error: { type: "extract_failed", message: "Failed to install CLI" } };
     }
 
@@ -66,10 +66,14 @@ export class CLIManager {
   }
 
   private async ensureCLI(): Promise<boolean> {
-    if (this.isCustomPath()) return true;
+    if (this.isCustomPath()) {
+      return true;
+    }
 
     const manifest = readManifest(this.extensionBinPath);
-    if (!manifest) return false;
+    if (!manifest) {
+      return false;
+    }
 
     const platform = getPlatformKey();
     const installed = readInstalled(this.globalStorageBinPath);
@@ -88,7 +92,9 @@ export class CLIManager {
       vscode.window.showInformationMessage(`System Architecture (${platform}) not supported by bundled CLI. Downloading compatible version...`);
 
       const asset = manifest.platforms[platform];
-      if (!asset) return false;
+      if (!asset) {
+        return false;
+      }
       await downloadAndInstall(asset, this.globalStorageBinPath);
     }
 
