@@ -76,6 +76,8 @@ export function useAppInit(): AppInitState {
           return;
         }
 
+        console.log("[AppInit] Login status:", loginStatus, "kimiConfig:", kimiConfig);
+
         setIsLoggedIn(loginStatus.loggedIn);
         initModels(kimiConfig.models, kimiConfig.defaultModel, kimiConfig.defaultThinking);
 

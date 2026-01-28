@@ -44,7 +44,7 @@ export function Header() {
               <IconChevronDown className="size-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-80 p-0">
+          <PopoverContent align="end" className="w-[20rem] max-w-[calc(100vw-1rem)] p-0">
             <SessionList onClose={() => setShowSessionList(false)} />
           </PopoverContent>
         </Popover>
@@ -71,6 +71,6 @@ export function Header() {
           </div>
         </DialogContent>
       </Dialog>
-    </header>
+    </header >
   );
 }
