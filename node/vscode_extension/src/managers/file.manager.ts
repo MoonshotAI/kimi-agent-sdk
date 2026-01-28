@@ -4,6 +4,7 @@ import * as fs from "fs";
 import { BaselineManager } from "./baseline.manager";
 import { Events } from "../../shared/bridge";
 import type { ProjectFile } from "../../shared/types";
+import { buildCaseInsensitiveGlobLiteral } from "@/utils/string";
 
 export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => void;
 
@@ -125,6 +126,7 @@ export class FileManager {
   }
 
   async searchFiles(query?: string): Promise<ProjectFile[]> {
+    query = query ? buildCaseInsensitiveGlobLiteral(query) : "";
     const pattern = query ? `**/*${query}*` : "**/*";
     const files = await vscode.workspace.findFiles(pattern, SEARCH_EXCLUDE, 200);
     return files.map((uri) => ({
