@@ -71,6 +71,6 @@ export function Header() {
           </div>
         </DialogContent>
       </Dialog>
-    </header >
+    </header>
   );
 }

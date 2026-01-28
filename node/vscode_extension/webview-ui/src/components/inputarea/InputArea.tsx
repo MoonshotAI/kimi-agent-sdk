@@ -113,22 +113,17 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     clearInput();
   });
 
-  const applyMention = useMemoizedFn((filePath: string, isAppend: boolean) => {
+  const applyMention = useMemoizedFn((filePath: string) => {
     const { newText, newCursorPos } = computeMentionInsert({
       text,
       cursorPos,
       filePath,
       activeToken,
-      isAppend,
+      isAppend: false,
     });
 
     setText(newText);
     setCursorPos(newCursorPos);
-
-    if (isAppend) {
-      setShowAddMenu(false);
-    }
-
     setTimeout(() => {
       textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
       textareaRef.current?.focus();
@@ -158,32 +153,13 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     setFolderPath,
     handleFileMenuKey,
     resetFilePicker,
-    loadAllFiles,
-    setShowAddMenu,
-    showAddMenu,
-  } = useFilePicker(
-    activeToken,
-    (filePath, isAddMenu) => applyMention(filePath, isAddMenu),
-    () => {
-      handlePickMedia();
-      setShowAddMenu(false);
-    },
-    clearInput,
-  );
+  } = useFilePicker(activeToken, applyMention, handlePickMedia, clearInput);
 
   const closeMenus = useCallback(() => {
-    if (showSlashMenu) {
+    if (showSlashMenu || showFileMenu) {
       clearInput();
     }
-
-    if (showFileMenu) {
-      if (showAddMenu) {
-        setShowAddMenu(false);
-      } else {
-        clearInput();
-      }
-    }
-  }, [showSlashMenu, showFileMenu, showAddMenu, clearInput, setShowAddMenu]);
+  }, [showSlashMenu, showFileMenu, clearInput]);
 
   useClickOutside([textareaRef, menuRef], showSlashMenu || showFileMenu, closeMenus);
 
@@ -251,9 +227,14 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   };
 
   const handleAddButtonClick = useMemoizedFn(() => {
-    setShowAddMenu(true);
-    setFileSelectedIndex(0);
-    loadAllFiles();
+    const newText = text + "@";
+    setText(newText);
+    setCursorPos(newText.length);
+    setTimeout(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(newText.length, newText.length);
+      adjustHeight();
+    }, 0);
   });
 
   const hasModels = availableModels.length > 0;
@@ -285,10 +266,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
               selectedIndex={fileSelectedIndex}
               isLoading={isFileLoading}
               showMediaOption={showMediaOption}
-              onSelectMedia={() => {
-                handlePickMedia();
-                setShowAddMenu(false);
-              }}
+              onSelectMedia={handlePickMedia}
               onSwitchToFolder={() => {
                 setFilePickerMode("folder");
                 setFolderPath("");
@@ -299,7 +277,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
                 setFolderPath("");
                 setFileSelectedIndex(0);
               }}
-              onSelectItem={(item) => applyMention(item.path, showAddMenu)}
+              onSelectItem={(item) => applyMention(item.path)}
               onNavigateUp={() => {
                 setFolderPath(folderPath.split("/").slice(0, -1).join("/"));
                 setFileSelectedIndex(0);

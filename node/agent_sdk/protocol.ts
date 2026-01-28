@@ -155,7 +155,7 @@ export class ProtocolClient {
       }
     }
 
-        // Send initialize request
+    // Send initialize request
     const initResult = await this.sendInitialize(options.externalTools, options.clientInfo);
     return initResult;
   }

@@ -126,8 +126,7 @@ export class FileManager {
 
   async searchFiles(query?: string): Promise<ProjectFile[]> {
     const pattern = query ? `**/*${query}*` : "**/*";
-    const files = await vscode.workspace.findFiles(pattern, SEARCH_EXCLUDE, 100);
-
+    const files = await vscode.workspace.findFiles(pattern, SEARCH_EXCLUDE, 200);
     return files.map((uri) => ({
       path: vscode.workspace.asRelativePath(uri),
       name: path.basename(uri.fsPath),

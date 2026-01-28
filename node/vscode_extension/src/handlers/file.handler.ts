@@ -82,7 +82,10 @@ const getProjectFiles: Handler<GetProjectFilesParams, ProjectFile[]> = async (pa
   if (!ctx.workDir) {
     return [];
   }
-  return params.directory !== undefined ? ctx.fileManager.listDirectory(ctx.workDir, params.directory) : ctx.fileManager.searchFiles(params.query);
+  const files = params.directory !== undefined ? ctx.fileManager.listDirectory(ctx.workDir, params.directory) : ctx.fileManager.searchFiles(params.query);
+  console.log("getProjectFiles", params, files);
+
+  return files;
 };
 
 const getEditorContext: Handler<void, EditorContext | null> = async () => {

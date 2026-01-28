@@ -101,12 +101,7 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
       <div className="space-y-4">
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Kimi Code</p>
-          <a
-            href="https://kimi.com/code"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-foreground hover:underline"
-          >
+          <a href="https://kimi.com/code" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-foreground hover:underline">
             <IconExternalLink className="size-4" />
             kimi.com/code
           </a>
@@ -119,7 +114,9 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
             <span>Run in terminal:</span>
           </div>
           <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">kimi</code>
-          <p className="text-xs text-muted-foreground">Then type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key.</p>
+          <p className="text-xs text-muted-foreground">
+            Then type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key.
+          </p>
         </div>
       </div>
 
