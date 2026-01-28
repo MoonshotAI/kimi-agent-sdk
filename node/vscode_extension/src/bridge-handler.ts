@@ -4,6 +4,9 @@ import { getCLIManager, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn } from "./handlers";
 import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
 
+declare const __EXTENSION_VERSION__: string;
+const EXTENSION_VERSION = typeof __EXTENSION_VERSION__ !== "undefined" ? __EXTENSION_VERSION__ : "0.0.0";
+
 interface RpcMessage {
   id: string;
   method: string;
@@ -148,6 +151,7 @@ export class BridgeHandler {
       sessionId,
       executable,
       env,
+      clientInfo: { name: "kimi-code", version: EXTENSION_VERSION },
     });
 
     this.sessions.set(webviewId, session);

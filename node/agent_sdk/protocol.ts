@@ -1,3 +1,4 @@
+// agent_sdk/protocol.ts
 import { spawn, type ChildProcess } from "node:child_process";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
 import {
@@ -18,10 +19,16 @@ import { TransportError, CliError } from "./errors";
 import { log } from "./logger";
 
 const PROTOCOL_VERSION = "1.1";
-const CLIENT_NAME = "kimi-agent-sdk";
-const CLIENT_VERSION = "0.0.2";
+const SDK_NAME = "kimi-agent-sdk";
 
-// Client Options
+declare const __SDK_VERSION__: string;
+const SDK_VERSION = typeof __SDK_VERSION__ !== "undefined" ? __SDK_VERSION__ : "0.0.0";
+
+export interface ClientInfo {
+  name: string;
+  version: string;
+}
+
 export interface ClientOptions {
   sessionId?: string;
   workDir: string;
@@ -31,6 +38,7 @@ export interface ClientOptions {
   executablePath?: string;
   environmentVariables?: Record<string, string>;
   externalTools?: ExternalTool[];
+  clientInfo?: ClientInfo;
 }
 
 // Prompt Stream
@@ -147,8 +155,8 @@ export class ProtocolClient {
       }
     }
 
-    // Send initialize request
-    const initResult = await this.sendInitialize(options.externalTools);
+        // Send initialize request
+    const initResult = await this.sendInitialize(options.externalTools, options.clientInfo);
     return initResult;
   }
 
@@ -217,12 +225,17 @@ export class ProtocolClient {
     return Promise.resolve();
   }
 
-  private async sendInitialize(externalTools?: ExternalTool[]): Promise<InitializeResult> {
+  private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo): Promise<InitializeResult> {
+    let clientName = `${SDK_NAME}/${SDK_VERSION}`;
+    if (clientInfo?.name && clientInfo?.version) {
+      clientName += ` ${clientInfo.name}/${clientInfo.version}`;
+    }
+
     const params: Record<string, unknown> = {
       protocol_version: PROTOCOL_VERSION,
       client: {
-        name: CLIENT_NAME,
-        version: CLIENT_VERSION,
+        name: clientName,
+        version: SDK_VERSION,
       },
     };
 

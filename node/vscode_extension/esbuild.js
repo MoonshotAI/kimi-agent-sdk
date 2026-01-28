@@ -5,12 +5,15 @@ const fs = require("fs");
 const production = process.argv.includes("--production");
 const watch = process.argv.includes("--watch");
 
+const pkg = require("./package.json");
+const sdkPkg = require("../agent_sdk/package.json");
+
 const watchAgentSdkPlugin = {
   name: "watch-agent-sdk",
   setup(build) {
-    // Collect agent_sdk files for watching
     const agentSdkDir = path.resolve(__dirname, "../agent_sdk");
     const tsFiles = [];
+
     function walkDir(dir) {
       const files = fs.readdirSync(dir, { withFileTypes: true });
       for (const file of files) {
@@ -22,9 +25,9 @@ const watchAgentSdkPlugin = {
         }
       }
     }
+
     walkDir(agentSdkDir);
 
-    // Use onLoad to add watch dependencies for agent_sdk files
     build.onLoad({ filter: /agent_sdk.*\.ts$/ }, (args) => {
       return {
         watchFiles: tsFiles,
@@ -69,6 +72,10 @@ async function main() {
       "@moonshot-ai/kimi-agent-sdk/errors": path.resolve(__dirname, "../agent_sdk/errors.ts"),
       "@moonshot-ai/kimi-agent-sdk/schema": path.resolve(__dirname, "../agent_sdk/schema.ts"),
       "@moonshot-ai/kimi-agent-sdk/utils": path.resolve(__dirname, "../agent_sdk/utils.ts"),
+    },
+    define: {
+      __EXTENSION_VERSION__: JSON.stringify(pkg.version),
+      __SDK_VERSION__: JSON.stringify(sdkPkg.version),
     },
     plugins: [watchAgentSdkPlugin, esbuildProblemMatcherPlugin],
   });

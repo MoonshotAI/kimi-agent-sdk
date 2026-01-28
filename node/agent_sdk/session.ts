@@ -1,5 +1,5 @@
 import * as crypto from "node:crypto";
-import { ProtocolClient } from "./protocol";
+import { ProtocolClient, type ClientInfo } from "./protocol";
 import { SessionError } from "./errors";
 import { log } from "./logger";
 import type { SessionOptions, ContentPart, StreamEvent, RunResult, ApprovalResponse, SlashCommandInfo, ExternalTool } from "./schema";
@@ -129,6 +129,8 @@ class TurnImpl implements Turn {
 class SessionImpl implements Session {
   private readonly _sessionId: string;
   private readonly _workDir: string;
+  private readonly _clientInfo?: ClientInfo;
+
   private _model: string | undefined;
   private _thinking: boolean;
   private _yoloMode: boolean;
@@ -153,6 +155,7 @@ class SessionImpl implements Session {
     this._executable = options.executable ?? "kimi";
     this._env = options.env ?? {};
     this._externalTools = options.externalTools ?? [];
+    this._clientInfo = options.clientInfo;
 
     log.session("Created session %s in %s", this._sessionId, this._workDir);
   }
@@ -287,6 +290,7 @@ class SessionImpl implements Session {
       executablePath: this._executable,
       environmentVariables: this._env,
       externalTools: this._externalTools,
+      clientInfo: this._clientInfo,
     });
 
     this._slashCommands = initResult.slash_commands;
