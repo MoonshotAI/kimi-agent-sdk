@@ -27,7 +27,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
         parts.push(text.slice(lastIdx, i));
       }
       parts.push(
-        <span key={i} className="text-primary font-semibold">
+        <span key={i} className="text-foreground font-semibold">
           {text[i]}
         </span>,
       );

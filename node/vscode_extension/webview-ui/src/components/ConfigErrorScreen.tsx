@@ -105,7 +105,7 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
             href="https://kimi.com/code"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-xs text-primary hover:underline"
+            className="inline-flex items-center gap-2 text-xs text-foreground hover:underline"
           >
             <IconExternalLink className="size-4" />
             kimi.com/code

@@ -23,7 +23,7 @@ function highlightMatches(text: string, indices: readonly [number, number][] | u
   for (const [start, end] of indices) {
     if (start > lastIndex) parts.push(text.slice(lastIndex, start));
     parts.push(
-      <span key={start} className="text-primary font-semibold">
+      <span key={start} className="text-foreground font-semibold">
         {text.slice(start, end + 1)}
       </span>,
     );
