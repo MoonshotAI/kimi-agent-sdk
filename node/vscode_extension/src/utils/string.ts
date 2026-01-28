@@ -6,8 +6,11 @@ export function buildCaseInsensitiveGlobLiteral(input: string) {
       const u = ch.toUpperCase();
       out += `[${l}${u}]`;
     } else {
-      if ("*?[]{}\\".includes(ch)) out += "\\" + ch;
-      else out += ch;
+      if ("*?[]{}\\".includes(ch)) {
+        out += "\\" + ch;
+      } else {
+        out += ch;
+      }
     }
   }
   return out;
