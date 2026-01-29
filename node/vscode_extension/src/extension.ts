@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import * as util from 'util';
+import * as util from "util";
 
 import { KimiWebviewProvider } from "./KimiWebviewProvider";
 import { onSettingsChange, VSCodeSettings } from "./config/vscode-settings";
@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   setLogSink((...args: any[]) => {
     console.log(...args);
 
-    const message = util.format(...args).replace(/\x1b\[[0-9;]*m/g, '');
+    const message = util.format(...args).replace(/\x1b\[[0-9;]*m/g, "");
     outputChannel.appendLine(message);
   });
   console.log("Kimi SDK logs enabled");
