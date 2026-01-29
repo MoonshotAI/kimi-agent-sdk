@@ -122,9 +122,10 @@ export class ProtocolClient {
     log.protocol("Spawning CLI: %s %o", executable, args);
 
     try {
+      const { DEBUG, ...cleanEnv } = process.env;
       this.process = spawn(executable, args, {
         cwd: options.workDir,
-        env: { ...process.env, ...options.environmentVariables },
+        env: { ...cleanEnv, ...options.environmentVariables },
         stdio: ["pipe", "pipe", "pipe"],
       });
     } catch (err) {
@@ -213,7 +214,7 @@ export class ProtocolClient {
   }
 
   sendCancel(): Promise<void> {
-    return this.sendRequest("cancel").then(() => {});
+    return this.sendRequest("cancel").then(() => { });
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
