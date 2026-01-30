@@ -3,7 +3,7 @@ import { useApprovalStore } from "./approval.store";
 import { isPreflightError, getUserMessage, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
-import type { UIStreamEvent, StreamError, DiffInfo } from "shared/types";
+import type { UIStreamEvent, StreamError } from "shared/types";
 
 type EventHandler = (draft: ChatState, payload: any) => void;
 
@@ -16,13 +16,6 @@ function addTokenUsage(target: TokenUsage, source: TokenUsage): void {
   target.output += source.output || 0;
   target.input_cache_read += source.input_cache_read || 0;
   target.input_cache_creation += source.input_cache_creation || 0;
-}
-
-function extractDiffInfo(display?: { type: string; path?: string; old_text?: string }[]): DiffInfo[] {
-  if (!display) {
-    return [];
-  }
-  return display.filter((block): block is DiffBlock => block.type === "diff" && typeof block.path === "string").map((block) => ({ path: block.path, oldText: block.old_text }));
 }
 
 function extractDiffPaths(display?: { type: string; path?: string }[]): string[] {
@@ -231,10 +224,8 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
       updateToolResult(result.tool_call_id, result.return_value);
 
       const paths = extractDiffPaths(result.return_value.display);
-      const diffs = extractDiffInfo(result.return_value.display);
-
       if (paths.length > 0) {
-        bridge.trackFiles(paths, diffs);
+        bridge.trackFiles(paths);
       }
 
       break;
@@ -496,6 +487,12 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   ApprovalRequest: (_, payload: ApprovalRequestPayload) => {
+    // Save baselines BEFORE file modification (file still has original content)
+    const paths = extractDiffPaths(payload.display);
+    if (paths.length > 0) {
+      bridge.saveBaselines(paths);
+    }
+    // Add to approval queue
     useApprovalStore.getState().addRequest({
       id: payload.id,
       tool_call_id: payload.tool_call_id,

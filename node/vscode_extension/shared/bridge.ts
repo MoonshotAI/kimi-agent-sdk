@@ -45,6 +45,7 @@ export const Methods = {
   CheckFileExists: "checkFileExists",
   CheckFilesExist: "checkFilesExist",
   OpenFileDiff: "openFileDiff",
+  SaveBaselines: "saveBaselines",
   TrackFiles: "trackFiles",
   ClearTrackedFiles: "clearTrackedFiles",
   RevertFiles: "revertFiles",

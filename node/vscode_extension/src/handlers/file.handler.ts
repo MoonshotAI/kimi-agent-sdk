@@ -3,7 +3,7 @@ import * as path from "node:path";
 import * as fs from "fs";
 import { Methods, Events } from "../../shared/bridge";
 import { BaselineManager } from "../managers";
-import type { ProjectFile, EditorContext, FileChange, DiffInfo } from "../../shared/types";
+import type { ProjectFile, EditorContext, FileChange } from "../../shared/types";
 import type { Handler } from "./types";
 
 interface GetProjectFilesParams {
@@ -28,9 +28,8 @@ interface OptionalFilePathParams {
   filePath?: string;
 }
 
-interface TrackFilesParams {
+interface PathsParams {
   paths: string[];
-  diffs?: DiffInfo[];
 }
 
 interface CheckFileExistsParams {
@@ -82,8 +81,9 @@ const getProjectFiles: Handler<GetProjectFilesParams, ProjectFile[]> = async (pa
   if (!ctx.workDir) {
     return [];
   }
-  const files = params.directory !== undefined ? ctx.fileManager.listDirectory(ctx.workDir, params.directory) : ctx.fileManager.searchFiles(params.query);
-  return files;
+  return params.directory !== undefined
+    ? ctx.fileManager.listDirectory(ctx.workDir, params.directory)
+    : ctx.fileManager.searchFiles(params.query);
 };
 
 const getEditorContext: Handler<void, EditorContext | null> = async () => {
@@ -199,25 +199,46 @@ const openFileDiff: Handler<FilePathParams, { ok: boolean }> = async (params, ct
   return { ok: true };
 };
 
-const trackFiles: Handler<TrackFilesParams, FileChange[]> = async (params, ctx) => {
+const saveBaselines: Handler<PathsParams, { ok: boolean }> = async (params, ctx) => {
+  const workDir = ctx.requireWorkDir();
+  const sessionId = ctx.getSessionId();
+  if (!sessionId) {
+    return { ok: false };
+  }
+
+  for (const filePath of params.paths) {
+    const absolutePath = toAbsolute(workDir, filePath);
+    if (!isInsideWorkDir(workDir, absolutePath)) {
+      continue;
+    }
+
+    const relativePath = path.relative(workDir, absolutePath);
+
+    // Read current file content from disk (before modification)
+    // If file doesn't exist, it's a new file - save empty string as baseline
+    let content = "";
+    if (fs.existsSync(absolutePath)) {
+      try {
+        content = fs.readFileSync(absolutePath, "utf-8");
+      } catch {
+        // If read fails, treat as new file
+      }
+    }
+
+    BaselineManager.saveBaseline(workDir, sessionId, relativePath, content);
+  }
+
+  return { ok: true };
+};
+
+const trackFiles: Handler<PathsParams, FileChange[]> = async (params, ctx) => {
   const workDir = ctx.requireWorkDir();
   const sessionId = ctx.getSessionId();
   if (!sessionId) {
     return [];
   }
 
-  // 保存 baseline 内容
-  if (params.diffs) {
-    for (const diff of params.diffs) {
-      const absolutePath = toAbsolute(workDir, diff.path);
-      if (isInsideWorkDir(workDir, absolutePath)) {
-        const relativePath = path.relative(workDir, absolutePath);
-        BaselineManager.saveBaseline(workDir, sessionId, relativePath, diff.oldText);
-      }
-    }
-  }
-
-  // 添加到 tracked 集合
+  // Add files to tracked set
   for (const filePath of params.paths) {
     const absolutePath = toAbsolute(workDir, filePath);
     if (isInsideWorkDir(workDir, absolutePath)) {
@@ -347,6 +368,7 @@ export const fileHandlers: Record<string, Handler<any, any>> = {
   [Methods.PickMedia]: pickMedia,
   [Methods.OpenFile]: openFile,
   [Methods.OpenFileDiff]: openFileDiff,
+  [Methods.SaveBaselines]: saveBaselines,
   [Methods.TrackFiles]: trackFiles,
   [Methods.ClearTrackedFiles]: clearTrackedFiles,
   [Methods.RevertFiles]: revertFiles,
