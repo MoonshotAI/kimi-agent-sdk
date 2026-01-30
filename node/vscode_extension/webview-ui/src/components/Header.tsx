@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { KimiLogo } from "./KimiLogo";
 import { SessionList } from "./SessionList";
 import { useChatStore } from "@/stores";
-import { ChatStatus } from "./ChatStatus";
+import { ChatStatus, TokenInfo } from "./ChatStatus";
 
 export function Header() {
   const [showSessionList, setShowSessionList] = useState(false);
@@ -68,6 +68,7 @@ export function Header() {
               <div className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Messages</div>
               <span className="text-xs text-foreground">{messages.length}</span>
             </div>
+            <TokenInfo />
           </div>
         </DialogContent>
       </Dialog>

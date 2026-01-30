@@ -3,6 +3,42 @@ import { cn } from "@/lib/utils";
 import { IconArrowUp, IconArrowDown, IconBrandSpeedtest } from "@tabler/icons-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
+export function TokenInfo() {
+  const { lastStatus, tokenUsage, activeTokenUsage } = useChatStore();
+
+  const inputTotal =
+    tokenUsage.input_other +
+    tokenUsage.input_cache_read +
+    tokenUsage.input_cache_creation +
+    activeTokenUsage.input_other +
+    activeTokenUsage.input_cache_read +
+    activeTokenUsage.input_cache_creation;
+
+  const outputTotal = tokenUsage.output + activeTokenUsage.output;
+
+  const contextPercent = lastStatus?.context_usage ? Math.round(lastStatus.context_usage * 1000) / 10 : 0;
+
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] text-muted-foreground uppercase tracking-wider">Token Usage</div>
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="flex flex-col">
+          <span className="text-muted-foreground text-[10px]">Context</span>
+          <span className={cn(contextPercent > 80 && "text-amber-500", contextPercent > 95 && "text-destructive")}>{contextPercent}%</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-muted-foreground text-[10px]">Input</span>
+          <span>{inputTotal.toLocaleString()}</span>
+        </div>
+        <div className="flex flex-col">
+          <span className="text-muted-foreground text-[10px]">Output</span>
+          <span>{outputTotal.toLocaleString()}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ChatStatus() {
   const { lastStatus, tokenUsage, activeTokenUsage } = useChatStore();
 
@@ -49,7 +85,7 @@ export function ChatStatus() {
           <TooltipContent>Total Input Tokens</TooltipContent>
         </Tooltip>
       </div>
-      <div className="w-px h-3 bg-border/50 @max-[400px]:hidden" />
+      <div className="w-px h-3 bg-border/50 @max-[440px]:hidden" />
       <div className="flex items-center gap-1.5 @max-[440px]:hidden" title="Output Tokens">
         <Tooltip>
           <TooltipTrigger asChild>

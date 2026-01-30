@@ -53,7 +53,7 @@ export function ApprovalDialog() {
         )}
       </div>
 
-      <div className="text-xs text-foreground/90 break-all leading-relaxed bg-muted/30 py-2 px-2 rounded shrink-0">{req.description}</div>
+      <div className="text-xs text-foreground/90 break-all leading-relaxed bg-muted/30 py-2 px-2 rounded shrink-0 max-h-32 overflow-y-auto">{req.description}</div>
 
       {hasDisplay && (
         <div className={cn("overflow-y-auto", expanded ? "flex-1 min-h-0" : "max-h-32")}>
