@@ -487,12 +487,6 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   ApprovalRequest: (_, payload: ApprovalRequestPayload) => {
-    // Save baselines BEFORE file modification (file still has original content)
-    const paths = extractDiffPaths(payload.display);
-    if (paths.length > 0) {
-      bridge.saveBaselines(paths);
-    }
-    // Add to approval queue
     useApprovalStore.getState().addRequest({
       id: payload.id,
       tool_call_id: payload.tool_call_id,

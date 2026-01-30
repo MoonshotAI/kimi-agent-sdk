@@ -43,7 +43,11 @@ export function FileLink({ path, display }: { path: string; display: string }) {
     [path],
   );
   return (
-    <button type="button" className="hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer" onClick={onClick}>
+    <button
+      type="button"
+      className="hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer break-all text-left"
+      onClick={onClick}
+    >
       {display}
     </button>
   );

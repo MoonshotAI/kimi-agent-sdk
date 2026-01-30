@@ -1,4 +1,6 @@
 import * as vscode from "vscode";
+import * as path from "node:path";
+import * as fs from "fs";
 import { Methods, Events } from "../../shared/bridge";
 import { VSCodeSettings } from "../config/vscode-settings";
 import { BaselineManager } from "../managers";
@@ -18,6 +20,53 @@ interface StreamChatParams {
 interface RespondApprovalParams {
   requestId: string;
   response: ApprovalResponse;
+}
+
+interface PendingToolCall {
+  id: string;
+  name: string;
+  arguments: string;
+  baselineSaved: boolean;
+}
+
+const FILE_TOOLS = new Set(["WriteFile", "CreateFile", "StrReplaceFile", "PatchFile", "DeleteFile", "AppendFile"]);
+
+function saveBaselineForPath(filePath: string, workDir: string, sessionId: string): boolean {
+  const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(workDir, filePath);
+  const relativePath = path.relative(workDir, absolutePath);
+
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    return false;
+  }
+
+  let content = "";
+  if (fs.existsSync(absolutePath)) {
+    try {
+      content = fs.readFileSync(absolutePath, "utf-8");
+    } catch {
+      // File unreadable, use empty baseline (for new files)
+    }
+  }
+
+  BaselineManager.saveBaseline(workDir, sessionId, relativePath, content);
+  return true;
+}
+
+function tryParseAndSaveBaseline(call: PendingToolCall, workDir: string, sessionId: string): boolean {
+  if (call.baselineSaved || !FILE_TOOLS.has(call.name) || !call.arguments) {
+    return false;
+  }
+
+  try {
+    const args = JSON.parse(call.arguments);
+    if (args.path && saveBaselineForPath(args.path, workDir, sessionId)) {
+      call.baselineSaved = true;
+      return true;
+    }
+  } catch {
+    // JSON not complete yet or invalid
+  }
+  return false;
 }
 
 const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, ctx) => {
@@ -45,11 +94,16 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   }
 
   const session = ctx.getOrCreateSession(params.model, params.thinking, params.sessionId);
+  const workDir = ctx.workDir;
+  const sessionId = session.sessionId;
 
-  // 初始化 session 的 baseline 目录
-  BaselineManager.initSession(ctx.workDir, session.sessionId);
+  BaselineManager.initSession(workDir, sessionId);
 
-  ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId: session.sessionId, model: session.model }, ctx.webviewId);
+  ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model }, ctx.webviewId);
+
+  // Track pending tool calls for baseline saving
+  const pendingToolCalls = new Map<string, PendingToolCall>();
+  let lastToolCallId: string | null = null;
 
   try {
     const turn = session.prompt(params.content);
@@ -58,6 +112,50 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     let result: RunResult = { status: "finished" };
 
     for await (const event of turn) {
+      const eventAny = event as any;
+      const eventType = event.type;
+      const payload = eventAny.payload;
+
+      // ToolCall: Record and try to save baseline immediately if args are complete
+      if (eventType === "ToolCall" && payload?.id) {
+        const call: PendingToolCall = {
+          id: payload.id,
+          name: payload.function?.name || "",
+          arguments: payload.function?.arguments || "",
+          baselineSaved: false,
+        };
+        pendingToolCalls.set(payload.id, call);
+        lastToolCallId = payload.id;
+
+        // Try to save baseline immediately (for YOLO / approve_for_session where args come complete)
+        tryParseAndSaveBaseline(call, workDir, sessionId);
+      }
+
+      // ToolCallPart: Accumulate arguments and try to save baseline
+      if (eventType === "ToolCallPart" && payload?.arguments_part && lastToolCallId) {
+        const call = pendingToolCalls.get(lastToolCallId);
+        if (call) {
+          call.arguments += payload.arguments_part;
+          // Try to save after each part (will succeed when JSON becomes complete)
+          tryParseAndSaveBaseline(call, workDir, sessionId);
+        }
+      }
+
+      // StatusUpdate: Last chance to save baseline before potential file modification
+      if (eventType === "StatusUpdate") {
+        for (const call of pendingToolCalls.values()) {
+          tryParseAndSaveBaseline(call, workDir, sessionId);
+        }
+      }
+
+      // ToolResult: Clean up
+      if (eventType === "ToolResult" && payload?.tool_call_id) {
+        pendingToolCalls.delete(payload.tool_call_id);
+        if (lastToolCallId === payload.tool_call_id) {
+          lastToolCallId = null;
+        }
+      }
+
       ctx.broadcast(Events.StreamEvent, event, ctx.webviewId);
     }
 
