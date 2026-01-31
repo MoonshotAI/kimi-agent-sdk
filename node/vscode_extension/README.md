@@ -21,7 +21,7 @@ AI coding assistant for VS Code, built for long-context workflows and complex co
 
 ## Docs
 
-Official doc for Kimi Code can be found at [www.kimi.com/code/docs](https://www.kimi.com/code/docs/kimi-code-for-vscode/guides/getting-started.html)
+Official doc for Kimi Code can be found at [www.kimi.com/code/docs](https://www.kimi.com/code/docs/en/kimi-code-for-vscode/guides/getting-started.html)
 
 ## License
 
