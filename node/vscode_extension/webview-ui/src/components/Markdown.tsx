@@ -9,6 +9,7 @@ import { useRequest } from "ahooks";
 import { IconVideo } from "@tabler/icons-react";
 import type { Components } from "react-markdown";
 import { parseSegments, parseColorSegments, extractPaths, checkFilesExist, hasColors, isLocalPath } from "@/lib/text-enrichment";
+import { CopyButton } from "@/components/CopyButton";
 import { MediaPreviewModal, StreamImagePreview, ImagePlaceholder, ImageLoadFail } from "@/components/MediaPreviewModal";
 import { getMediaTypeFromSrc } from "@/lib/media-utils";
 import { bridge } from "@/services";
@@ -151,23 +152,25 @@ const CodeBlock = memo(function CodeBlock({
   enableHighlight: boolean;
   style?: any;
 }) {
-  if (enableHighlight && language) {
-    return (
-      <SyntaxHighlighter
-        style={style}
-        language={language}
-        PreTag="div"
-        customStyle={{ padding: "0.5rem", borderRadius: "0.375rem", fontSize: "11px", margin: 0 }}
-        codeTagProps={{ style: { backgroundColor: "transparent", fontFamily: "inherit", padding: 0, color: "inherit", borderRadius: 0 } }}
-      >
-        {code}
-      </SyntaxHighlighter>
-    );
-  }
   return (
-    <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-[11px]">
-      <code className="bg-transparent!">{code}</code>
-    </pre>
+    <div className="relative group/code">
+      <CopyButton content={code} className="absolute right-1 top-1 opacity-0 group-hover/code:opacity-100" />
+      {enableHighlight && language ? (
+        <SyntaxHighlighter
+          style={style}
+          language={language}
+          PreTag="div"
+          customStyle={{ padding: "0.5rem", borderRadius: "0.375rem", fontSize: "11px", margin: 0 }}
+          codeTagProps={{ style: { backgroundColor: "transparent", fontFamily: "inherit", padding: 0, color: "inherit", borderRadius: 0 } }}
+        >
+          {code}
+        </SyntaxHighlighter>
+      ) : (
+        <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-[11px]">
+          <code className="bg-transparent!">{code}</code>
+        </pre>
+      )}
+    </div>
   );
 });
 
