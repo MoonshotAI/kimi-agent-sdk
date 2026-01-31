@@ -1,6 +1,8 @@
 import React, { memo, useMemo, useState, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useRequest } from "ahooks";
@@ -138,6 +140,45 @@ function ColorEnrichedText({ text }: { text: string }) {
   );
 }
 
+const CodeBlock = memo(function CodeBlock({
+  code,
+  language,
+  enableHighlight,
+  style,
+}: {
+  code: string;
+  language?: string;
+  enableHighlight: boolean;
+  style?: any;
+}) {
+  if (enableHighlight && language) {
+    return (
+      <SyntaxHighlighter
+        style={style}
+        language={language}
+        PreTag="div"
+        customStyle={{ padding: "0.5rem", borderRadius: "0.375rem", fontSize: "11px", margin: 0 }}
+        codeTagProps={{ style: { backgroundColor: "transparent", fontFamily: "inherit", padding: 0, color: "inherit", borderRadius: 0 } }}
+      >
+        {code}
+      </SyntaxHighlighter>
+    );
+  }
+  return (
+    <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-[11px]">
+      <code className="bg-transparent!">{code}</code>
+    </pre>
+  );
+});
+
+function unwrapSingleParagraph(children: React.ReactNode): React.ReactNode {
+  const arr = React.Children.toArray(children);
+  if (arr.length === 1 && React.isValidElement(arr[0]) && arr[0].type === "p") {
+    return (arr[0].props as { children?: React.ReactNode }).children;
+  }
+  return children;
+}
+
 export const Markdown = memo(function Markdown({ content, className, enableEnrichment = true, enableLocalImageRender = true }: MarkdownProps) {
   const isDark = useIsDark();
   const [fileMap, setFileMap] = useState<Record<string, boolean>>({});
@@ -164,12 +205,10 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
   const codeStyle = isDark ? (oneDark as any) : (oneLight as any);
 
   const components: Components = useMemo(() => {
-    // When enableEnrichment is false, skip enrichment process
     const enrich = (children: React.ReactNode) => (enableEnrichment ? enrichChildren(children, fileMap) : children);
-
     return {
       p: ({ children }) => <p className="mb-2 last:mb-0">{enrich(children)}</p>,
-      li: ({ children }) => <li className="ml-2">{enrich(children)}</li>,
+      li: ({ children }) => <li className="ml-2">{enrich(unwrapSingleParagraph(children))}</li>,
       strong: ({ children }) => <strong>{enrich(children)}</strong>,
       em: ({ children }) => <em>{enrich(children)}</em>,
       td: ({ children }) => <td className="border border-border px-2 py-1">{enrich(children)}</td>,
@@ -216,38 +255,23 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
             </code>
           );
         }
-
-        if (match) {
-          return (
-            <SyntaxHighlighter
-              style={codeStyle}
-              language={match[1]}
-              PreTag="div"
-              customStyle={{ padding: "0.5rem", borderRadius: "0.375rem", fontSize: "11px", margin: 0 }}
-              codeTagProps={{ style: { backgroundColor: "transparent", fontFamily: "inherit", padding: 0, color: "inherit", borderRadius: 0 } }}
-            >
-              {code}
-            </SyntaxHighlighter>
-          );
-        }
-
-        // 普通代码块
         return (
-          <pre className="bg-muted rounded px-2 py-1 overflow-x-auto text-[11px]">
-            <code {...props} className="bg-transparent!">
-              {code}
-            </code>
-          </pre>
+          <CodeBlock
+            code={code}
+            language={match?.[1]}
+            enableHighlight={enableEnrichment && !!match}
+            style={codeStyle}
+          />
         );
       },
     };
-  }, [enableEnrichment, fileMap, codeStyle]);
+  }, [enableEnrichment, enableLocalImageRender, fileMap, codeStyle]);
 
   if (!content) return null;
 
   return (
     <div className={className}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]} components={components}>
         {content}
       </ReactMarkdown>
       <MediaPreviewModal src={previewSrc} onClose={() => setPreviewSrc(null)} />
