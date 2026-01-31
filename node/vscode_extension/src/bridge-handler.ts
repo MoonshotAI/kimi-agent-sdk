@@ -151,7 +151,7 @@ export class BridgeHandler {
       sessionId,
       executable,
       env,
-      clientInfo: { name: "kimi-code", version: EXTENSION_VERSION },
+      clientInfo: { name: "kimi-code-for-vs-code", version: EXTENSION_VERSION },
     });
 
     this.sessions.set(webviewId, session);
