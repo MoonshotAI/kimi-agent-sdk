@@ -36,8 +36,7 @@ for (const file of vsixFiles) {
     });
     console.log(`✓ Published: ${file}\n`);
   } catch (err) {
-    console.error(`✗ Failed to publish: ${file}`);
-    process.exit(1);
+    console.error(`✗ Failed to publish: ${file}, error:`, err);
   }
 }
 
