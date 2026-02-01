@@ -1,6 +1,17 @@
 import { bridge } from "@/services";
+import { playNeutralSound } from "@/lib/sound";
+import { playPositiveSound } from "@/lib/sound";
 import { useApprovalStore } from "./approval.store";
 import { isPreflightError, getUserMessage, isUserInterrupt } from "shared/errors";
+
+// Track VS Code focus state - sounds only play when not focused
+let isFocused = true;
+window.addEventListener("focus", () => {
+  isFocused = true;
+});
+window.addEventListener("blur", () => {
+  isFocused = false;
+});
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent, StreamError } from "shared/types";
@@ -19,7 +30,7 @@ function addTokenUsage(target: TokenUsage, source: TokenUsage): void {
 }
 
 function extractDiffPaths(display?: { type: string; path?: string }[]): string[] {
-  if (!display) {
+  if (!display) { 
     return [];
   }
   return display.filter((block): block is DiffBlock => block.type === "diff" && typeof block.path === "string").map((block) => block.path);
@@ -304,6 +315,9 @@ const eventHandlers: Record<string, EventHandler> = {
     if (lastAssistant?.steps) {
       finishAllTextItems(lastAssistant.steps);
     }
+    if (!isFocused) {
+      playPositiveSound();
+    }
   },
 
   error: (draft, payload: StreamError) => {
@@ -487,6 +501,9 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   ApprovalRequest: (_, payload: ApprovalRequestPayload) => {
+    if (!isFocused) {
+      playNeutralSound();
+    }
     useApprovalStore.getState().addRequest({
       id: payload.id,
       tool_call_id: payload.tool_call_id,
