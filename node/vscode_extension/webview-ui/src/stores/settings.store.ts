@@ -68,6 +68,7 @@ interface SettingsState {
   wireSlashCommands: SlashCommandInfo[];
   slashCommands: SlashCommandInfo[];
   isLoggedIn: boolean;
+  customRules: string[];
 
   setCurrentModel: (model: string) => void;
   setThinkingEnabled: (enabled: boolean) => void;
@@ -95,6 +96,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   wireSlashCommands: [],
   slashCommands: [],
   isLoggedIn: false,
+  customRules: DEFAULT_EXTENSION_CONFIG.customRules,
 
   setCurrentModel: (currentModel) => set({ currentModel }),
 
@@ -140,7 +142,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     bridge.saveConfig({ model: currentModel, thinking: newThinking });
   },
 
-  setExtensionConfig: (extensionConfig) => set({ extensionConfig }),
+  setExtensionConfig: (extensionConfig) => set({ extensionConfig, customRules: extensionConfig.customRules }),
 
   setMCPServers: (mcpServers) => set({ mcpServers }),
 

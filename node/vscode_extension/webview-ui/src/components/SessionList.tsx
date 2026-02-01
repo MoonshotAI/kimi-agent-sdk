@@ -17,6 +17,18 @@ import { bridge } from "@/services";
 import type { SessionInfo } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores";
+import { useSettingsStore } from "@/stores/settings.store";
+
+function stripCustomRulesFromBrief(brief: string, rules: string[]): string {
+  if (rules.length === 0) {
+    return brief;
+  }
+  const rulesPrefix = rules.join("\n") + "\n\n";
+  if (brief.startsWith(rulesPrefix)) {
+    return brief.slice(rulesPrefix.length);
+  }
+  return brief;
+}
 
 interface SessionListProps {
   onClose: () => void;
@@ -43,6 +55,11 @@ interface SessionItemProps {
 
 function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { customRules } = useSettingsStore();
+
+  const displayBrief = useMemo(() => {
+    return stripCustomRulesFromBrief(session.brief, customRules);
+  }, [session.brief, customRules]);
 
   return (
     <div
@@ -51,7 +68,7 @@ function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemPro
       onMouseLeave={() => setIsHovered(false)}
       onClick={onSelect}
     >
-      <p className="text-xs leading-relaxed line-clamp-3 text-foreground">{session.brief || "Untitled"}</p>
+      <p className="text-xs leading-relaxed line-clamp-3 text-foreground">{displayBrief || "Untitled"}</p>
       <div className="flex items-center justify-between mt-0.5">
         <div className="flex items-center gap-1.5">
           {isSelected && <IconCheck className="size-3 text-blue-500" />}
@@ -91,11 +108,16 @@ export function SessionList({ onClose }: SessionListProps) {
 
   const { data: kimiSessions = [], loading, mutate } = useRequest(() => bridge.getKimiSessions());
 
+  const { customRules } = useSettingsStore();
+
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return kimiSessions;
     const q = searchQuery.toLowerCase();
-    return kimiSessions.filter((s) => s.brief.toLowerCase().includes(q));
-  }, [kimiSessions, searchQuery]);
+    return kimiSessions.filter((s) => {
+      const displayBrief = stripCustomRulesFromBrief(s.brief, customRules);
+      return displayBrief.toLowerCase().includes(q);
+    });
+  }, [kimiSessions, searchQuery, customRules]);
 
   const handleSelect = async (session: SessionInfo) => {
     console.log("[SessionList] Loading session:", session.id);
