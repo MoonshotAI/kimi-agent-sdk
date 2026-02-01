@@ -107,7 +107,10 @@ function UserMessage({ message }: { message: ChatMessageType }) {
     <div className="px-3 pt-3 pb-1 flex justify-end">
       <div className={cn("max-w-[85%] px-3.5 py-1.5 rounded-2xl rounded-br-md", "bg-zinc-100 dark:bg-zinc-800", "text-foreground")}>
         {displayContent && (
-          <div className="text-xs leading-relaxed whitespace-pre-wrap wrap-break-word">
+          // FIX: removed whitespace-pre-wrap — it conflicted with ReactMarkdown's
+          // block-level elements (<p>, <ol>, <li>), doubling vertical spacing.
+          // ReactMarkdown already handles paragraph breaks from \n\n.
+          <div className="text-xs leading-relaxed wrap-break-word">
             <Markdown content={displayContent} enableEnrichment enableLocalImageRender={false} />
           </div>
         )}

@@ -174,12 +174,20 @@ const CodeBlock = memo(function CodeBlock({
   );
 });
 
-function unwrapSingleParagraph(children: React.ReactNode): React.ReactNode {
-  const arr = React.Children.toArray(children);
-  if (arr.length === 1 && React.isValidElement(arr[0]) && arr[0].type === "p") {
-    return (arr[0].props as { children?: React.ReactNode }).children;
-  }
-  return children;
+// FIX: Replaced unwrapSingleParagraph with unwrapParagraphs.
+// The old version only stripped <p> when it was the sole child of <li>.
+// In "loose lists" (items separated by blank lines) with nested sub-lists,
+// ReactMarkdown produces [<p>, <ul>] as children — two elements — so the
+// old single-child check failed and the inner <p mb-2> was kept, adding
+// unwanted vertical spacing inside list items.
+// This version strips <p> wrappers from ALL children, regardless of count.
+function unwrapParagraphs(children: React.ReactNode): React.ReactNode {
+  return React.Children.map(children, (child) => {
+    if (React.isValidElement(child) && child.type === "p") {
+      return (child.props as { children?: React.ReactNode }).children;
+    }
+    return child;
+  });
 }
 
 export const Markdown = memo(function Markdown({ content, className, enableEnrichment = true, enableLocalImageRender = true }: MarkdownProps) {
@@ -211,7 +219,7 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
     const enrich = (children: React.ReactNode) => (enableEnrichment ? enrichChildren(children, fileMap) : children);
     return {
       p: ({ children }) => <p className="mb-2 last:mb-0">{enrich(children)}</p>,
-      li: ({ children }) => <li className="ml-2">{enrich(unwrapSingleParagraph(children))}</li>,
+      li: ({ children }) => <li>{enrich(unwrapParagraphs(children))}</li>,
       strong: ({ children }) => <strong>{enrich(children)}</strong>,
       em: ({ children }) => <em>{enrich(children)}</em>,
       td: ({ children }) => <td className="border border-border px-2 py-1">{enrich(children)}</td>,
@@ -219,8 +227,8 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
       h1: ({ children }) => <h1 className="text-base font-bold mt-4 mb-2">{children}</h1>,
       h2: ({ children }) => <h2 className="text-sm font-bold mt-3 mb-2">{children}</h2>,
       h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
-      ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
-      ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+      ul: ({ children }) => <ul className="list-disc list-outside pl-5 mb-2 space-y-1">{children}</ul>,
+      ol: ({ children }) => <ol className="list-decimal list-outside pl-5 mb-2 space-y-1">{children}</ol>,
       a: ({ href, children }) => (
         <a href={href} className="text-blue-600 dark:text-blue-400 underline hover:no-underline" target="_blank" rel="noopener noreferrer">
           {children}
