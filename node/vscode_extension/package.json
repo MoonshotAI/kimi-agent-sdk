@@ -81,6 +81,14 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "kimi.customRules": {
+          "type": "array",
+          "default": [],
+          "description": "Custom rules to prepend to the first message of each conversation",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

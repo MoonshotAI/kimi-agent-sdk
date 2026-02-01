@@ -36,6 +36,7 @@ export interface ExtensionConfig {
   useCtrlEnterToSend: boolean;
   enableNewConversationShortcut: boolean;
   environmentVariables: Record<string, string>;
+  customRules: string[];
 }
 
 export interface WorkspaceStatus {

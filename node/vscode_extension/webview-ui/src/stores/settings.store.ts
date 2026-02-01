@@ -10,6 +10,7 @@ export const DEFAULT_EXTENSION_CONFIG: ExtensionConfig = {
   useCtrlEnterToSend: false,
   enableNewConversationShortcut: false,
   environmentVariables: {},
+  customRules: [],
 };
 
 export function getModelThinkingMode(model: ModelConfig): ThinkingMode {

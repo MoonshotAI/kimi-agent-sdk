@@ -30,6 +30,10 @@ export const VSCodeSettings = {
     return getConfig().get<Record<string, string>>("environmentVariables", {});
   },
 
+  get customRules(): string[] {
+    return getConfig().get<string[]>("customRules", []);
+  },
+
   getExtensionConfig(): ExtensionConfig {
     return {
       executablePath: this.executablePath,
@@ -38,6 +42,7 @@ export const VSCodeSettings = {
       useCtrlEnterToSend: this.useCtrlEnterToSend,
       enableNewConversationShortcut: this.enableNewConversationShortcut,
       environmentVariables: this.environmentVariables,
+      customRules: this.customRules,
     };
   },
 };
@@ -47,7 +52,7 @@ export function onSettingsChange(callback: (changedKeys: string[]) => void): vsc
     if (!e.affectsConfiguration("kimi")) {
       return;
     }
-    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables"];
+    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables", "customRules"];
     const changedKeys = keys.filter((key) => e.affectsConfiguration(`kimi.${key}`));
     if (changedKeys.length > 0) {
       callback(changedKeys);

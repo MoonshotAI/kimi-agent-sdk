@@ -9,7 +9,7 @@ function getAudioContext(): AudioContext {
   if (!audioContext) {
     audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
   }
-  return audioContext;
+  return audioContext; 
 }
 
 /**

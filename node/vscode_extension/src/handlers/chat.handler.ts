@@ -69,6 +69,61 @@ function tryParseAndSaveBaseline(call: PendingToolCall, workDir: string, session
   return false;
 }
 
+function isFirstRequest(session: { state: string }): boolean {
+  return session.state === "idle";
+}
+
+function joinRules(rules: string[]): string {
+  return rules.join("\n");
+}
+
+function prependCustomRules(content: string | ContentPart[], rules: string[]): string | ContentPart[] {
+  if (rules.length === 0) {
+    return content;
+  }
+
+  const rulesText = joinRules(rules);
+
+  if (typeof content === "string") {
+    return `${rulesText}\n\n${content}`;
+  }
+
+  // For ContentPart array, prepend as a text part
+  const textPart: ContentPart = { type: "text", text: `${rulesText}\n\n` };
+  return [textPart, ...content];
+}
+
+function stripCustomRules(content: string | ContentPart[], rules: string[]): string | ContentPart[] {
+  if (rules.length === 0) {
+    return content;
+  }
+
+  const rulesPrefix = joinRules(rules) + "\n\n";
+
+  if (typeof content === "string") {
+    if (content.startsWith(rulesPrefix)) {
+      return content.slice(rulesPrefix.length);
+    }
+    return content;
+  }
+
+  // For ContentPart array
+  if (content.length === 0) {
+    return content;
+  }
+
+  const firstPart = content[0];
+  if (firstPart.type === "text" && firstPart.text?.startsWith(rulesPrefix)) {
+    const strippedText = firstPart.text.slice(rulesPrefix.length);
+    if (strippedText) {
+      return [{ ...firstPart, text: strippedText }, ...content.slice(1)];
+    }
+    return content.slice(1);
+  }
+
+  return content;
+}
+
 const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, ctx) => {
   if (!ctx.workDir) {
     ctx.broadcast(
@@ -106,7 +161,14 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   let lastToolCallId: string | null = null;
 
   try {
-    const turn = session.prompt(params.content);
+    // Prepend custom rules on first request of the session
+    const isFirst = isFirstRequest(session);
+    const customRules = VSCodeSettings.customRules;
+    const content = isFirst
+      ? prependCustomRules(params.content, customRules)
+      : params.content;
+
+    const turn = session.prompt(content);
     ctx.setTurn(turn);
 
     let result: RunResult = { status: "finished" };
@@ -115,6 +177,19 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
       const eventAny = event as any;
       const eventType = event.type;
       const payload = eventAny.payload;
+
+      // TurnBegin: Strip custom rules from user_input for UI display
+      let broadcastEvent = event;
+      if (isFirst && eventType === "TurnBegin" && payload?.user_input) {
+        const strippedUserInput = stripCustomRules(payload.user_input, customRules);
+        broadcastEvent = {
+          ...event,
+          payload: {
+            ...payload,
+            user_input: strippedUserInput,
+          },
+        };
+      }
 
       // ToolCall: Record and try to save baseline immediately if args are complete
       if (eventType === "ToolCall" && payload?.id) {
@@ -156,7 +231,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         }
       }
 
-      ctx.broadcast(Events.StreamEvent, event, ctx.webviewId);
+      ctx.broadcast(Events.StreamEvent, broadcastEvent, ctx.webviewId);
     }
 
     result = await turn.result;
