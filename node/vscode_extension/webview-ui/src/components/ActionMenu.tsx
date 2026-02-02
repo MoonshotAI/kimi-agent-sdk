@@ -24,17 +24,7 @@ function MenuSection({ title, subtitle, children }: { title: string; subtitle?: 
   );
 }
 
-function MenuItem({
-  onClick,
-  disabled,
-  danger,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-  children: React.ReactNode;
-}) {
+function MenuItem({ onClick, disabled, danger, children }: { onClick: () => void; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
@@ -127,13 +117,7 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
 
         <MenuSection title="Account">
           <MenuItem onClick={handleAuthAction} disabled={loading} danger={isLoggedIn}>
-            {loading ? (
-              <IconLoader2 className="size-4 animate-spin" />
-            ) : isLoggedIn ? (
-              <IconLogout className="size-4" />
-            ) : (
-              <IconLogin className="size-4 text-muted-foreground" />
-            )}
+            {loading ? <IconLoader2 className="size-4 animate-spin" /> : isLoggedIn ? <IconLogout className="size-4" /> : <IconLogin className="size-4 text-muted-foreground" />}
             <span className="flex-1">{loading ? "Processing..." : isLoggedIn ? "Sign out" : "Sign in"}</span>
           </MenuItem>
         </MenuSection>

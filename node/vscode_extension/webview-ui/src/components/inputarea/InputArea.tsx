@@ -94,7 +94,11 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     }
   });
 
-  const { handleKey: handleHistoryKey, add: addToHistory, reset: resetHistoryIndex } = useInputHistory({
+  const {
+    handleKey: handleHistoryKey,
+    add: addToHistory,
+    reset: resetHistoryIndex,
+  } = useInputHistory({
     text,
     setText,
     onHeightChange: () => setTimeout(adjustHeight, 0),

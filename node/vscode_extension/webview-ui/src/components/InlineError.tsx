@@ -30,11 +30,7 @@ export function InlineError({ error }: InlineErrorProps) {
           Retry
         </Button>
       </div>
-      {showDetail && (
-        <div className="text-[10px] text-red-500/70 dark:text-red-400/70 pl-6 font-mono break-all">
-          {error.detail}
-        </div>
-      )}
+      {showDetail && <div className="text-[10px] text-red-500/70 dark:text-red-400/70 pl-6 font-mono break-all">{error.detail}</div>}
     </div>
   );
 }

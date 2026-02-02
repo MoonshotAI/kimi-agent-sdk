@@ -46,11 +46,7 @@ export function FileLink({ path, display }: { path: string; display: string }) {
     [path],
   );
   return (
-    <button
-      type="button"
-      className="hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer break-all text-left"
-      onClick={onClick}
-    >
+    <button type="button" className="hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer break-all text-left" onClick={onClick}>
       {display}
     </button>
   );
@@ -141,17 +137,7 @@ function ColorEnrichedText({ text }: { text: string }) {
   );
 }
 
-const CodeBlock = memo(function CodeBlock({
-  code,
-  language,
-  enableHighlight,
-  style,
-}: {
-  code: string;
-  language?: string;
-  enableHighlight: boolean;
-  style?: any;
-}) {
+const CodeBlock = memo(function CodeBlock({ code, language, enableHighlight, style }: { code: string; language?: string; enableHighlight: boolean; style?: any }) {
   return (
     <div className="relative group/code">
       <CopyButton content={code} className="absolute right-1 top-1 opacity-0 group-hover/code:opacity-100" />
@@ -266,14 +252,7 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
             </code>
           );
         }
-        return (
-          <CodeBlock
-            code={code}
-            language={match?.[1]}
-            enableHighlight={enableEnrichment && !!match}
-            style={codeStyle}
-          />
-        );
+        return <CodeBlock code={code} language={match?.[1]} enableHighlight={enableEnrichment && !!match} style={codeStyle} />;
       },
     };
   }, [enableEnrichment, enableLocalImageRender, fileMap, codeStyle]);

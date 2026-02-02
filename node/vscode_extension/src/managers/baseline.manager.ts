@@ -23,7 +23,7 @@ function countLines(content: string): number {
 }
 
 function computeLineDiff(oldContent: string, newContent: string): { additions: number; deletions: number } {
-  const normalize = (str: string) => str ? str.replace(/\r\n/g, "\n").split("\n") : [];
+  const normalize = (str: string) => (str ? str.replace(/\r\n/g, "\n").split("\n") : []);
 
   const oldLines = normalize(oldContent);
   const newLines = normalize(newContent);

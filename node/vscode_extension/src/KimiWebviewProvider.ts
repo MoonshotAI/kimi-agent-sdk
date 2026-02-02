@@ -29,12 +29,7 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
     workspaceState: vscode.Memento,
     showLogs: () => void,
   ) {
-    this.bridgeHandler = new BridgeHandler(
-      this.broadcastInternal.bind(this),
-      workspaceState,
-      this.reloadWebview.bind(this),
-      showLogs,
-    );
+    this.bridgeHandler = new BridgeHandler(this.broadcastInternal.bind(this), workspaceState, this.reloadWebview.bind(this), showLogs);
   }
 
   dispose(): void {

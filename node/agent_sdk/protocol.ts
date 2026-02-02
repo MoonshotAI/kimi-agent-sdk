@@ -214,7 +214,7 @@ export class ProtocolClient {
   }
 
   sendCancel(): Promise<void> {
-    return this.sendRequest("cancel").then(() => { });
+    return this.sendRequest("cancel").then(() => {});
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
