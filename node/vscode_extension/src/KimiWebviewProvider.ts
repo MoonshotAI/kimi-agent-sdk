@@ -27,11 +27,13 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
   constructor(
     private readonly extensionUri: vscode.Uri,
     workspaceState: vscode.Memento,
+    showLogs: () => void,
   ) {
     this.bridgeHandler = new BridgeHandler(
       this.broadcastInternal.bind(this),
       workspaceState,
       this.reloadWebview.bind(this),
+      showLogs,
     );
   }
 
@@ -102,6 +104,12 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
     if (webview) {
       webview.html = this.getHtml(webviewId, webview);
     }
+  }
+
+  reloadAllWebviews(): void {
+    this.webviews.forEach((webview, webviewId) => {
+      webview.html = this.getHtml(webviewId, webview);
+    });
   }
 
   private getHtml(webviewId: string, webview: vscode.Webview): string {

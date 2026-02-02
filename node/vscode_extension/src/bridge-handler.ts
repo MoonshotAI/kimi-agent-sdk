@@ -1,9 +1,8 @@
 import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
-import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn } from "./handlers";
+import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn, type ShowLogsFn } from "./handlers";
 import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
-import { EXTENSION_VERSION } from "./constants";
 
 interface RpcMessage {
   id: string;
@@ -26,6 +25,7 @@ export class BridgeHandler {
     private broadcast: BroadcastFn,
     private workspaceState: vscode.Memento,
     private reloadWebview: ReloadWebviewFn,
+    private showLogs: ShowLogsFn,
   ) {
     this.fileManager = new FileManager(() => this.workDir, broadcast);
   }
@@ -73,6 +73,7 @@ export class BridgeHandler {
       broadcast: this.broadcast,
       fileManager: this.fileManager,
       reloadWebview: () => this.reloadWebview(webviewId),
+      showLogs: this.showLogs,
       getSession: () => this.sessions.get(webviewId),
       getSessionId: () => this.fileManager.getSessionId(webviewId),
       getTurn: () => this.turns.get(webviewId),
@@ -155,7 +156,7 @@ export class BridgeHandler {
       sessionId,
       executable,
       env,
-      clientInfo: { name: "kimi-code-for-vs-code", version: EXTENSION_VERSION },
+      clientInfo: { name: "kimi-code-for-vs-code", version: VSCodeSettings.getExtensionConfig().version },
     });
 
     this.sessions.set(webviewId, session);

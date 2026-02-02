@@ -1,6 +1,8 @@
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../../shared/types";
-import { EXTENSION_VERSION } from "../constants";
+
+declare const __EXTENSION_VERSION__: string;
+const EXTENSION_VERSION = typeof __EXTENSION_VERSION__ !== "undefined" ? __EXTENSION_VERSION__ : "0.0.0";
 
 function getConfig() {
   return vscode.workspace.getConfiguration("kimi");

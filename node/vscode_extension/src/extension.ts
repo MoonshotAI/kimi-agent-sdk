@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   initCLIManager(context);
 
-  provider = new KimiWebviewProvider(context.extensionUri, context.workspaceState);
+  provider = new KimiWebviewProvider(context.extensionUri, context.workspaceState, () => outputChannel.show());
 
   // Initialize context state
   updateLoginContext();
@@ -118,6 +118,10 @@ export function activate(context: vscode.ExtensionContext) {
     },
     "kimi.showLogs": () => {
       outputChannel.show();
+    },
+    "kimi.resetKimi": async () => {
+      log("Resetting Kimi");
+      provider.reloadAllWebviews();
     },
     "kimi.logout": async () => {
       log("Logout requested via command palette");

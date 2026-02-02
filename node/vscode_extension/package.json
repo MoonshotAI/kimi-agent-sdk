@@ -120,6 +120,11 @@
         "icon": "$(output)"
       },
       {
+        "command": "kimi.resetKimi",
+        "title": "Kimi Code: Reset Kimi (in case of any issues/no response)",
+        "icon": "$(refresh)"
+      },
+      {
         "command": "kimi.logout",
         "title": "Kimi Code: Logout",
         "icon": "$(sign-out)"
@@ -196,6 +201,10 @@
         },
         {
           "command": "kimi.showLogs",
+          "when": "true"
+        },
+        {
+          "command": "kimi.resetKimi",
           "when": "true"
         },
         {

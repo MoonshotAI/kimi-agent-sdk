@@ -24,8 +24,8 @@ const getModels: Handler<void, KimiConfig> = async () => {
   return parseConfig();
 };
 
-const showLogs: Handler<void, { ok: boolean }> = async () => {
-  await vscode.commands.executeCommand("kimi.showLogs");
+const showLogs: Handler<void, { ok: boolean }> = async (_, ctx) => {
+  ctx.showLogs();
   return { ok: true };
 };
 

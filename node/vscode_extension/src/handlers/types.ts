@@ -6,6 +6,8 @@ export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => 
 
 export type ReloadWebviewFn = (webviewId: string) => void;
 
+export type ShowLogsFn = () => void;
+
 export interface HandlerContext {
   webviewId: string;
   workDir: string | null;
@@ -14,6 +16,7 @@ export interface HandlerContext {
   broadcast: BroadcastFn;
   fileManager: FileManager;
   reloadWebview: () => void;
+  showLogs: () => void;
 
   getSession: () => Session | undefined;
   getSessionId: () => string | null;
