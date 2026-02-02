@@ -97,7 +97,7 @@ export default function App() {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
         <Header />
-        <ConfigErrorScreen type="no-models" cliResult={cliResult} errorMessage={errorMessage} onRefresh={refresh} />
+        <ConfigErrorScreen type="no-models" cliResult={cliResult} errorMessage={errorMessage} onRefresh={refresh} onBackToLogin={() => setSkippedLogin(false)} />
         <Toaster position="top-center" />
       </div>
     );

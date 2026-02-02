@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconRefresh, IconChevronRight } from "@tabler/icons-react";
+import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconChevronRight, IconArrowLeft, IconRefresh } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { KimiMascot } from "./KimiMascot";
 import { bridge } from "@/services";
@@ -10,6 +10,7 @@ interface Props {
   cliResult?: CLICheckResult | null;
   errorMessage?: string | null;
   onRefresh?: () => void;
+  onBackToLogin?: () => void;
 }
 
 const CLI_ERROR_TITLES: Record<CLIErrorType, string> = {
@@ -36,12 +37,8 @@ function ManualSetupHint() {
               kimi.com/code
             </a>
           </li>
-          <li>
-            Run <code className="bg-muted px-1 rounded">kimi</code> in terminal
-          </li>
-          <li>
-            Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions
-          </li>
+          <li> Run <code className="bg-muted px-1 rounded">kimi</code> in terminal </li>
+          <li> Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions </li>
         </ol>
       )}
     </div>
@@ -117,7 +114,7 @@ function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
   );
 }
 
-function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
+function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void; onBackToLogin?: () => void }) {
   return (
     <>
       <div className="space-y-2">
@@ -150,17 +147,27 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
         </div>
       </div>
 
-      {onRefresh && (
-        <Button onClick={onRefresh} variant="outline" className="gap-2">
-          <IconRefresh className="size-4" />
-          Reload Configuration
-        </Button>
+      {(onBackToLogin || onRefresh) && (
+        <div className="flex flex-col min-[400px]:flex-row min-[400px]:justify-between gap-2 w-full">
+          {onBackToLogin && (
+            <Button onClick={onBackToLogin} variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+              <IconArrowLeft className="size-3" />
+              Back to Login
+            </Button>
+          )}
+          {onRefresh && (
+            <Button onClick={onRefresh} variant="ghost" size="sm" className="gap-1 text-muted-foreground">
+              <IconRefresh className="size-3" />
+              Reload
+            </Button>
+          )}
+        </div>
       )}
     </>
   );
 }
 
-export function ConfigErrorScreen({ type, cliResult, onRefresh }: Props) {
+export function ConfigErrorScreen({ type, cliResult, onRefresh, onBackToLogin }: Props) {
   if (type === "loading") {
     return (
       <div className="h-full flex items-center justify-center p-6">
@@ -215,7 +222,7 @@ export function ConfigErrorScreen({ type, cliResult, onRefresh }: Props) {
       <div className="h-full flex items-center justify-center p-6">
         <div className="max-w-sm text-center space-y-6">
           <KimiMascot className="h-10 mx-auto opacity-50" />
-          <NoModelsContent onRefresh={onRefresh} />
+          <NoModelsContent onRefresh={onRefresh} onBackToLogin={onBackToLogin} />
         </div>
       </div>
     );
