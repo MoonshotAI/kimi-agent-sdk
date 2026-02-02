@@ -40,7 +40,7 @@ function ManualSetupHint() {
             Run <code className="bg-muted px-1 rounded">kimi</code> in terminal
           </li>
           <li>
-            Type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key
+            Type <code className="bg-muted px-1 rounded">/login</code> and enter your API key
           </li>
         </ol>
       )}
@@ -130,7 +130,7 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
 
       <div className="space-y-4">
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
-          <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Kimi Code</p>
+          <p className="text-xs font-medium text-foreground">Option 1: Subscribe to Kimi Code (Recommended)</p>
           <a href="https://kimi.com/code" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 text-xs text-foreground hover:underline">
             <IconExternalLink className="size-4" />
             kimi.com/code
@@ -140,7 +140,7 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <p className="text-xs font-medium text-foreground">Option 2: Use your own API key</p>
           <p className="text-xs text-muted-foreground">
-            Run <code className="bg-muted px-1 rounded">/setup</code> in terminal and enter your API key.
+            Run <code className="bg-muted px-1 rounded">/login</code> in terminal and enter your API key.
           </p>
           <Button onClick={() => bridge.runCLI()} variant="outline" size="sm" className="gap-2 w-full">
             <IconTerminal2 className="size-4" />
