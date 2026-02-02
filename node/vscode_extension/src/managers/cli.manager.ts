@@ -90,17 +90,21 @@ export class CLIManager {
     }
 
     const asset = manifest.platforms[platform];
+    console.log(`[Kimi Code] Installing CLI for platform: ${platform}, asset:`, asset, `installed info:`, installed, "manifest:", manifest);
 
     if (asset) {
       if (manifest.bundledPlatform === platform) {
+        console.log(`[Kimi Code] Extracting bundled CLI for ${platform}...`);
         const archiveExt = asset.filename.endsWith(".zip") ? "zip" : "tar.gz";
         extractBundledCLI(path.join(this.extensionBinPath, `archive.${archiveExt}`), this.kimiPath);
       } else {
+        console.log(`[Kimi Code] Platform ${platform} not matched bundled, downloading CLI...`);
         vscode.window.showInformationMessage(`Downloading Kimi CLI for ${platform}...`);
         await downloadAndInstallCLI(asset, this.kimiPath);
       }
       writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "native" });
     } else {
+      console.log(`[Kimi Code] Platform ${platform} not supported natively, installing via uv...`);
       vscode.window.showInformationMessage(
         `Native CLI not available for ${platform}. Installing via uv (first run may take a moment)...`
       );
