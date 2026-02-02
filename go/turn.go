@@ -77,9 +77,9 @@ func (t *Turn) watch(parent context.Context) {
 }
 
 func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
-	defer t.Cancel()
-	defer close(t.wireRequestResponseChan)
 	defer close(steps)
+	defer close(t.wireRequestResponseChan)
+	defer t.Cancel()
 	var (
 		outgoing chan wire.Message
 		turnEnd  bool
