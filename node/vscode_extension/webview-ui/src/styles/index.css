@@ -186,3 +186,15 @@ body {
 .slide-in-from-bottom-2 {
   --tw-enter-translate-y: 0.5rem;
 }
+
+.kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0.1em 0.4em;
+  margin-right: 0.4em;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.9em;
+  background: var(--muted);
+  border-radius: 3px;
+  text-align: center;
+}
