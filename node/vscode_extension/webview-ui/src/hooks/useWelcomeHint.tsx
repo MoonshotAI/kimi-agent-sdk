@@ -24,7 +24,7 @@ function ShortcutGuide() {
         <div className="font-medium text-foreground mb-1.5">⚡ Commands</div>
         <div className="text-muted-foreground space-y-1">
           <ShortcutRow kbd="/">View all commands</ShortcutRow>
-          <ShortcutRow kbd="/init">Scan project and generate AGENT.md file</ShortcutRow>
+          <ShortcutRow kbd="/init">Scan project and generate AGENTS.md file</ShortcutRow>
           <ShortcutRow kbd="/compact">Trim context so that I focus on the essentials</ShortcutRow>
         </div>
       </div>
@@ -40,7 +40,7 @@ function ShortcutGuide() {
         <div className="font-medium text-foreground mb-1.5">🚀 Pro Tips</div>
         <div className="text-muted-foreground space-y-1">
           <div>• Use YOLO mode to auto-approve tool calls</div>
-          <div>• Paste images directly to describe your needs</div>
+          <div>• AGENTS.md helps me understand your codebase</div>
           <div>• Enable Thinking for complex tasks</div>
         </div>
       </div>
