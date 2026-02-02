@@ -164,6 +164,12 @@ func roundtrip[T any, R any, I interface {
 	Cargo[R]
 	*T
 }](ctx context.Context, s *Session, constructor Constructor[T, R]) (*T, error) {
+	// Check if context is already cancelled before starting any work
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
 	var (
 		bg                      sync.WaitGroup
 		id                      = atomic.AddUint64(&s.seq, 1)
