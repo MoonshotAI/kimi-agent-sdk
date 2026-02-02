@@ -1,6 +1,6 @@
 import { bridge } from "@/services";
 import { useApprovalStore } from "./approval.store";
-import { isPreflightError, getUserMessage, isUserInterrupt } from "shared/errors";
+import { isPreflightError, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent, StreamError } from "shared/types";
@@ -308,13 +308,11 @@ const eventHandlers: Record<string, EventHandler> = {
 
   error: (draft, payload: StreamError) => {
     const code = payload.code || "UNKNOWN";
-    const message = getUserMessage(code, payload.message);
     const phase = payload.phase || (isPreflightError(code) ? "preflight" : "runtime");
 
     if (phase === "preflight") {
-      handlePreflightError(draft, code, message);
+      handlePreflightError(draft, code, payload.message);
     } else {
-      // 用户主动停止不显示错误
       if (isUserInterrupt(code)) {
         addTokenUsage(draft.tokenUsage, draft.activeTokenUsage);
         draft.activeTokenUsage = createEmptyTokenUsage();
@@ -326,8 +324,7 @@ const eventHandlers: Record<string, EventHandler> = {
           finishAllTextItems(lastAssistant.steps);
         }
       } else {
-        // 传递原始错误信息作为 detail，方便用户截图反馈
-        handleRuntimeError(draft, code, message, payload.message);
+        handleRuntimeError(draft, code, payload.message, payload.detail);
       }
     }
   },

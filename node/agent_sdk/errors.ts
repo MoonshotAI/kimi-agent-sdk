@@ -104,11 +104,12 @@ export class CliError extends AgentSdkError {
     public readonly code: CliErrorCodeType,
     message: string,
     public readonly numericCode?: number,
+    public readonly rawResponse?: string, // 完整的原始 JSON 响应
   ) {
     super(message);
   }
 
-  static fromRpcError(rpcCode: number, message: string): CliError | ProtocolError {
+  static fromRpcError(rpcCode: number, message: string, rawJson?: string): CliError | ProtocolError {
     // JSON-RPC 2.0 standard errors
     const protocolCodeMap: Record<number, ProtocolErrorCodeType> = {
       [-32700]: ProtocolErrorCodes.INVALID_JSON,
@@ -128,7 +129,7 @@ export class CliError extends AgentSdkError {
       [-32003]: CliErrorCodes.CHAT_PROVIDER_ERROR,
     };
 
-    return new CliError(cliCodeMap[rpcCode] ?? CliErrorCodes.UNKNOWN, message, rpcCode);
+    return new CliError(cliCodeMap[rpcCode] ?? CliErrorCodes.UNKNOWN, message, rpcCode, rawJson);
   }
 }
 
