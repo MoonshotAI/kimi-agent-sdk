@@ -30,16 +30,21 @@ function ManualSetupHint() {
         Manual setup
       </button>
       {expanded && (
-        <ol className="mt-2 ml-3.5 space-y-1 list-decimal list-outside marker:text-muted-foreground/50">
-          <li>
-            Install CLI from{" "}
-            <a href="https://kimi.com/code" target="_blank" className="underline hover:text-foreground">
-              kimi.com/code
-            </a>
-          </li>
-          <li> Run <code className="bg-muted px-1 rounded">kimi</code> in terminal </li>
-          <li> Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions </li>
-        </ol>
+        <>
+          <ol className="mt-2 ml-3.5 space-y-1 list-decimal list-outside marker:text-muted-foreground/50">
+            <li>
+              Install CLI from{" "}
+              <a href="https://kimi.com/code" target="_blank" className="underline hover:text-foreground">
+                kimi.com/code
+              </a>
+            </li>
+            <li> Run <code className="bg-muted px-1 rounded">kimi</code> in terminal </li>
+            <li> Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions </li>
+          </ol>
+          <span className="mt-1 block text-[11px] text-muted-foreground/70">
+            * For remote development, ensure CLI is installed in the remote environment
+          </span>
+        </>
       )}
     </div>
   );
