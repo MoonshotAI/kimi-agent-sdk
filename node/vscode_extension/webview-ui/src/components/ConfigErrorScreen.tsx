@@ -40,7 +40,7 @@ function ManualSetupHint() {
             Run <code className="bg-muted px-1 rounded">kimi</code> in terminal
           </li>
           <li>
-            Type <code className="bg-muted px-1 rounded">/login</code> and enter your API key
+            Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions
           </li>
         </ol>
       )}
@@ -140,7 +140,7 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <p className="text-xs font-medium text-foreground">Option 2: Use your own API key</p>
           <p className="text-xs text-muted-foreground">
-            Run <code className="bg-muted px-1 rounded">/login</code> in terminal and enter your API key.
+            Type <code className="bg-muted px-1 rounded">/login</code> in terminal and  follow the instructions.
           </p>
           <Button onClick={() => bridge.runCLI()} variant="outline" size="sm" className="gap-2 w-full">
             <IconTerminal2 className="size-4" />
