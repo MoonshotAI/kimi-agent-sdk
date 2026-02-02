@@ -107,7 +107,7 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
             <IconFileText className="size-4 text-muted-foreground" />
             <span className="flex-1">Show Logs</span>
           </MenuItem>
-          <MenuItem onClick={handleReset} disabled={isStreaming}>
+          <MenuItem onClick={handleReset}>
             <IconRefresh className="size-4 text-muted-foreground" />
             <span className="flex-1">Reset Kimi</span>
           </MenuItem>
