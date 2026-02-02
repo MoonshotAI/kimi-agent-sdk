@@ -3,4 +3,5 @@ dist
 node_modules
 .vscode-test/
 *.vsix
-vscode_extension/bin
+vscode_extension/bin/*
+!vscode_extension/bin/uv-wrapper

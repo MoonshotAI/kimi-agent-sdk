@@ -2,4 +2,4 @@ export { CLIManager, getCLIManager, initCLIManager, compareVersion } from "./cli
 export { MCPManager } from "./mcp.manager";
 export { BaselineManager } from "./baseline.manager";
 export { FileManager, type BroadcastFn } from "./file.manager";
-export { getPlatformKey, readManifest, readInstalled, writeInstalled, downloadAndInstall, type Manifest, type PlatformAsset, type InstalledInfo } from "./cli-downloader";
+export { getPlatformKey, getPlatformInfo, readManifest, readInstalled, writeInstalled, extractBundledCLI, downloadAndInstallCLI, downloadAndInstallUV, copyUVWrapper, type Manifest, type PlatformAsset, type InstalledInfo } from "./cli-downloader";

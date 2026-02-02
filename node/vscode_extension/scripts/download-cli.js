@@ -15,9 +15,7 @@ const PLATFORMS = {
 };
 
 function getToken() {
-  if (process.env.GITHUB_TOKEN) {
-    return process.env.GITHUB_TOKEN;
-  }
+  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
   try {
     return execSync("gh auth token", { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }).trim();
   } catch {
@@ -28,27 +26,18 @@ function getToken() {
 async function request(url) {
   const headers = { "User-Agent": "kimi-vscode" };
   const token = getToken();
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(url, { headers });
-  if (!res.ok) {
-    throw new Error(`HTTP ${res.status}: ${url}`);
-  }
-  return res;
-}
+  if (token) headers["Authorization"] = `Bearer ${token}`;
 
-async function fetchRelease() {
-  const res = await request(`https://api.github.com/repos/${REPO}/releases/latest`);
-  return res.json();
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  return res;
 }
 
 async function buildManifest(release, bundledPlatform) {
   const version = release.tag_name.replace(/^v/, "");
-  const tag = release.tag_name;
-
   const platforms = {};
-  for (const [platformKey, info] of Object.entries(PLATFORMS)) {
+
+  for (const [key, info] of Object.entries(PLATFORMS)) {
     const filename = `kimi-${version}-${info.target}.${info.ext}`;
     const asset = release.assets.find((a) => a.name === filename);
     const sha256Asset = release.assets.find((a) => a.name === `${filename}.sha256`);
@@ -56,8 +45,7 @@ async function buildManifest(release, bundledPlatform) {
     if (asset && sha256Asset) {
       const sha256Res = await request(sha256Asset.browser_download_url);
       const sha256Text = await sha256Res.text();
-
-      platforms[platformKey] = {
+      platforms[key] = {
         filename,
         url: asset.browser_download_url,
         sha256: sha256Text.trim().split(/\s+/)[0],
@@ -65,7 +53,7 @@ async function buildManifest(release, bundledPlatform) {
     }
   }
 
-  return { version, tag, bundledPlatform, platforms };
+  return { version, tag: release.tag_name, bundledPlatform, platforms };
 }
 
 async function main() {
@@ -76,38 +64,30 @@ async function main() {
   }
 
   const binDir = path.join(__dirname, "..", "bin", "kimi");
-  const archiveName = `archive.${info.ext}`;
+  fs.mkdirSync(binDir, { recursive: true });
 
   console.log("Fetching release info...");
-  const release = await fetchRelease();
+  const release = await (await request(`https://api.github.com/repos/${REPO}/releases/latest`)).json();
   const manifest = await buildManifest(release, platform);
-
-  const { version, tag } = manifest;
   const asset = manifest.platforms[platform];
-  if (!asset) {
-    throw new Error(`Asset not found for platform: ${platform}`);
+
+  if (asset) {
+    console.log(`Downloading ${asset.filename}...`);
+    const data = Buffer.from(await (await request(asset.url)).arrayBuffer());
+
+    const actualHash = crypto.createHash("sha256").update(data).digest("hex");
+    if (actualHash !== asset.sha256) {
+      throw new Error(`Checksum mismatch!\nExpected: ${asset.sha256}\nActual:   ${actualHash}`);
+    }
+    console.log("Checksum verified ✓");
+
+    fs.writeFileSync(path.join(binDir, `archive.${info.ext}`), data);
+  } else {
+    console.log(`No native CLI for ${platform}, will use UV fallback at runtime`);
   }
 
-  console.log(`Downloading ${asset.filename}...`);
-  const dataRes = await request(asset.url);
-  const data = Buffer.from(await dataRes.arrayBuffer());
-
-  console.log("Verifying checksum...");
-  const actualHash = crypto.createHash("sha256").update(data).digest("hex");
-  if (actualHash !== asset.sha256) {
-    throw new Error(`Checksum mismatch!\nExpected: ${asset.sha256}\nActual:   ${actualHash}`);
-  }
-  console.log("Checksum verified ✓");
-
-  fs.mkdirSync(binDir, { recursive: true });
-  fs.writeFileSync(path.join(binDir, archiveName), data);
-  fs.writeFileSync(path.join(binDir, "version.json"), JSON.stringify({ version, tag }, null, 2));
   fs.writeFileSync(path.join(binDir, "manifest.json"), JSON.stringify(manifest, null, 2));
-
-  console.log(`Saved to bin/kimi/${archiveName}`);
-  console.log(`Saved to bin/kimi/manifest.json`);
-  console.log(`Version: ${version} (${tag})`);
-  console.log(`Bundled platform: ${platform}`);
+  console.log(`Version: ${manifest.version} | Platform: ${platform}${asset ? "" : " (UV fallback)"}`);
 }
 
 main().catch((e) => {

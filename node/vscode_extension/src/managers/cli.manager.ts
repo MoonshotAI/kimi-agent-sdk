@@ -1,10 +1,20 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
-import { execSync, execFile } from "child_process";
+import { execFile } from "child_process";
 import { promisify } from "util";
 import { ProtocolClient, type InitializeResult } from "@moonshot-ai/kimi-agent-sdk";
-import { getPlatformKey, readManifest, readInstalled, writeInstalled, downloadAndInstall } from "./cli-downloader";
+import {
+  getPlatformKey,
+  getPlatformInfo,
+  readManifest,
+  readInstalled,
+  writeInstalled,
+  extractBundledCLI,
+  downloadAndInstallCLI,
+  downloadAndInstallUV,
+  copyUVWrapper,
+} from "./cli-downloader";
 import type { CLICheckResult } from "shared/types";
 
 const execAsync = promisify(execFile);
@@ -16,9 +26,7 @@ let instance: CLIManager;
 
 export const initCLIManager = (ctx: vscode.ExtensionContext) => (instance = new CLIManager(ctx));
 export const getCLIManager = () => {
-  if (!instance) {
-    throw new Error("CLI not init");
-  }
+  if (!instance) throw new Error("CLI not init");
   return instance;
 };
 
@@ -27,28 +35,31 @@ export function compareVersion(a: string, b: string): number {
   const v2 = b.split(".").map(Number);
   for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
     const diff = (v1[i] || 0) - (v2[i] || 0);
-    if (diff !== 0) {
-      return diff;
-    }
+    if (diff !== 0) return diff;
   }
   return 0;
 }
 
 export class CLIManager {
-  private globalStorageBinPath: string;
   private extensionBinPath: string;
+  private kimiPath: string;
+  private uvPath: string;
 
   constructor(private ctx: vscode.ExtensionContext) {
-    this.globalStorageBinPath = path.join(ctx.globalStorageUri.fsPath, "bin", "kimi");
+    const globalBin = path.join(ctx.globalStorageUri.fsPath, "bin");
     this.extensionBinPath = path.join(ctx.extensionUri.fsPath, "bin", "kimi");
+    this.kimiPath = path.join(globalBin, "kimi");
+    this.uvPath = path.join(globalBin, "uv");
   }
 
   getExecutablePath(): string {
-    const customPath = vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
-    if (customPath) {
-      return customPath;
-    }
-    return path.join(this.globalStorageBinPath, process.platform === "win32" ? "kimi.exe" : "kimi");
+    const custom = vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
+    if (custom) return custom;
+
+    const installed = readInstalled(this.kimiPath);
+    const info = getPlatformInfo();
+    const filename = installed?.type === "uv" ? info.wrapper : info.exe;
+    return path.join(this.kimiPath, filename);
   }
 
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
@@ -66,39 +77,38 @@ export class CLIManager {
   }
 
   private async ensureCLI(): Promise<boolean> {
-    if (this.isCustomPath()) {
-      return true;
-    }
+    if (this.isCustomPath()) return true;
 
     const manifest = readManifest(this.extensionBinPath);
-    if (!manifest) {
-      return false;
-    }
+    if (!manifest) return false;
 
     const platform = getPlatformKey();
-    const installed = readInstalled(this.globalStorageBinPath);
+    const installed = readInstalled(this.kimiPath);
 
-    // 已安装且匹配 → 跳过
     if (installed?.version === manifest.version && installed?.platform === platform) {
       return true;
     }
 
-    // 需要安装：解压或下载
-    const useBundle = manifest.bundledPlatform === platform;
-    if (useBundle) {
-      console.log(`Using bundled CLI for platform: ${platform}, extracting...`);
-      this.extractBundled();
-    } else {
-      vscode.window.showInformationMessage(`System Architecture (${platform}) not supported by bundled CLI. Downloading compatible version...`);
+    const asset = manifest.platforms[platform];
 
-      const asset = manifest.platforms[platform];
-      if (!asset) {
-        return false;
+    if (asset) {
+      if (manifest.bundledPlatform === platform) {
+        const archiveExt = asset.filename.endsWith(".zip") ? "zip" : "tar.gz";
+        extractBundledCLI(path.join(this.extensionBinPath, `archive.${archiveExt}`), this.kimiPath);
+      } else {
+        vscode.window.showInformationMessage(`Downloading Kimi CLI for ${platform}...`);
+        await downloadAndInstallCLI(asset, this.kimiPath);
       }
-      await downloadAndInstall(asset, this.globalStorageBinPath);
+      writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "native" });
+    } else {
+      vscode.window.showInformationMessage(
+        `Native CLI not available for ${platform}. Installing via uv (first run may take a moment)...`
+      );
+      await downloadAndInstallUV(this.uvPath);
+      copyUVWrapper(this.ctx.extensionUri.fsPath, this.kimiPath);
+      writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "uv" });
     }
 
-    writeInstalled(this.globalStorageBinPath, { version: manifest.version, platform });
     return true;
   }
 
@@ -127,49 +137,6 @@ export class CLIManager {
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
       return { ok: false, resolved, error: { type: "protocol_error", message: String(err) } };
-    }
-  }
-
-  private extractBundled(): void {
-    const isZip = process.platform === "win32";
-    const archivePath = path.join(this.extensionBinPath, isZip ? "archive.zip" : "archive.tar.gz");
-
-    if (!fs.existsSync(archivePath)) {
-      throw new Error(`Bundled archive not found: ${archivePath}`);
-    }
-
-    if (fs.existsSync(this.globalStorageBinPath)) {
-      fs.rmSync(this.globalStorageBinPath, { recursive: true, force: true });
-    }
-    fs.mkdirSync(this.globalStorageBinPath, { recursive: true });
-
-    const hasTar = (() => {
-      try {
-        execSync("tar --version", { stdio: "ignore" });
-        return true;
-      } catch {
-        return false;
-      }
-    })();
-
-    if (isZip && !hasTar) {
-      execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${archivePath}' -DestinationPath '${this.globalStorageBinPath}' -Force"`, { stdio: "ignore" });
-      const entries = fs.readdirSync(this.globalStorageBinPath);
-      if (entries.length === 1) {
-        const nested = path.join(this.globalStorageBinPath, entries[0]);
-        if (fs.statSync(nested).isDirectory()) {
-          for (const f of fs.readdirSync(nested)) {
-            fs.renameSync(path.join(nested, f), path.join(this.globalStorageBinPath, f));
-          }
-          fs.rmdirSync(nested);
-        }
-      }
-    } else {
-      execSync(`tar -xf "${archivePath}" -C "${this.globalStorageBinPath}" --strip-components=1`, { stdio: "ignore" });
-    }
-
-    if (process.platform !== "win32") {
-      fs.chmodSync(path.join(this.globalStorageBinPath, "kimi"), 0o755);
     }
   }
 

@@ -2,7 +2,7 @@ const { execSync } = require("child_process");
 const { rmSync, existsSync } = require("fs");
 const { join } = require("path");
 
-const ALL_TARGETS = ["darwin-arm64", "linux-arm64", "linux-x64", "win32-x64"];
+const ALL_TARGETS = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64"];
 
 // Use provided args or fallback to all targets
 const args = process.argv.slice(2);

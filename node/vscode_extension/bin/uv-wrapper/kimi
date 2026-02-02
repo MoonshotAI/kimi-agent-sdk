@@ -1,0 +1,7 @@
+#!/bin/bash
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+UV_ROOT="$SCRIPT_DIR/../uv"
+export UV_CACHE_DIR="$UV_ROOT/cache"
+export UV_TOOL_DIR="$UV_ROOT/tools"
+export UV_PYTHON_INSTALL_DIR="$UV_ROOT/python"
+exec "$UV_ROOT/bin/uvx" kimi-cli "$@"
