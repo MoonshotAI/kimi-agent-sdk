@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { Methods } from "../../shared/bridge";
+import { getCLIManager } from "../managers";
 import type { Handler } from "./types";
 import { WorkspaceStatus } from "shared/types";
 
@@ -15,6 +16,20 @@ const checkWorkspace: Handler<void, WorkspaceStatus> = async (_, ctx) => {
 
 const openFolder: Handler<void, { ok: boolean }> = async () => {
   await vscode.commands.executeCommand("vscode.openFolder");
+  return { ok: true };
+};
+
+const runCLI: Handler<{ args?: string[] }, { ok: boolean }> = async ({ args }) => {
+  const cliPath = getCLIManager().getExecutablePath();
+  const terminal = vscode.window.createTerminal({ name: "Kimi" });
+  terminal.show();
+  // Build command with quoted path and escaped args
+  const quotedPath = `"${cliPath}"`;
+
+  // Safe-guard args with spaces or special characters
+  // If arg contains spaces or quotes, wrap it in double quotes and escape existing double quotes
+  const safeArgs = (args || []).map((arg) => (/[\s"']/.test(arg) ? `"${arg.replace(/"/g, '\\"')}"` : arg));
+  terminal.sendText([quotedPath, ...safeArgs].join(" "));
   return { ok: true };
 };
 
@@ -38,6 +53,7 @@ const addInputHistory: Handler<{ text: string }, { ok: boolean }> = async ({ tex
 export const workspaceHandlers: Record<string, Handler<any, any>> = {
   [Methods.CheckWorkspace]: checkWorkspace,
   [Methods.OpenFolder]: openFolder,
+  [Methods.RunCLI]: runCLI,
   [Methods.GetInputHistory]: getInputHistory,
   [Methods.AddInputHistory]: addInputHistory,
 };

@@ -1,4 +1,5 @@
-import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconRefresh } from "@tabler/icons-react";
+import { useState } from "react";
+import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconRefresh, IconChevronRight } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { KimiMascot } from "./KimiMascot";
 import { bridge } from "@/services";
@@ -17,6 +18,35 @@ const CLI_ERROR_TITLES: Record<CLIErrorType, string> = {
   extract_failed: "Installation Failed",
   protocol_error: "Connection Error",
 };
+
+function ManualSetupHint() {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="text-xs text-muted-foreground/70">
+      <button onClick={() => setExpanded(!expanded)} className="inline-flex items-center gap-0.5 hover:text-muted-foreground">
+        <IconChevronRight className={`size-3 transition-transform ${expanded ? "rotate-90" : ""}`} />
+        Manual setup
+      </button>
+      {expanded && (
+        <ol className="mt-2 ml-3.5 space-y-1 list-decimal list-outside marker:text-muted-foreground/50">
+          <li>
+            Install CLI from{" "}
+            <a href="https://kimi.com/code" target="_blank" className="underline hover:text-foreground">
+              kimi.com/code
+            </a>
+          </li>
+          <li>
+            Run <code className="bg-muted px-1 rounded">kimi</code> in terminal
+          </li>
+          <li>
+            Type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key
+          </li>
+        </ol>
+      )}
+    </div>
+  );
+}
 
 function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
   const isCustomPath = cliResult?.resolved?.isCustomPath ?? false;
@@ -109,14 +139,14 @@ function NoModelsContent({ onRefresh }: { onRefresh?: () => void }) {
 
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <p className="text-xs font-medium text-foreground">Option 2: Use your own API key</p>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <IconTerminal2 className="size-4" />
-            <span>Run in terminal:</span>
-          </div>
-          <code className="block text-xs bg-background rounded px-3 py-2 font-mono select-all">kimi</code>
           <p className="text-xs text-muted-foreground">
-            Then type <code className="bg-muted px-1 rounded">/setup</code> and enter your API key.
+            Run <code className="bg-muted px-1 rounded">/setup</code> in terminal and enter your API key.
           </p>
+          <Button onClick={() => bridge.runCLI()} variant="outline" size="sm" className="gap-2 w-full">
+            <IconTerminal2 className="size-4" />
+            Open Terminal &amp; Run kimi
+          </Button>
+          <ManualSetupHint />
         </div>
       </div>
 

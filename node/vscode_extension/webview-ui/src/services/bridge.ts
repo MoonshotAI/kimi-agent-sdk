@@ -132,6 +132,10 @@ class Bridge {
     return this.call<{ ok: boolean }>(Methods.OpenFolder);
   }
 
+  runCLI(args?: string[]) {
+    return this.call<{ ok: boolean }>(Methods.RunCLI, { args });
+  }
+
   getModels() {
     return this.call<KimiConfig>(Methods.GetModels);
   }

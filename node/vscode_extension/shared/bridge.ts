@@ -22,6 +22,7 @@ export const Methods = {
   GetExtensionConfig: "getExtensionConfig",
   OpenSettings: "openSettings",
   OpenFolder: "openFolder",
+  RunCLI: "runCLI",
   GetModels: "getModels",
 
   GetMCPServers: "getMCPServers",
