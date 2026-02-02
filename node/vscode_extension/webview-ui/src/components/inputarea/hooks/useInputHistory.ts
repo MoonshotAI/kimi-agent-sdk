@@ -17,7 +17,9 @@ export function useInputHistory({ text, setText, onHeightChange }: UseInputHisto
 
   const add = useCallback((input: string) => {
     const trimmed = input.trim();
-    if (!trimmed) return;
+    if (!trimmed) {
+      return;
+    }
 
     bridge.addInputHistory(trimmed);
     setHistory((prev) => (prev[prev.length - 1] === trimmed ? prev : [...prev, trimmed]));

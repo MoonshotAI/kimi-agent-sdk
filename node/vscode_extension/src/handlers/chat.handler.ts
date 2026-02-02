@@ -4,7 +4,7 @@ import * as fs from "fs";
 import { Methods, Events } from "../../shared/bridge";
 import { VSCodeSettings } from "../config/vscode-settings";
 import { BaselineManager } from "../managers";
-import { getErrorCode } from "@moonshot-ai/kimi-agent-sdk";
+import { getErrorCode, CliError } from "@moonshot-ai/kimi-agent-sdk";
 import type { ContentPart, ApprovalResponse, RunResult } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
 import type { ErrorPhase } from "../../shared/types";
@@ -41,11 +41,7 @@ function buildSystemContext(): string {
   const sel = editor.selection;
   const relativePath = vscode.workspace.asRelativePath(doc.uri);
 
-  const info: string[] = [
-    `file: ${relativePath}`,
-    `language: ${doc.languageId}`,
-    `cursor: line ${sel.active.line + 1}`,
-  ];
+  const info: string[] = [`file: ${relativePath}`, `language: ${doc.languageId}`, `cursor: line ${sel.active.line + 1}`];
 
   if (doc.isDirty) {
     info.push("unsaved: true");
@@ -220,6 +216,8 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
 
     const code = getErrorCode(err);
     const phase = classifyError(code);
+    // 优先使用完整的原始 JSON 响应
+    const detail = err instanceof CliError && err.rawResponse ? err.rawResponse : err instanceof Error ? err.message : String(err);
     const message = getUserMessage(code, err instanceof Error ? err.message : String(err));
 
     ctx.broadcast(
@@ -228,6 +226,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         type: "error",
         code,
         message,
+        detail,
         phase,
       },
       ctx.webviewId,

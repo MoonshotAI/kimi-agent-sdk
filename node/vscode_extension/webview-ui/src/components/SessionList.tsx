@@ -17,6 +17,7 @@ import { bridge } from "@/services";
 import type { SessionInfo } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
 import { useChatStore } from "@/stores";
+import { cleanSystemTags } from "shared/utils";
 
 interface SessionListProps {
   onClose: () => void;
@@ -51,7 +52,7 @@ function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemPro
       onMouseLeave={() => setIsHovered(false)}
       onClick={onSelect}
     >
-      <p className="text-xs leading-relaxed line-clamp-3 text-foreground">{session.brief || "Untitled"}</p>
+      <p className="text-xs leading-relaxed line-clamp-3 text-foreground">{cleanSystemTags(session.brief) || "Untitled"}</p>
       <div className="flex items-center justify-between mt-0.5">
         <div className="flex items-center gap-1.5">
           {isSelected && <IconCheck className="size-3 text-blue-500" />}

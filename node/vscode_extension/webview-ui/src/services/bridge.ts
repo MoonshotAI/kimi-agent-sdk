@@ -247,6 +247,14 @@ class Bridge {
   getImageDataUri(filePath: string) {
     return this.call<string | null>(Methods.GetImageDataUri, { filePath });
   }
+
+  showLogs() {
+    return this.call<{ ok: boolean }>(Methods.ShowLogs);
+  }
+
+  reloadWebview() {
+    return this.call<{ ok: boolean }>(Methods.ReloadWebview);
+  }
 }
 
 export const bridge = new Bridge();

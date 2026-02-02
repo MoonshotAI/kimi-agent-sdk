@@ -24,6 +24,7 @@ export interface UIStep {
 export interface InlineError {
   code: string;
   message: string;
+  detail?: string; // 服务器原始错误信息
 }
 
 export type UIStepItem =

@@ -10,7 +10,7 @@ import { Toaster, toast } from "./components/ui/sonner";
 import { useChatStore, useSettingsStore } from "./stores";
 import { bridge, Events } from "./services";
 import { useAppInit } from "./hooks/useAppInit";
-import { isPreflightError, getUserMessage } from "shared/errors";
+import { isPreflightError } from "shared/errors";
 import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
@@ -23,10 +23,8 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
       processEvent(event);
       if (event.type === "error") {
         const streamError = event as StreamError;
-        const code = streamError.code || "UNKNOWN";
-        if (isPreflightError(code)) {
-          const message = getUserMessage(code, streamError.message);
-          toast.error(message);
+        if (isPreflightError(streamError.code || "UNKNOWN")) {
+          toast.error(streamError.message);
         }
       }
     });

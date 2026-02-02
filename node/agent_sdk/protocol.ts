@@ -214,7 +214,7 @@ export class ProtocolClient {
   }
 
   sendCancel(): Promise<void> {
-    return this.sendRequest("cancel").then(() => { });
+    return this.sendRequest("cancel").then(() => {});
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
@@ -335,7 +335,7 @@ export class ProtocolClient {
       this.pendingRequests.delete(msg.id);
 
       if (msg.error) {
-        pending.reject(CliError.fromRpcError(msg.error.code, msg.error.message));
+        pending.reject(CliError.fromRpcError(msg.error.code, msg.error.message, JSON.stringify(msg)));
       } else {
         pending.resolve(msg.result);
       }

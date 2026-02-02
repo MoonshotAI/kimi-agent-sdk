@@ -36,6 +36,7 @@ export interface ExtensionConfig {
   useCtrlEnterToSend: boolean;
   enableNewConversationShortcut: boolean;
   environmentVariables: Record<string, string>;
+  version: string;
 }
 
 export interface WorkspaceStatus {
@@ -49,6 +50,7 @@ export interface StreamError {
   type: "error";
   code: string;
   message: string;
+  detail?: string; // 原始服务器错误信息
   phase: ErrorPhase;
 }
 
