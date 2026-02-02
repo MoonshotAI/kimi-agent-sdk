@@ -310,6 +310,8 @@ const eventHandlers: Record<string, EventHandler> = {
     const code = payload.code || "UNKNOWN";
     const phase = payload.phase || (isPreflightError(code) ? "preflight" : "runtime");
 
+    if (code === "UNKNOWN_EVENT_TYPE") return; // 忽略未知事件类型错误，通常是版本不匹配导致
+
     if (phase === "preflight") {
       handlePreflightError(draft, code, payload.message);
     } else {
