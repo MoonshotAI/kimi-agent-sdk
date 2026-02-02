@@ -31,6 +31,53 @@ interface PendingToolCall {
 
 const FILE_TOOLS = new Set(["WriteFile", "CreateFile", "StrReplaceFile", "PatchFile", "DeleteFile", "AppendFile"]);
 
+function buildSystemContext(): string {
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    return "";
+  }
+
+  const doc = editor.document;
+  const sel = editor.selection;
+  const relativePath = vscode.workspace.asRelativePath(doc.uri);
+
+  const info: string[] = [
+    `file: ${relativePath}`,
+    `language: ${doc.languageId}`,
+    `cursor: line ${sel.active.line + 1}`,
+  ];
+
+  if (doc.isDirty) {
+    info.push("unsaved: true");
+  }
+
+  if (!sel.isEmpty) {
+    info.push(`selection: lines ${sel.start.line + 1}-${sel.end.line + 1}`);
+  }
+
+  return `<system>${info.join(", ")}</system>\n`;
+}
+
+function prependSystemContext(content: string | ContentPart[], ctx: string): string | ContentPart[] {
+  if (!ctx) {
+    return content;
+  }
+
+  if (typeof content === "string") {
+    return ctx + content;
+  }
+
+  const idx = content.findIndex((p) => p.type === "text");
+  if (idx >= 0) {
+    const copy = [...content];
+    const part = copy[idx] as { type: "text"; text: string };
+    copy[idx] = { type: "text", text: ctx + part.text };
+    return copy;
+  }
+
+  return [{ type: "text", text: ctx }, ...content];
+}
+
 function saveBaselineForPath(filePath: string, workDir: string, sessionId: string): boolean {
   const absolutePath = path.isAbsolute(filePath) ? filePath : path.join(workDir, filePath);
   const relativePath = path.relative(workDir, absolutePath);
@@ -97,16 +144,19 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   const workDir = ctx.workDir;
   const sessionId = session.sessionId;
 
+  // Track pending tool calls for baseline saving
   BaselineManager.initSession(workDir, sessionId);
 
   ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model }, ctx.webviewId);
 
-  // Track pending tool calls for baseline saving
+  const systemContext = buildSystemContext();
+  const contentWithContext = prependSystemContext(params.content, systemContext);
+
   const pendingToolCalls = new Map<string, PendingToolCall>();
   let lastToolCallId: string | null = null;
 
   try {
-    const turn = session.prompt(params.content);
+    const turn = session.prompt(contentWithContext);
     ctx.setTurn(turn);
 
     let result: RunResult = { status: "finished" };
