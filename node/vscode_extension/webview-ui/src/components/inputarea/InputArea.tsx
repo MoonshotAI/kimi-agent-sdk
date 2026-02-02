@@ -106,6 +106,18 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     setTimeout(adjustHeight, 0);
   });
 
+  const removeActiveToken = useMemoizedFn(() => {
+    if (!activeToken) return;
+    const newText = text.slice(0, activeToken.start) + text.slice(cursorPos);
+    const newCursorPos = activeToken.start;
+    setText(newText);
+    setCursorPos(newCursorPos);
+    setTimeout(() => {
+      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+      adjustHeight();
+    }, 0);
+  });
+
   const handleSend = useMemoizedFn(() => {
     if (isStreaming || isProcessing || (!text.trim() && draftMedia.length === 0)) {
       return;
@@ -146,7 +158,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     setSelectedIndex: setSlashSelectedIndex,
     handleSlashMenuKey,
     resetSlashMenu,
-  } = useSlashMenu(activeToken, handleSlashCommand, clearInput);
+  } = useSlashMenu(activeToken, handleSlashCommand, removeActiveToken);
 
   const {
     showFileMenu,
@@ -161,13 +173,13 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     setFolderPath,
     handleFileMenuKey,
     resetFilePicker,
-  } = useFilePicker(activeToken, applyMention, handlePickMedia, clearInput);
+  } = useFilePicker(activeToken, applyMention, handlePickMedia, removeActiveToken);
 
   const closeMenus = useCallback(() => {
     if (showSlashMenu || showFileMenu) {
-      clearInput();
+      removeActiveToken();
     }
-  }, [showSlashMenu, showFileMenu, clearInput]);
+  }, [showSlashMenu, showFileMenu, removeActiveToken]);
 
   useClickOutside([textareaRef, menuRef], showSlashMenu || showFileMenu, closeMenus);
 
