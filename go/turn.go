@@ -61,10 +61,6 @@ type Turn struct {
 	usage atomic.Pointer[Usage]
 
 	wireRequestResponseChan chan<- wire.RequestResponse
-
-	// ref holds a reference to prevent the referenced object from being
-	// garbage collected while this Turn is still in use.
-	ref any
 }
 
 func (t *Turn) watch(parent context.Context) {

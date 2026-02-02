@@ -12,15 +12,13 @@ func Prompt(ctx context.Context, content wire.Content, options ...Option) (*Turn
 	if err != nil {
 		return nil, err
 	}
-	cleanup := func(s *Session) {
-		s.Close() //nolint:errcheck
+	cleanup := func(turn *Turn) {
+		turn.Cancel() //nolint:errcheck
 	}
-	runtime.AddCleanup(session, cleanup, session)
 	turn, err := session.Prompt(ctx, content)
 	if err != nil {
 		return nil, err
 	}
-	turn.ref = session
-	runtime.KeepAlive(session)
+	runtime.AddCleanup(session, cleanup, turn)
 	return turn, nil
 }
