@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../../shared/types";
+import { EXTENSION_VERSION } from "../constants";
 
 function getConfig() {
   return vscode.workspace.getConfiguration("kimi");
@@ -38,6 +39,7 @@ export const VSCodeSettings = {
       useCtrlEnterToSend: this.useCtrlEnterToSend,
       enableNewConversationShortcut: this.enableNewConversationShortcut,
       environmentVariables: this.environmentVariables,
+      version: EXTENSION_VERSION,
     };
   },
 };

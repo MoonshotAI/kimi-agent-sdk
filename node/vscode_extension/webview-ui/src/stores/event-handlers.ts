@@ -265,7 +265,7 @@ function handlePreflightError(draft: ChatState, code: string, message: string): 
   }
 }
 
-function handleRuntimeError(draft: ChatState, code: string, message: string): void {
+function handleRuntimeError(draft: ChatState, code: string, message: string, detail?: string): void {
   // Runtime: 保留现场，添加内嵌错误
   addTokenUsage(draft.tokenUsage, draft.activeTokenUsage);
   draft.activeTokenUsage = createEmptyTokenUsage();
@@ -280,8 +280,8 @@ function handleRuntimeError(draft: ChatState, code: string, message: string): vo
       lastAssistant.steps = [];
     }
     finishAllTextItems(lastAssistant.steps);
-    // 设置内嵌错误
-    lastAssistant.inlineError = { code, message };
+    // 设置内嵌错误，保留服务器原始错误信息
+    lastAssistant.inlineError = { code, message, detail };
   }
 }
 
@@ -326,7 +326,8 @@ const eventHandlers: Record<string, EventHandler> = {
           finishAllTextItems(lastAssistant.steps);
         }
       } else {
-        handleRuntimeError(draft, code, message);
+        // 传递原始错误信息作为 detail，方便用户截图反馈
+        handleRuntimeError(draft, code, message, payload.message);
       }
     }
   },

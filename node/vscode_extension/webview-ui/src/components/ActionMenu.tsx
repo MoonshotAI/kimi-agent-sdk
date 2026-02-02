@@ -12,10 +12,13 @@ interface ActionMenuProps {
   onAuthAction?: () => void;
 }
 
-function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+function MenuSection({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="py-1">
-      <div className="px-2.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{title}</div>
+      <div className="px-2.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center justify-between">
+        <span>{title}</span>
+        {subtitle && <span className="normal-case tracking-normal">{subtitle}</span>}
+      </div>
       {children}
     </div>
   );
@@ -50,7 +53,7 @@ function MenuItem({
 export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { setMCPModalOpen, isLoggedIn, setIsLoggedIn } = useSettingsStore();
+  const { setMCPModalOpen, isLoggedIn, setIsLoggedIn, extensionConfig } = useSettingsStore();
   const { isStreaming } = useChatStore();
 
   const handleOpenSettings = () => {
@@ -109,7 +112,7 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
 
         <Separator className="my-px" />
 
-        <MenuSection title="Support">
+        <MenuSection title="Support" subtitle={extensionConfig.version ? `v${extensionConfig.version}` : undefined}>
           <MenuItem onClick={handleShowLogs}>
             <IconFileText className="size-4 text-muted-foreground" />
             <span className="flex-1">Show Logs</span>

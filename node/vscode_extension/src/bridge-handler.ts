@@ -3,9 +3,7 @@ import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn } from "./handlers";
 import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
-
-declare const __EXTENSION_VERSION__: string;
-const EXTENSION_VERSION = typeof __EXTENSION_VERSION__ !== "undefined" ? __EXTENSION_VERSION__ : "0.0.0";
+import { EXTENSION_VERSION } from "./constants";
 
 interface RpcMessage {
   id: string;
