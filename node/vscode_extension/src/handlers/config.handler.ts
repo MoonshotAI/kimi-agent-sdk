@@ -24,9 +24,23 @@ const getModels: Handler<void, KimiConfig> = async () => {
   return parseConfig();
 };
 
+const showLogs: Handler<void, { ok: boolean }> = async () => {
+  await vscode.commands.executeCommand("kimi.showLogs");
+  return { ok: true };
+};
+
+const reloadWebview: Handler<void, { ok: boolean }> = async (_, ctx) => {
+  await ctx.closeSession();
+  ctx.fileManager.clearTracked(ctx.webviewId);
+  ctx.reloadWebview();
+  return { ok: true };
+};
+
 export const configHandlers = {
   [Methods.SaveConfig]: saveConfig,
   [Methods.GetExtensionConfig]: getExtensionConfig,
   [Methods.OpenSettings]: openSettings,
   [Methods.GetModels]: getModels,
+  [Methods.ShowLogs]: showLogs,
+  [Methods.ReloadWebview]: reloadWebview,
 } as Record<string, Handler<any, any>>;

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
-import { handlers, type HandlerContext, type BroadcastFn } from "./handlers";
+import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn } from "./handlers";
 import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 declare const __EXTENSION_VERSION__: string;
@@ -27,6 +27,7 @@ export class BridgeHandler {
   constructor(
     private broadcast: BroadcastFn,
     private workspaceState: vscode.Memento,
+    private reloadWebview: ReloadWebviewFn,
   ) {
     this.fileManager = new FileManager(() => this.workDir, broadcast);
   }
@@ -73,6 +74,7 @@ export class BridgeHandler {
       requireWorkDir: () => this.requireWorkDir(),
       broadcast: this.broadcast,
       fileManager: this.fileManager,
+      reloadWebview: () => this.reloadWebview(webviewId),
       getSession: () => this.sessions.get(webviewId),
       getSessionId: () => this.fileManager.getSessionId(webviewId),
       getTurn: () => this.turns.get(webviewId),

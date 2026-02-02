@@ -54,6 +54,8 @@ export const Methods = {
   RevertFiles: "revertFiles",
   KeepChanges: "keepChanges",
   GetImageDataUri: "getImageDataUri",
+  ShowLogs: "showLogs",
+  ReloadWebview: "reloadWebview",
 } as const;
 
 export const Events = {

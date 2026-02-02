@@ -4,6 +4,8 @@ import type { Session, Turn } from "@moonshot-ai/kimi-agent-sdk";
 
 export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => void;
 
+export type ReloadWebviewFn = (webviewId: string) => void;
+
 export interface HandlerContext {
   webviewId: string;
   workDir: string | null;
@@ -11,6 +13,7 @@ export interface HandlerContext {
   requireWorkDir: () => string;
   broadcast: BroadcastFn;
   fileManager: FileManager;
+  reloadWebview: () => void;
 
   getSession: () => Session | undefined;
   getSessionId: () => string | null;

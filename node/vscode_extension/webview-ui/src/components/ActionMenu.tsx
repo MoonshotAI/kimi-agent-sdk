@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { IconSettings, IconServer, IconLogout, IconLogin, IconLoader2 } from "@tabler/icons-react";
+import { IconSettings, IconServer, IconLogout, IconLogin, IconLoader2, IconRefresh, IconFileText } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useSettingsStore } from "@/stores";
+import { useChatStore, useSettingsStore } from "@/stores";
 import { bridge } from "@/services";
 import { cn } from "@/lib/utils";
 
@@ -12,10 +12,46 @@ interface ActionMenuProps {
   onAuthAction?: () => void;
 }
 
+function MenuSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="py-1">
+      <div className="px-2.5 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{title}</div>
+      {children}
+    </div>
+  );
+}
+
+function MenuItem({
+  onClick,
+  disabled,
+  danger,
+  children,
+}: {
+  onClick: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "w-full flex items-center gap-2 px-2.5 py-1.5 text-xs hover:bg-accent transition-colors text-left cursor-pointer",
+        disabled && "opacity-50 cursor-not-allowed",
+        danger && "text-red-500 hover:text-red-600",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const { setMCPModalOpen, isLoggedIn, setIsLoggedIn } = useSettingsStore();
+  const { isStreaming } = useChatStore();
 
   const handleOpenSettings = () => {
     bridge.openSettings();
@@ -24,6 +60,16 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
 
   const handleOpenMCPServers = () => {
     setMCPModalOpen(true);
+    setOpen(false);
+  };
+
+  const handleReset = () => {
+    setOpen(false);
+    bridge.reloadWebview();
+  };
+
+  const handleShowLogs = () => {
+    bridge.showLogs();
     setOpen(false);
   };
 
@@ -48,31 +94,46 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
           <IconSettings className="size-3.5" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-1.5 gap-0!" align="end" side="top">
-        <button
-          onClick={handleOpenMCPServers}
-          className="w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors text-left cursor-pointer"
-        >
-          <IconServer className="size-3.5 text-muted-foreground" />
-          <span className="flex-1">MCP Servers</span>
-        </button>
-        <button onClick={handleOpenSettings} className="w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors text-left cursor-pointer">
-          <IconSettings className="size-3.5 text-muted-foreground" />
-          <span className="flex-1">Settings</span>
-          <span className="text-[10px] text-muted-foreground">↗</span>
-        </button>
-        <Separator className="my-1" />
-        <button
-          onClick={handleAuthAction}
-          disabled={loading}
-          className={cn(
-            "w-full flex items-center gap-2 px-1.5 py-1.5 rounded-md text-xs hover:bg-accent transition-colors text-left cursor-pointer",
-            isLoggedIn && "text-red-500 hover:text-red-600",
-          )}
-        >
-          {loading ? <IconLoader2 className="size-3.5 animate-spin" /> : isLoggedIn ? <IconLogout className="size-3.5" /> : <IconLogin className="size-3.5" />}
-          <span className="flex-1">{loading ? "Processing..." : isLoggedIn ? "Sign out" : "Sign in"}</span>
-        </button>
+      <PopoverContent className="w-[calc(100vw-1rem)] max-w-72 p-1.5 gap-0!" align="end" side="top">
+        <MenuSection title="Settings">
+          <MenuItem onClick={handleOpenMCPServers}>
+            <IconServer className="size-4 text-muted-foreground" />
+            <span className="flex-1">MCP Servers</span>
+          </MenuItem>
+          <MenuItem onClick={handleOpenSettings}>
+            <IconSettings className="size-4 text-muted-foreground" />
+            <span className="flex-1">General Config</span>
+            <span className="text-[10px] text-muted-foreground">↗</span>
+          </MenuItem>
+        </MenuSection>
+
+        <Separator className="my-px" />
+
+        <MenuSection title="Support">
+          <MenuItem onClick={handleShowLogs}>
+            <IconFileText className="size-4 text-muted-foreground" />
+            <span className="flex-1">Show Logs</span>
+          </MenuItem>
+          <MenuItem onClick={handleReset} disabled={isStreaming}>
+            <IconRefresh className="size-4 text-muted-foreground" />
+            <span className="flex-1">Reset Kimi</span>
+          </MenuItem>
+        </MenuSection>
+
+        <Separator className="my-px" />
+
+        <MenuSection title="Account">
+          <MenuItem onClick={handleAuthAction} disabled={loading} danger={isLoggedIn}>
+            {loading ? (
+              <IconLoader2 className="size-4 animate-spin" />
+            ) : isLoggedIn ? (
+              <IconLogout className="size-4" />
+            ) : (
+              <IconLogin className="size-4 text-muted-foreground" />
+            )}
+            <span className="flex-1">{loading ? "Processing..." : isLoggedIn ? "Sign out" : "Sign in"}</span>
+          </MenuItem>
+        </MenuSection>
       </PopoverContent>
     </Popover>
   );
