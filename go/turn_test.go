@@ -2,6 +2,7 @@ package kimi
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -12,13 +13,28 @@ import (
 	"github.com/MoonshotAI/kimi-agent-sdk/go/wire/transport"
 )
 
-// setupTurn creates a Turn for testing with proper cleanup
+// setupTurn creates a Turn for testing with proper cleanup (uses default version "1.1")
+// Returns 5 values to maintain backward compatibility with existing tests
 func setupTurn(t *testing.T) (
 	*Turn,
 	*transport.MockTransport,
 	chan wire.Message,
 	context.CancelFunc,
 	func(),
+) {
+	turn, mockTP, msgs, cancel, _, cleanup := setupTurnWithVersion(t, "1.1")
+	return turn, mockTP, msgs, cancel, cleanup
+}
+
+// setupTurnWithVersion creates a Turn with specified wire protocol version
+// Returns: turn, mockTransport, msgs channel, cancel func, closeMsgs func, cleanup func
+func setupTurnWithVersion(t *testing.T, wireProtocolVersion string) (
+	*Turn,
+	*transport.MockTransport,
+	chan wire.Message,
+	context.CancelFunc,
+	func(), // closeMsgs - call this to close msgs channel
+	func(), // cleanup - call this at the end (will call closeMsgs internally if not already called)
 ) {
 	t.Helper()
 	ctrl := gomock.NewController(t)
@@ -35,16 +51,21 @@ func setupTurn(t *testing.T) (
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, msgs, usrc, exit)
+	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, wireProtocolVersion, msgs, usrc, exit)
+
+	var closeOnce sync.Once
+	closeMsgs := func() {
+		closeOnce.Do(func() { close(msgs) })
+	}
 
 	cleanup := func() {
-		close(msgs)
+		closeMsgs() // safe to call multiple times
 		cancel()
 		time.Sleep(50 * time.Millisecond)
 		ctrl.Finish()
 	}
 
-	return turn, mockTP, msgs, cancel, cleanup
+	return turn, mockTP, msgs, cancel, closeMsgs, cleanup
 }
 
 func TestTurn_Result_Pending(t *testing.T) {
@@ -72,7 +93,7 @@ func TestTurn_Result_Finished(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, msgs, usrc, exit)
+	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, "1.1", msgs, usrc, exit)
 
 	// Update result to finished
 	result.Store(&wire.PromptResult{
@@ -130,7 +151,7 @@ func TestTurn_Cancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, msgs, usrc, exit)
+	turn := turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, "1.1", msgs, usrc, exit)
 
 	err := turn.Cancel()
 	if err != nil {
@@ -299,7 +320,7 @@ func TestTurn_watch_ContextCancel(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	_ = turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, msgs, usrc, exit)
+	_ = turnBegin(ctx, 0, mockTP, new(atomic.Pointer[error]), result, "1.1", msgs, usrc, exit)
 
 	// Cancel the context
 	cancel()
@@ -315,4 +336,134 @@ func TestTurn_watch_ContextCancel(t *testing.T) {
 	close(msgs)
 	time.Sleep(50 * time.Millisecond)
 	ctrl.Finish()
+}
+
+func TestTurn_traverse_TurnEnd(t *testing.T) {
+	turn, _, msgs, cancel, _, cleanup := setupTurnWithVersion(t, "1.2")
+	defer cleanup()
+
+	msgs <- wire.TurnBegin{}
+	msgs <- wire.StepBegin{N: 1}
+
+	select {
+	case step := <-turn.Steps:
+		if step == nil {
+			t.Fatal("expected step, got nil")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for step")
+	}
+
+	msgs <- wire.TurnEnd{}
+
+	select {
+	case _, ok := <-turn.Steps:
+		if ok {
+			t.Fatal("expected Steps channel to be closed after TurnEnd")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for Steps channel to close")
+	}
+
+	// Verify result is NOT UnexpectedEOF (TurnEnd was received)
+	result := turn.Result()
+	if result.Status == wire.PromptResultStatusUnexpectedEOF {
+		t.Error("expected result status to NOT be UnexpectedEOF when TurnEnd was received")
+	}
+}
+
+func TestTurn_traverse_TurnEnd_BeforeStepBegin(t *testing.T) {
+	turn, _, msgs, cancel, _, cleanup := setupTurnWithVersion(t, "1.2")
+	defer cleanup()
+
+	msgs <- wire.TurnBegin{}
+	msgs <- wire.TurnEnd{}
+
+	select {
+	case _, ok := <-turn.Steps:
+		if ok {
+			t.Fatal("expected Steps channel to be closed after TurnEnd")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for Steps channel to close")
+	}
+}
+
+func TestTurn_traverse_UnexpectedEOF_WireVersion12(t *testing.T) {
+	turn, _, msgs, cancel, closeMsgs, cleanup := setupTurnWithVersion(t, "1.2")
+	defer cleanup()
+
+	msgs <- wire.TurnBegin{}
+	msgs <- wire.StepBegin{N: 1}
+
+	select {
+	case step := <-turn.Steps:
+		if step == nil {
+			t.Fatal("expected step, got nil")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for step")
+	}
+
+	// Close msgs WITHOUT sending TurnEnd (use closeMsgs to avoid double-close panic)
+	closeMsgs()
+
+	// Wait for Steps channel to close
+	select {
+	case _, ok := <-turn.Steps:
+		if ok {
+			t.Fatal("expected Steps channel to be closed")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for Steps channel to close")
+	}
+
+	// Verify result is UnexpectedEOF
+	result := turn.Result()
+	if result.Status != wire.PromptResultStatusUnexpectedEOF {
+		t.Errorf("expected status UnexpectedEOF, got %s", result.Status)
+	}
+}
+
+func TestTurn_traverse_NoUnexpectedEOF_WireVersion11(t *testing.T) {
+	turn, _, msgs, cancel, closeMsgs, cleanup := setupTurnWithVersion(t, "1.1")
+	defer cleanup()
+
+	msgs <- wire.TurnBegin{}
+	msgs <- wire.StepBegin{N: 1}
+
+	select {
+	case step := <-turn.Steps:
+		if step == nil {
+			t.Fatal("expected step, got nil")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for step")
+	}
+
+	// Close msgs WITHOUT sending TurnEnd (use closeMsgs to avoid double-close panic)
+	closeMsgs()
+
+	// Wait for Steps channel to close
+	select {
+	case _, ok := <-turn.Steps:
+		if ok {
+			t.Fatal("expected Steps channel to be closed")
+		}
+	case <-time.After(time.Second):
+		cancel()
+		t.Fatal("timeout waiting for Steps channel to close")
+	}
+
+	// Verify result is NOT UnexpectedEOF (version < 1.2)
+	result := turn.Result()
+	if result.Status == wire.PromptResultStatusUnexpectedEOF {
+		t.Error("expected status to NOT be UnexpectedEOF for wire version < 1.2")
+	}
 }

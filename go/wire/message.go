@@ -66,6 +66,7 @@ type Message interface {
 }
 
 func (TurnBegin) message()               {}
+func (TurnEnd) message()                 {}
 func (StepBegin) message()               {}
 func (StepInterrupted) message()         {}
 func (CompactionBegin) message()         {}
@@ -90,6 +91,7 @@ type EventType string
 
 const (
 	EventTypeTurnBegin               EventType = "TurnBegin"
+	EventTypeTurnEnd                 EventType = "TurnEnd"
 	EventTypeStepBegin               EventType = "StepBegin"
 	EventTypeStepInterrupted         EventType = "StepInterrupted"
 	EventTypeCompactionBegin         EventType = "CompactionBegin"
@@ -105,6 +107,7 @@ const (
 )
 
 func (TurnBegin) EventType() EventType               { return EventTypeTurnBegin }
+func (TurnEnd) EventType() EventType                 { return EventTypeTurnEnd }
 func (StepBegin) EventType() EventType               { return EventTypeStepBegin }
 func (StepInterrupted) EventType() EventType         { return EventTypeStepInterrupted }
 func (CompactionBegin) EventType() EventType         { return EventTypeCompactionBegin }
@@ -128,6 +131,7 @@ func unmarshalEvent[E Event](data []byte) (Event, error) {
 
 var eventUnmarshaler = map[EventType]func(data []byte) (Event, error){
 	EventTypeTurnBegin:               unmarshalEvent[TurnBegin],
+	EventTypeTurnEnd:                 unmarshalEvent[TurnEnd],
 	EventTypeStepBegin:               unmarshalEvent[StepBegin],
 	EventTypeStepInterrupted:         unmarshalEvent[StepInterrupted],
 	EventTypeCompactionBegin:         unmarshalEvent[CompactionBegin],
@@ -229,6 +233,7 @@ var (
 	PromptResultStatusFinished        PromptResultStatus = "finished"
 	PromptResultStatusCancelled       PromptResultStatus = "cancelled"
 	PromptResultStatusMaxStepsReached PromptResultStatus = "max_steps_reached"
+	PromptResultStatusUnexpectedEOF   PromptResultStatus = "unexpected_eof"
 )
 
 func NewContent(contentParts ...ContentPart) Content {
@@ -319,6 +324,8 @@ func (c *Content) UnmarshalJSON(data []byte) error {
 type TurnBegin struct {
 	UserInput Content `json:"user_input"`
 }
+
+type TurnEnd struct{}
 
 type StepBegin struct {
 	N int `json:"n"`

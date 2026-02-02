@@ -9,6 +9,7 @@ import (
 // Compile-time interface checks.
 var (
 	_ Message = TurnBegin{}
+	_ Message = TurnEnd{}
 	_ Message = StepBegin{}
 	_ Message = StepInterrupted{}
 	_ Message = CompactionBegin{}
@@ -24,6 +25,7 @@ var (
 	_ Message = ApprovalRequest{}
 
 	_ Event = TurnBegin{}
+	_ Event = TurnEnd{}
 	_ Event = StepBegin{}
 	_ Event = StepInterrupted{}
 	_ Event = CompactionBegin{}
@@ -48,6 +50,7 @@ func TestEvent_EventTypeConstants(t *testing.T) {
 		want EventType
 	}{
 		{"TurnBegin", TurnBegin{}, EventTypeTurnBegin},
+		{"TurnEnd", TurnEnd{}, EventTypeTurnEnd},
 		{"StepBegin", StepBegin{}, EventTypeStepBegin},
 		{"StepInterrupted", StepInterrupted{}, EventTypeStepInterrupted},
 		{"CompactionBegin", CompactionBegin{}, EventTypeCompactionBegin},
@@ -233,6 +236,7 @@ func TestEventParams_UnmarshalJSON_AllEventTypes(t *testing.T) {
 		payload Event
 	}{
 		{"TurnBegin", EventTypeTurnBegin, turn},
+		{"TurnEnd", EventTypeTurnEnd, TurnEnd{}},
 		{"StepBegin", EventTypeStepBegin, StepBegin{N: 1}},
 		{"StepInterrupted", EventTypeStepInterrupted, StepInterrupted{}},
 		{"CompactionBegin", EventTypeCompactionBegin, CompactionBegin{}},

@@ -12,6 +12,7 @@
 //   prompt_error - sends TurnBegin then returns a JSONRPC error
 //   tool_call - sends ToolCall request and waits for response
 //   tool_rejected - returns rejected external tools in initialize response
+//   turn_end - sends TurnEnd event to explicitly end the turn
 
 package main
 
@@ -91,6 +92,8 @@ func main() {
 				handlePromptError(encoder, req.ID)
 			case "tool_call":
 				handlePromptToolCall(encoder, scanner, req.ID)
+			case "turn_end":
+				handlePromptTurnEnd(encoder, req.ID)
 			default:
 				handlePrompt(encoder, req.ID)
 			}
@@ -152,6 +155,9 @@ func handlePrompt(encoder *json.Encoder, reqID string) {
 			"input_cache_creation": 5,
 		},
 	})
+
+	// Send TurnEnd event to properly end the turn
+	sendEvent(encoder, "TurnEnd", map[string]any{})
 
 	// Send prompt response
 	encoder.Encode(Payload{
@@ -281,6 +287,27 @@ func handlePromptError(encoder *json.Encoder, reqID string) {
 	})
 }
 
+// handlePromptTurnEnd sends TurnEnd event to explicitly end the turn
+func handlePromptTurnEnd(encoder *json.Encoder, reqID string) {
+	sendEvent(encoder, "TurnBegin", map[string]any{
+		"user_input": "test",
+	})
+	sendEvent(encoder, "StepBegin", map[string]any{
+		"n": 1,
+	})
+	sendEvent(encoder, "ContentPart", map[string]any{
+		"type": "text",
+		"text": "Hello from mock kimi!",
+	})
+	sendEvent(encoder, "TurnEnd", map[string]any{})
+
+	encoder.Encode(Payload{
+		Version: "2.0",
+		ID:      reqID,
+		Result:  json.RawMessage(`{"status":"finished","steps":1}`),
+	})
+}
+
 // handlePromptToolCall sends a ToolCall request and waits for response.
 // This tests whether WithTools correctly registers tools and handles tool calls.
 func handlePromptToolCall(encoder *json.Encoder, scanner *bufio.Scanner, reqID string) {
@@ -316,6 +343,9 @@ func handlePromptToolCall(encoder *json.Encoder, scanner *bufio.Scanner, reqID s
 	if scanner.Scan() {
 		// Response received, continue
 	}
+
+	// Send TurnEnd event to properly end the turn
+	sendEvent(encoder, "TurnEnd", map[string]any{})
 
 	// Send prompt completion response
 	encoder.Encode(Payload{

@@ -93,7 +93,7 @@ func NewSession(options ...Option) (*Session, error) {
 			toolDefs = append(toolDefs, tool.def)
 		}
 		initResult, err := tp.Initialize(&wire.InitializeParams{
-			ProtocolVersion: "2",
+			ProtocolVersion: wireProtocolVersion,
 			ExternalTools:   toolDefs,
 		})
 		if err != nil {
@@ -109,6 +109,7 @@ func NewSession(options ...Option) (*Session, error) {
 		session.SlashCommands = initResult.SlashCommands
 		responder.tools = opt.tools
 	}
+	session.wireProtocolVersion = wireProtocolVersion
 	go session.serve(transport.NewTransportServer(responder))
 	go watch()
 	return session, nil
@@ -122,6 +123,7 @@ type Session struct {
 	rwlock                  sync.RWMutex
 	seq                     uint64
 	cancellers              []Canceller
+	wireProtocolVersion     string
 	wireMessageBridge       chan wire.Message
 	wireRequestResponseChan chan wire.RequestResponse
 	tp                      transport.Transport
@@ -270,6 +272,7 @@ func roundtrip[T any, R any, I interface {
 			s.tp,
 			errorPointer,
 			resultPointer,
+			s.wireProtocolVersion,
 			wireMessageChan,
 			wireRequestResponseChan,
 			exit,
@@ -415,6 +418,7 @@ type Constructor[T any, R any] interface {
 		stdioTransport transport.Transport,
 		errorPointer *atomic.Pointer[error],
 		resultPointer *atomic.Pointer[R],
+		wireProtocolVersion string,
 		wireMessageChan <-chan wire.Message,
 		wireRequestResponseChan chan<- wire.RequestResponse,
 		exit func(error) error,
@@ -438,6 +442,7 @@ func (tc *turnConstructor) Construct(
 	stdioTransport transport.Transport,
 	errorPointer *atomic.Pointer[error],
 	resultPointer *atomic.Pointer[wire.PromptResult],
+	wireProtocolVersion string,
 	wireMessageChan <-chan wire.Message,
 	wireRequestResponseChan chan<- wire.RequestResponse,
 	exit func(error) error,
@@ -448,6 +453,7 @@ func (tc *turnConstructor) Construct(
 		tc.transport,
 		errorPointer,
 		resultPointer,
+		wireProtocolVersion,
 		wireMessageChan,
 		wireRequestResponseChan,
 		exit,

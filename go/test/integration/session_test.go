@@ -528,3 +528,42 @@ func TestIntegration_NewSession_ToolRejected(t *testing.T) {
 
 	t.Logf("NewSession correctly rejected with error: %v", err)
 }
+
+func TestIntegration_TurnEnd_ExplicitEnd(t *testing.T) {
+	mockPath := getMockKimiPath(t)
+
+	session, err := kimi.NewSession(
+		kimi.WithExecutable(mockPath),
+		withMode("turn_end"),
+	)
+	if err != nil {
+		t.Fatalf("NewSession: %v", err)
+	}
+	defer session.Close()
+
+	turn, err := session.Prompt(context.Background(), wire.NewStringContent("test input"))
+	if err != nil {
+		t.Fatalf("Prompt: %v", err)
+	}
+
+	var messages []wire.Message
+	for step := range turn.Steps {
+		for msg := range step.Messages {
+			messages = append(messages, msg)
+		}
+	}
+
+	if turn.Err() != nil {
+		t.Fatalf("Turn error: %v", turn.Err())
+	}
+	turn.Cancel()
+
+	if len(messages) == 0 {
+		t.Fatal("expected at least one message")
+	}
+
+	result := turn.Result()
+	if result.Status != wire.PromptResultStatusFinished {
+		t.Errorf("expected status finished, got %s", result.Status)
+	}
+}
