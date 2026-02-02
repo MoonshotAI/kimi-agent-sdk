@@ -24,7 +24,10 @@ export class BridgeHandler {
   private turns = new Map<string, Turn>();
   private fileManager: FileManager;
 
-  constructor(private broadcast: BroadcastFn) {
+  constructor(
+    private broadcast: BroadcastFn,
+    private workspaceState: vscode.Memento,
+  ) {
     this.fileManager = new FileManager(() => this.workDir, broadcast);
   }
 
@@ -66,6 +69,7 @@ export class BridgeHandler {
     return {
       webviewId,
       workDir: this.workDir,
+      workspaceState: this.workspaceState,
       requireWorkDir: () => this.requireWorkDir(),
       broadcast: this.broadcast,
       fileManager: this.fileManager,

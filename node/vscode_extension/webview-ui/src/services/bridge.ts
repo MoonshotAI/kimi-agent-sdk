@@ -92,6 +92,14 @@ class Bridge {
     return this.call<WorkspaceStatus>(Methods.CheckWorkspace);
   }
 
+  getInputHistory() {
+    return this.call<string[]>(Methods.GetInputHistory);
+  }
+
+  addInputHistory(text: string) {
+    return this.call<{ ok: boolean }>(Methods.AddInputHistory, { text });
+  }
+
   checkCLI() {
     return this.call<CLICheckResult>(Methods.CheckCLI);
   }

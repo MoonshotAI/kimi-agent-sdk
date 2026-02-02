@@ -1,3 +1,4 @@
+import type * as vscode from "vscode";
 import type { FileManager } from "../managers/file.manager";
 import type { Session, Turn } from "@moonshot-ai/kimi-agent-sdk";
 
@@ -6,6 +7,7 @@ export type BroadcastFn = (event: string, data: unknown, webviewId?: string) => 
 export interface HandlerContext {
   webviewId: string;
   workDir: string | null;
+  workspaceState: vscode.Memento;
   requireWorkDir: () => string;
   broadcast: BroadcastFn;
   fileManager: FileManager;

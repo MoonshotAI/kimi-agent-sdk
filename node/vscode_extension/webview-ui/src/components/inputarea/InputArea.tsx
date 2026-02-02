@@ -19,6 +19,7 @@ import { useSlashMenu, findActiveToken } from "./hooks/useSlashMenu";
 import { useFilePicker } from "./hooks/useFilePicker";
 import { useMediaUpload } from "./hooks/useMediaUpload";
 import { useClickOutside } from "./hooks/useClickOutside";
+import { useInputHistory } from "./hooks/useInputHistory";
 import { computeMentionInsert } from "./utils";
 
 interface InputAreaProps {
@@ -93,6 +94,12 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     }
   });
 
+  const { handleKey: handleHistoryKey, add: addToHistory, reset: resetHistoryIndex } = useInputHistory({
+    text,
+    setText,
+    onHeightChange: () => setTimeout(adjustHeight, 0),
+  });
+
   const clearInput = useMemoizedFn(() => {
     setText("");
     setCursorPos(0);
@@ -104,6 +111,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
       return;
     }
 
+    addToHistory(text);
     sendMessage(text);
     clearInput();
   });
@@ -186,10 +194,6 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     return unsub;
   }, [adjustHeight]);
 
-  const handleModelChange = useMemoizedFn((modelId: string) => {
-    updateModel(modelId);
-  });
-
   const handleKeyDown = useMemoizedFn((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.nativeEvent.isComposing) {
       return;
@@ -200,6 +204,10 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     }
 
     if (handleFileMenuKey(e)) {
+      return;
+    }
+
+    if (handleHistoryKey(e)) {
       return;
     }
 
@@ -219,6 +227,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
     setCursorPos(e.target.selectionStart);
+    resetHistoryIndex();
     setTimeout(adjustHeight, 0);
   };
 
@@ -340,7 +349,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
                   {availableModels.map((model) => (
                     <DropdownMenuItem
                       key={model.id}
-                      onClick={() => handleModelChange(model.id)}
+                      onClick={() => updateModel(model.id)}
                       className={cn("text-xs px-3 py-1.5 cursor-pointer", currentModel === model.id && "bg-accent")}
                     >
                       {model.name}

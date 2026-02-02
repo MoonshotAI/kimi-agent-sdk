@@ -11,6 +11,9 @@
 
 export const Methods = {
   CheckWorkspace: "checkWorkspace",
+  GetInputHistory: "getInputHistory",
+  AddInputHistory: "addInputHistory",
+
   CheckCLI: "checkCLI",
   CheckLoginStatus: "checkLoginStatus",
   Login: "login",

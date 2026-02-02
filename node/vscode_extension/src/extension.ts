@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   initCLIManager(context);
 
-  provider = new KimiWebviewProvider(context.extensionUri);
+  provider = new KimiWebviewProvider(context.extensionUri, context.workspaceState);
 
   // Initialize context state
   updateLoginContext();
