@@ -1,9 +1,17 @@
 import { bridge } from "@/services";
+import { playPositiveSound, playNeutralSound, playNegativeSound } from "@/lib/sound";
 import { useApprovalStore } from "./approval.store";
+import { useFocusStore } from "./focus.store";
 import { isPreflightError, isUserInterrupt } from "shared/errors";
 import type { ChatMessage, UIStep, UIStepItem, ChatState, TokenUsage } from "./chat.store";
 import type { ContentPart, ToolCall, ToolResult, TurnBegin, SubagentEvent, ApprovalRequestPayload, DiffBlock, RunResult } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent, StreamError } from "shared/types";
+
+function playIfUnfocused(playSound: () => void): void {
+  if (!useFocusStore.getState().isFocused) {
+    playSound();
+  }
+}
 
 type EventHandler = (draft: ChatState, payload: any) => void;
 
@@ -304,6 +312,7 @@ const eventHandlers: Record<string, EventHandler> = {
     if (lastAssistant?.steps) {
       finishAllTextItems(lastAssistant.steps);
     }
+    playIfUnfocused(playPositiveSound);
   },
 
   error: (draft, payload: StreamError) => {
@@ -329,6 +338,7 @@ const eventHandlers: Record<string, EventHandler> = {
         handleRuntimeError(draft, code, payload.message, payload.detail);
       }
     }
+    playIfUnfocused(playNegativeSound);
   },
 
   // Wire 事件
@@ -495,6 +505,7 @@ const eventHandlers: Record<string, EventHandler> = {
       description: payload.description,
       display: payload.display ?? [],
     });
+    playIfUnfocused(playNeutralSound);
   },
 
   StatusUpdate: (draft, payload) => {
