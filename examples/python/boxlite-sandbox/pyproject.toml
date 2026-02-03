@@ -1,0 +1,13 @@
+[project]
+name = "kimi-agent-sdk-boxlite-sandbox"
+version = "0.1.0"
+description = "Run Kimi Agent SDK with a BoxLite-backed KAOS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kimi-agent-sdk",
+    "boxlite",
+]
+
+[tool.uv.sources]
+kimi-agent-sdk = { path = "../../../python" }

@@ -1,0 +1,7 @@
+version: 1
+agent:
+  extend: default
+  name: "boxlite"
+  # Grep tool only supports local KAOS; disable it for BoxLite sandboxes.
+  exclude_tools:
+    - "kimi_cli.tools.file:Grep"
