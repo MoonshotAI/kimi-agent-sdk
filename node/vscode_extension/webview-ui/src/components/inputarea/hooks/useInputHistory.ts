@@ -28,6 +28,11 @@ export function useInputHistory({ text, setText, onHeightChange }: UseInputHisto
 
   const handleKey = useCallback(
     (e: React.KeyboardEvent): boolean => {
+      // Ignore if any modifier key is pressed
+      if (e.ctrlKey || e.metaKey || e.altKey) {
+        return false;
+      }
+
       if (e.key === "ArrowUp" && history.length > 0 && (!text || index >= 0)) {
         const newIndex = Math.min(index + 1, history.length - 1);
         if (newIndex !== index) {

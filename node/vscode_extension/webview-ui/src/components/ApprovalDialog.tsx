@@ -1,4 +1,4 @@
-import { useState, useRef, useLayoutEffect } from "react";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import { useApprovalStore } from "@/stores";
 import { DisplayBlocks } from "./DisplayBlocks";
@@ -25,9 +25,17 @@ export function ApprovalDialog() {
     }
   }, [expanded, pending]);
 
-  if (pending.length === 0) return null;
-
   const req = pending[0];
+
+  // Auto-expand if there's a diff block (code change)
+  useEffect(() => {
+    if (req) {
+      const hasDiff = req.display?.some((b) => b.type === "diff") ?? false;
+      setExpanded(hasDiff);
+    }
+  }, [req?.id]);
+
+  if (!req) return null;
   const hasDisplay = req.display && req.display.length > 0;
 
   const handleResponse = async (response: ApprovalResponse) => {
