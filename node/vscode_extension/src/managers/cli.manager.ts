@@ -26,7 +26,9 @@ let instance: CLIManager;
 
 export const initCLIManager = (ctx: vscode.ExtensionContext) => (instance = new CLIManager(ctx));
 export const getCLIManager = () => {
-  if (!instance) throw new Error("CLI not init");
+  if (!instance) {
+    throw new Error("CLI not init");
+  }
   return instance;
 };
 
@@ -35,7 +37,9 @@ export function compareVersion(a: string, b: string): number {
   const v2 = b.split(".").map(Number);
   for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
     const diff = (v1[i] || 0) - (v2[i] || 0);
-    if (diff !== 0) return diff;
+    if (diff !== 0) {
+      return diff;
+    }
   }
   return 0;
 }
@@ -54,7 +58,9 @@ export class CLIManager {
 
   getExecutablePath(): string {
     const custom = vscode.workspace.getConfiguration("kimi").get<string>("executablePath");
-    if (custom) return custom;
+    if (custom) {
+      return custom;
+    }
 
     const installed = readInstalled(this.kimiPath);
     const info = getPlatformInfo();
@@ -77,10 +83,14 @@ export class CLIManager {
   }
 
   private async ensureCLI(): Promise<boolean> {
-    if (this.isCustomPath()) return true;
+    if (this.isCustomPath()) {
+      return true;
+    }
 
     const manifest = readManifest(this.extensionBinPath);
-    if (!manifest) return false;
+    if (!manifest) {
+      return false;
+    }
 
     const platform = getPlatformKey();
     const installed = readInstalled(this.kimiPath);
@@ -105,9 +115,7 @@ export class CLIManager {
       writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "native" });
     } else {
       console.log(`[Kimi Code] Platform ${platform} not supported natively, installing via uv...`);
-      vscode.window.showInformationMessage(
-        `Native CLI not available for ${platform}. Installing via uv (first run may take a moment)...`
-      );
+      vscode.window.showInformationMessage(`Native CLI not available for ${platform}. Installing via uv (first run may take a moment)...`);
       await downloadAndInstallUV(this.uvPath);
       copyUVWrapper(this.ctx.extensionUri.fsPath, this.kimiPath);
       writeInstalled(this.kimiPath, { version: manifest.version, platform, type: "uv" });

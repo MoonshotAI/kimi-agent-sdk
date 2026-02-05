@@ -75,6 +75,12 @@ export interface PendingInput {
   model: string;
 }
 
+export interface QueuedItem {
+  id: string;
+  content: string | ContentPart[];
+  model: string;
+}
+
 export interface ChatState {
   sessionId: string | null;
   messages: ChatMessage[];
@@ -86,6 +92,7 @@ export interface ChatState {
   tokenUsage: TokenUsage;
   activeTokenUsage: TokenUsage;
   pendingInput: PendingInput | null;
+  queue: QueuedItem[];
 
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
@@ -100,6 +107,12 @@ export interface ChatState {
   getMediaInConversation: () => MediaInConversation;
   hasProcessingMedia: () => boolean;
   rollbackInput: (content: string | ContentPart[]) => void;
+
+  enqueue: (content: string | ContentPart[], model: string) => void;
+  removeFromQueue: (id: string) => void;
+  editQueueItem: (id: string, content: string | ContentPart[]) => void;
+  moveQueueItemUp: (id: string) => void;
+  sendNextQueued: () => void;
 }
 
 let handshakeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -119,6 +132,27 @@ function clearAllInlineErrors(draft: ChatState): void {
   }
 }
 
+function doSend(state: ChatState, content: string | ContentPart[], model: string) {
+  const { sessionId } = state;
+  const { thinkingEnabled } = useSettingsStore.getState();
+
+  clearHandshakeTimer();
+  handshakeTimer = setTimeout(() => {
+    const s = useChatStore.getState();
+    if (s.isStreaming && !s.handshakeReceived) {
+      bridge.abortChat();
+      s.processEvent({
+        type: "error",
+        code: "HANDSHAKE_TIMEOUT",
+        message: "Connection timed out.",
+        phase: "runtime",
+      });
+    }
+  }, HANDSHAKE_TIMEOUT_MS);
+
+  bridge.streamChat(content, model, thinkingEnabled, sessionId ?? undefined);
+}
+
 export const useChatStore = create<ChatState>((set, get) => ({
   sessionId: null,
   messages: [],
@@ -130,19 +164,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
   tokenUsage: createEmptyTokenUsage(),
   activeTokenUsage: createEmptyTokenUsage(),
   pendingInput: null,
+  queue: [],
 
   sendMessage: (text) => {
-    const { draftMedia, sessionId, isStreaming } = get();
-    const { currentModel, thinkingEnabled } = useSettingsStore.getState();
-
-    if (isStreaming) {
-      return;
-    }
+    const { draftMedia, isStreaming } = get();
+    const { currentModel } = useSettingsStore.getState();
 
     const readyMedia = draftMedia.filter((m) => m.dataUri).map((m) => m.dataUri!);
     const content = readyMedia.length > 0 ? Content.build(text, readyMedia) : text;
 
     if (Content.isEmpty(content)) {
+      return;
+    }
+
+    // If streaming, enqueue instead of sending
+    if (isStreaming) {
+      get().enqueue(content, currentModel);
+      set({ draftMedia: [] });
       return;
     }
 
@@ -156,42 +194,24 @@ export const useChatStore = create<ChatState>((set, get) => ({
         draft.pendingInput = { content, model: currentModel };
       }),
     );
-
     useApprovalStore.getState().clearRequests();
 
-    // Set handshake timeout
-    clearHandshakeTimer();
-    handshakeTimer = setTimeout(() => {
-      const state = get();
-      if (state.isStreaming && !state.handshakeReceived) {
-        bridge.abortChat();
-        get().processEvent({
-          type: "error",
-          code: "HANDSHAKE_TIMEOUT",
-          message: "Connection timed out.",
-          phase: "runtime",
-        });
-      }
-    }, HANDSHAKE_TIMEOUT_MS);
-
-    bridge.streamChat(content, currentModel, thinkingEnabled, sessionId ?? undefined);
+    doSend(get(), content, currentModel);
   },
 
   retryLastMessage: () => {
-    const { pendingInput, isStreaming, sessionId } = get();
-    const { thinkingEnabled } = useSettingsStore.getState();
+    const { pendingInput, isStreaming } = get();
 
     if (isStreaming || !pendingInput) {
       return;
     }
 
-    set({ isStreaming: true, handshakeReceived: false });
-    useApprovalStore.getState().clearRequests();
-
     // Remove failed assistant message and user message
     set(
       produce((draft: ChatState) => {
         clearAllInlineErrors(draft);
+        draft.isStreaming = true;
+        draft.handshakeReceived = false;
         const lastAssistant = draft.messages.at(-1);
         if (lastAssistant?.role === "assistant" && lastAssistant.inlineError) {
           draft.messages.pop();
@@ -201,23 +221,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
       }),
     );
+    useApprovalStore.getState().clearRequests();
 
-    // Set handshake timeout
-    clearHandshakeTimer();
-    handshakeTimer = setTimeout(() => {
-      const state = get();
-      if (state.isStreaming && !state.handshakeReceived) {
-        bridge.abortChat();
-        get().processEvent({
-          type: "error",
-          code: "HANDSHAKE_TIMEOUT",
-          message: "Connection timed out.",
-          phase: "runtime",
-        });
-      }
-    }, HANDSHAKE_TIMEOUT_MS);
-
-    bridge.streamChat(pendingInput.content, pendingInput.model, thinkingEnabled, sessionId ?? undefined);
+    doSend(get(), pendingInput.content, pendingInput.model);
   },
 
   processEvent: (event) => {
@@ -232,6 +238,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         processEvent(draft, event);
       }),
     );
+
+    // Auto-send next queued item when streaming ends (complete or error)
+    if (event.type === "stream_complete" || event.type === "error") {
+      const { queue, isStreaming: stillStreaming } = get();
+      if (!stillStreaming && queue.length > 0) {
+        setTimeout(() => get().sendNextQueued(), 50);
+      }
+    }
   },
 
   loadSession: (sessionId, events) => {
@@ -247,6 +261,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       tokenUsage: createEmptyTokenUsage(),
       activeTokenUsage: createEmptyTokenUsage(),
       pendingInput: null,
+      queue: [],
     });
     useApprovalStore.getState().clearRequests();
     bridge.clearTrackedFiles();
@@ -291,6 +306,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       tokenUsage: createEmptyTokenUsage(),
       activeTokenUsage: createEmptyTokenUsage(),
       pendingInput: null,
+      queue: [],
     });
     useApprovalStore.getState().clearRequests();
   },
@@ -358,5 +374,56 @@ export const useChatStore = create<ChatState>((set, get) => ({
   rollbackInput: (content) => {
     const { currentModel } = useSettingsStore.getState();
     set({ pendingInput: { content, model: currentModel } });
+  },
+
+  enqueue: (content, model) => {
+    set((s) => ({
+      queue: [...s.queue, { id: crypto.randomUUID(), content, model }],
+    }));
+  },
+
+  removeFromQueue: (id) => {
+    set((s) => ({ queue: s.queue.filter((q) => q.id !== id) }));
+  },
+
+  editQueueItem: (id, content) => {
+    set((s) => ({
+      queue: s.queue.map((q) => (q.id === id ? { ...q, content } : q)),
+    }));
+  },
+
+  moveQueueItemUp: (id) => {
+    set((s) => {
+      const idx = s.queue.findIndex((q) => q.id === id);
+      if (idx <= 0) {
+        return s;
+      }
+      const next = [...s.queue];
+      [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+      return { queue: next };
+    });
+  },
+
+  sendNextQueued: () => {
+    const { queue, isStreaming } = get();
+    if (isStreaming || queue.length === 0) {
+      return;
+    }
+
+    const [next, ...rest] = queue;
+
+    set(
+      produce((draft: ChatState) => {
+        clearAllInlineErrors(draft);
+        draft.queue = rest;
+        draft.isStreaming = true;
+        draft.handshakeReceived = false;
+        draft.pendingInput = { content: next.content, model: next.model };
+        draft.draftMedia = [];
+      }),
+    );
+    useApprovalStore.getState().clearRequests();
+
+    doSend(get(), next.content, next.model);
   },
 }));

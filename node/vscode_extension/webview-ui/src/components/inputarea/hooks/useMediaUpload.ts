@@ -13,10 +13,10 @@ interface UseMediaUploadResult {
 }
 
 export function useMediaUpload(): UseMediaUploadResult {
-  const { isStreaming, draftMedia, addDraftMedia, updateDraftMedia, removeDraftMedia } = useChatStore();
+  const { draftMedia, addDraftMedia, updateDraftMedia, removeDraftMedia } = useChatStore();
 
   const hasProcessing = draftMedia.some((m) => !m.dataUri);
-  const canAddMedia = !isStreaming && draftMedia.length < MEDIA_CONFIG.maxCount;
+  const canAddMedia = draftMedia.length < MEDIA_CONFIG.maxCount;
 
   const getExistingDataUris = useCallback((): string[] => {
     return draftMedia.filter((m) => m.dataUri).map((m) => m.dataUri!);
@@ -84,7 +84,7 @@ export function useMediaUpload(): UseMediaUploadResult {
   );
 
   const handlePickMedia = useCallback(async () => {
-    if (isStreaming || hasProcessing || draftMedia.length >= MEDIA_CONFIG.maxCount) {
+    if (hasProcessing || draftMedia.length >= MEDIA_CONFIG.maxCount) {
       return;
     }
     const remaining = MEDIA_CONFIG.maxCount - draftMedia.length;
@@ -104,7 +104,7 @@ export function useMediaUpload(): UseMediaUploadResult {
     } catch {
       toast.error("Failed to pick media");
     }
-  }, [isStreaming, hasProcessing, draftMedia.length, addDraftMedia, getExistingDataUris]);
+  }, [hasProcessing, draftMedia.length, addDraftMedia, getExistingDataUris]);
 
   useEffect(() => {
     const isMediaFile = (file: File) => getMediaType(file) !== null;
@@ -125,7 +125,7 @@ export function useMediaUpload(): UseMediaUploadResult {
     const handleDocDrop = (e: DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      if (hasProcessing || isStreaming) {
+      if (hasProcessing) {
         return;
       }
       if (draftMedia.length >= MEDIA_CONFIG.maxCount) {
@@ -149,7 +149,7 @@ export function useMediaUpload(): UseMediaUploadResult {
       document.removeEventListener("dragover", handleDocDragOver);
       document.removeEventListener("drop", handleDocDrop);
     };
-  }, [hasProcessing, isStreaming, draftMedia.length, addMediaFiles]);
+  }, [hasProcessing, draftMedia.length, addMediaFiles]);
 
   return {
     canAddMedia,

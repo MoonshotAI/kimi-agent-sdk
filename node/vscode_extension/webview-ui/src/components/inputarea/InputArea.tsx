@@ -9,7 +9,7 @@ import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FilePickerMenu } from "../FilePickerMenu";
 import { MediaThumbnail } from "../MediaThumbnail";
 import { MediaPreviewModal } from "../MediaPreviewModal";
-import { FileChangesBar } from "../FileChangesBar";
+import { BottomToolbar } from "../BottomToolbar";
 import { ThinkingButton } from "../ThinkingButton";
 import { useChatStore, useSettingsStore, getModelById, getModelsForMedia } from "@/stores";
 import { bridge, Events } from "@/services";
@@ -33,7 +33,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const [cursorPos, setCursorPos] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
 
-  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput } = useChatStore();
+  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue } = useChatStore();
   const { currentModel, thinkingEnabled, updateModel, toggleThinking, models, extensionConfig, getCurrentThinkingMode } = useSettingsStore();
 
   const isProcessing = hasProcessingMedia();
@@ -123,7 +123,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   });
 
   const handleSend = useMemoizedFn(() => {
-    if (isStreaming || isProcessing || (!text.trim() && draftMedia.length === 0)) {
+    if (isProcessing || (!text.trim() && draftMedia.length === 0)) {
       return;
     }
 
@@ -266,10 +266,9 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const canSend = (text.trim() || draftMedia.length > 0) && !isProcessing;
 
   return (
-    <div className="p-2 pt-0!">
-      <FileChangesBar />
-
-      <div className="relative">
+    <div className="p-2 pt-0! flex flex-col min-h-0">
+      <BottomToolbar />
+      <div className="relative shrink-0">
         {showSlashMenu && filteredCommands.length > 0 && (
           <div ref={menuRef} className="absolute bottom-full left-0 right-0 mb-2 z-10">
             <SlashCommandMenu
@@ -339,7 +338,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
             onKeyDown={handleKeyDown}
             onSelect={handleSelect}
             onPaste={handlePaste}
-            placeholder="Ask Kimi Code... (/ commands · @ files · Alt+K code), powered by K2.5"
+            placeholder={isStreaming ? "Add a follow-up..." : "Ask Kimi Code... (/ commands · @ files · Alt+K code), powered by K2.5"}
             className={cn(
               "w-full min-h-12 max-h-35 px-2.5 py-1.5 text-xs leading-relaxed",
               "bg-transparent resize-none outline-none border-none overflow-y-auto",

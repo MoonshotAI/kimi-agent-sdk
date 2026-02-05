@@ -38,12 +38,16 @@ function ManualSetupHint() {
                 kimi.com/code
               </a>
             </li>
-            <li> Run <code className="bg-muted px-1 rounded">kimi</code> in terminal </li>
-            <li> Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions </li>
+            <li>
+              {" "}
+              Run <code className="bg-muted px-1 rounded">kimi</code> in terminal{" "}
+            </li>
+            <li>
+              {" "}
+              Type <code className="bg-muted px-1 rounded">/login</code> and follow the instructions{" "}
+            </li>
           </ol>
-          <span className="mt-1 block text-[11px] text-muted-foreground/70">
-            * For remote development, ensure CLI is installed in the remote environment
-          </span>
+          <span className="mt-1 block text-[11px] text-muted-foreground/70">* For remote development, ensure CLI is installed in the remote environment</span>
         </>
       )}
     </div>
@@ -142,7 +146,7 @@ function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void;
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <p className="text-xs font-medium text-foreground">Option 2: Use your own API key</p>
           <p className="text-xs text-muted-foreground">
-            Type <code className="bg-muted px-1 rounded">/login</code> in terminal and  follow the instructions.
+            Type <code className="bg-muted px-1 rounded">/login</code> in terminal and follow the instructions.
           </p>
           <Button onClick={() => bridge.runCLI()} variant="outline" size="sm" className="gap-2 w-full">
             <IconTerminal2 className="size-4" />

@@ -18,5 +18,5 @@ export { ConfigErrorScreen } from "./ConfigErrorScreen";
 export { LoginScreen } from "./LoginScreen";
 export { MediaPreviewModal } from "./MediaPreviewModal";
 export { MediaThumbnail } from "./MediaThumbnail";
-export { FileChangesBar } from "./FileChangesBar";
+export { BottomToolbar } from "./BottomToolbar";
 export { InlineError } from "./InlineError";
