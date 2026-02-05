@@ -20,3 +20,4 @@ export { MediaPreviewModal } from "./MediaPreviewModal";
 export { MediaThumbnail } from "./MediaThumbnail";
 export { FileChangesBar } from "./FileChangesBar";
 export { InlineError } from "./InlineError";
+export { QueuedMessages } from "./QueuedMessages";

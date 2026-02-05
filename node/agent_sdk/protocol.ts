@@ -38,6 +38,7 @@ export interface ClientOptions {
   executablePath?: string;
   environmentVariables?: Record<string, string>;
   externalTools?: ExternalTool[];
+  agentFile?: string;
   clientInfo?: ClientInfo;
 }
 
@@ -280,6 +281,9 @@ export class ProtocolClient {
     }
     if (options.yoloMode) {
       args.push("--yolo");
+    }
+    if (options.agentFile) {
+      args.push("--agent-file", options.agentFile);
     }
     return args;
   }

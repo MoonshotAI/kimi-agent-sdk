@@ -137,6 +137,7 @@ class SessionImpl implements Session {
   private _executable: string;
   private _env: Record<string, string>;
   private _externalTools: ExternalTool[];
+  private _agentFile?: string;
   private _slashCommands: SlashCommandInfo[] = [];
 
   private _state: SessionState = "idle";
@@ -155,6 +156,7 @@ class SessionImpl implements Session {
     this._executable = options.executable ?? "kimi";
     this._env = options.env ?? {};
     this._externalTools = options.externalTools ?? [];
+    this._agentFile = options.agentFile;
     this._clientInfo = options.clientInfo;
 
     log.session("Created session %s in %s", this._sessionId, this._workDir);
@@ -290,6 +292,7 @@ class SessionImpl implements Session {
       executablePath: this._executable,
       environmentVariables: this._env,
       externalTools: this._externalTools,
+      agentFile: this._agentFile,
       clientInfo: this._clientInfo,
     });
 

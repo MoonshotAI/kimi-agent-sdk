@@ -590,6 +590,8 @@ export interface SessionOptions {
   // Environment variables passed to CLI
   env?: Record<string, string>;
   externalTools?: ExternalTool[];
+  // Agent file path
+  agentFile?: string;
   clientInfo?: { name: string; version: string };
 }
 

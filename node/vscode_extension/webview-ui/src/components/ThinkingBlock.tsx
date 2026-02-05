@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IconChevronDown, IconLoader3, IconBulb } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Markdown } from "./Markdown";
+import { useSettingsStore } from "@/stores";
 
 interface ThinkingBlockProps {
   content: string;
@@ -10,7 +11,9 @@ interface ThinkingBlockProps {
 }
 
 export function ThinkingBlock({ content, finished, compact }: ThinkingBlockProps) {
-  const [expanded, setExpanded] = useState(false);
+  const { extensionConfig } = useSettingsStore();
+
+  const [expanded, setExpanded] = useState(extensionConfig.alwaysExpandThinking);
   const isStreaming = !finished;
 
   if (!content && !isStreaming) {
