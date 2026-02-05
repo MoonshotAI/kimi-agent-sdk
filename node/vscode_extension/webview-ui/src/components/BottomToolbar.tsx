@@ -19,6 +19,16 @@ export function BottomToolbar() {
     return bridge.on<FileChange[]>(Events.FileChangesUpdated, setFileChanges);
   }, []);
 
+  // Auto-close tab when data becomes empty
+  useEffect(() => {
+    if (activeTab === "queue" && queue.length === 0) {
+      setActiveTab(null);
+    }
+    if (activeTab === "changes" && fileChanges.length === 0) {
+      setActiveTab(null);
+    }
+  }, [activeTab, queue.length, fileChanges.length]);
+
   const hasQueue = queue.length > 0;
   const hasChanges = fileChanges.length > 0;
   const hasTabs = hasQueue || hasChanges;
