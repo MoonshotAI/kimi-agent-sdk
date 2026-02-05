@@ -42,9 +42,15 @@ const PLATFORMS: Record<string, PlatformInfo> = {
 
 export function getPlatformKey(): string {
   const { platform, arch } = process;
-  if (platform === "darwin") return arch === "arm64" ? "darwin-arm64" : "darwin-x64";
-  if (platform === "linux") return arch === "arm64" ? "linux-arm64" : "linux-x64";
-  if (platform === "win32") return "win32-x64";
+  if (platform === "darwin") {
+    return arch === "arm64" ? "darwin-arm64" : "darwin-x64";
+  }
+  if (platform === "linux") {
+    return arch === "arm64" ? "linux-arm64" : "linux-x64";
+  }
+  if (platform === "win32") {
+    return "win32-x64";
+  }
   throw new Error(`Unsupported platform: ${platform}-${arch}`);
 }
 
@@ -106,12 +112,16 @@ export async function downloadAndInstallUV(uvDir: string): Promise<void> {
   const res = await fetch("https://api.github.com/repos/astral-sh/uv/releases/latest", {
     headers: { "User-Agent": "kimi-vscode" },
   });
-  if (!res.ok) throw new Error(`Failed to fetch uv release: HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch uv release: HTTP ${res.status}`);
+  }
 
   const release = (await res.json()) as { assets: Array<{ name: string; browser_download_url: string }> };
   const filename = `uv-${uv.target}.${uv.ext}`;
   const asset = release.assets.find((a) => a.name === filename);
-  if (!asset) throw new Error(`UV asset not found: ${filename}`);
+  if (!asset) {
+    throw new Error(`UV asset not found: ${filename}`);
+  }
 
   const data = await downloadWithHash(asset.browser_download_url);
 
@@ -144,13 +154,17 @@ export function copyUVWrapper(extensionPath: string, wrapperDir: string): void {
 // ===== Helpers =====
 
 function prepareDir(dir: string): void {
-  if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
+  if (fs.existsSync(dir)) {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
   fs.mkdirSync(dir, { recursive: true });
 }
 
 async function downloadWithHash(url: string, expectedSha256?: string): Promise<Buffer> {
   const res = await fetch(url, { headers: { "User-Agent": "kimi-vscode" } });
-  if (!res.ok) throw new Error(`Download failed: HTTP ${res.status}`);
+  if (!res.ok) {
+    throw new Error(`Download failed: HTTP ${res.status}`);
+  }
 
   const data = Buffer.from(await res.arrayBuffer());
 

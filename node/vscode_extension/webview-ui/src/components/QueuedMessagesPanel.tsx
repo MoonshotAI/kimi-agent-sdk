@@ -4,24 +4,16 @@ import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores";
 import { Content } from "@/lib/content";
 
-function QueueItem({
-  id,
-  content,
-  onEdit,
-}: {
-  id: string;
-  content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[];
-  onEdit: (id: string) => void;
-}) {
+function QueueItem({ id, content, onEdit }: { id: string; content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[]; onEdit: (id: string) => void }) {
   const { removeFromQueue, moveQueueItemUp, queue } = useChatStore();
   const text = Content.getText(content);
   const hasMedia = Content.hasMedia(content);
   const isFirst = queue[0]?.id === id;
 
   return (
-    <div className="group flex items-start gap-1.5 px-2.5 py-1.5 hover:bg-muted/50 transition-colors">
+    <div className="group flex items-start px-2.5 py-0.5 hover:bg-muted/50 transition-colors">
       <div className="flex-1 min-w-0">
-        <p className="text-xs leading-relaxed line-clamp-2 text-foreground">{text || (hasMedia ? "(media)" : "")}</p>
+        <p className="text-xs line-clamp-2 text-foreground">{text || (hasMedia ? "(media)" : "")}</p>
         {hasMedia && text && <span className="text-[10px] text-muted-foreground">+ media</span>}
       </div>
       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -53,7 +45,7 @@ function EditingItem({ id, initialContent, onDone }: { id: string; initialConten
   };
 
   return (
-    <div className="flex items-center gap-1.5 px-2.5 py-1.5">
+    <div className="flex items-center px-2.5 py-0.5">
       <input
         autoFocus
         value={text}
@@ -81,13 +73,13 @@ export function QueuedMessagesPanel() {
   if (queue.length === 0) return null;
 
   return (
-    <div className="max-h-48 overflow-y-auto bg-card">
+    <div className="max-h-48 overflow-y-auto bg-card shrink">
       {queue.map((item) =>
         editingId === item.id ? (
           <EditingItem key={item.id} id={item.id} initialContent={Content.getText(item.content)} onDone={() => setEditingId(null)} />
         ) : (
           <QueueItem key={item.id} id={item.id} content={item.content} onEdit={setEditingId} />
-        )
+        ),
       )}
     </div>
   );

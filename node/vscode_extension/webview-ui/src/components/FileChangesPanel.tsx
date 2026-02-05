@@ -19,7 +19,7 @@ function getTotalStats(changes: FileChange[]) {
       additions: a.additions + c.additions,
       deletions: a.deletions + c.deletions,
     }),
-    { additions: 0, deletions: 0 }
+    { additions: 0, deletions: 0 },
   );
 }
 
@@ -111,15 +111,11 @@ export function FileChangesPanel({ changes }: FileChangesPanelProps) {
   const stats = getTotalStats(changes);
 
   if (!changes.length) {
-    return (
-      <div className="px-2.5 py-3 text-xs text-muted-foreground text-center">
-        No file changes
-      </div>
-    );
+    return <div className="px-2.5 py-3 text-xs text-muted-foreground text-center">No file changes</div>;
   }
 
   return (
-    <div className="flex flex-col bg-card">
+    <div className="flex flex-col bg-card shrink">
       {/* Header with actions */}
       <div className="flex items-center justify-between px-2.5 py-1.5 text-xs bg-muted/30">
         <div className="flex items-center gap-2">

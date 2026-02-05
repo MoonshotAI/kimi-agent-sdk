@@ -15,7 +15,9 @@ const PLATFORMS = {
 };
 
 function getToken() {
-  if (process.env.GITHUB_TOKEN) return process.env.GITHUB_TOKEN;
+  if (process.env.GITHUB_TOKEN) {
+    return process.env.GITHUB_TOKEN;
+  }
   try {
     return execSync("gh auth token", { encoding: "utf8", stdio: ["pipe", "pipe", "ignore"] }).trim();
   } catch {
@@ -26,10 +28,14 @@ function getToken() {
 async function request(url) {
   const headers = { "User-Agent": "kimi-vscode" };
   const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
 
   const res = await fetch(url, { headers });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${url}`);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}: ${url}`);
+  }
   return res;
 }
 

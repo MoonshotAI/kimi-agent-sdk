@@ -184,7 +184,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return;
     }
 
-      // Clear draft and set streaming state
+    // Clear draft and set streaming state
     set(
       produce((draft: ChatState) => {
         clearAllInlineErrors(draft);
@@ -395,7 +395,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   moveQueueItemUp: (id) => {
     set((s) => {
       const idx = s.queue.findIndex((q) => q.id === id);
-      if (idx <= 0) return s;
+      if (idx <= 0) {
+        return s;
+      }
       const next = [...s.queue];
       [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
       return { queue: next };
@@ -404,7 +406,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   sendNextQueued: () => {
     const { queue, isStreaming } = get();
-    if (isStreaming || queue.length === 0) return;
+    if (isStreaming || queue.length === 0) {
+      return;
+    }
 
     const [next, ...rest] = queue;
 

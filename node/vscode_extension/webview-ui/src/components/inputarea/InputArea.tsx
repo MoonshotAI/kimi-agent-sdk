@@ -266,9 +266,9 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const canSend = (text.trim() || draftMedia.length > 0) && !isProcessing;
 
   return (
-    <div className="p-2 pt-0!">
+    <div className="p-2 pt-0! flex flex-col min-h-0">
       <BottomToolbar />
-      <div className="relative">
+      <div className="relative shrink-0">
         {showSlashMenu && filteredCommands.length > 0 && (
           <div ref={menuRef} className="absolute bottom-full left-0 right-0 mb-2 z-10">
             <SlashCommandMenu

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Header } from "./components/Header";
 import { ChatArea } from "./components/ChatArea";
 import { InputArea } from "./components/inputarea/InputArea";
-import { ApprovalDialog } from "./components/ApprovalDialog";
+
 import { MCPServersModal } from "./components/MCPServersModal";
 import { ConfigErrorScreen } from "./components/ConfigErrorScreen";
 import { LoginScreen } from "./components/LoginScreen";
@@ -57,8 +57,9 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
       <div className="flex-1 min-h-0 relative group/chat">
         <ChatArea />
       </div>
-      <ApprovalDialog />
-      <InputArea onAuthAction={onAuthAction} />
+      <div className="shrink-0 max-h-[80vh] flex flex-col min-h-0">
+        <InputArea onAuthAction={onAuthAction} />
+      </div>
       <MCPServersModal />
     </>
   );
