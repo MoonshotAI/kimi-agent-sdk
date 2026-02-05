@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
-import { IconFilePlus, IconFileMinus, IconFileX, IconArrowBackUp, IconCheck, IconGitCompare, IconChevronDown, IconChevronRight } from "@tabler/icons-react";
+import { useState } from "react";
+import { IconFilePlus, IconFileMinus, IconFileX, IconArrowBackUp, IconCheck, IconGitCompare } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useChatStore } from "@/stores";
-import { bridge, Events } from "@/services";
+import { bridge } from "@/services";
 import { cn } from "@/lib/utils";
 import { FileChange } from "shared/types";
 
@@ -19,7 +19,7 @@ function getTotalStats(changes: FileChange[]) {
       additions: a.additions + c.additions,
       deletions: a.deletions + c.deletions,
     }),
-    { additions: 0, deletions: 0 },
+    { additions: 0, deletions: 0 }
   );
 }
 
@@ -82,15 +82,13 @@ function FileItem({ file, onRevert, onKeep, onViewDiff, disabled, isStreaming }:
   );
 }
 
-export function FileChangesBar() {
-  const { isStreaming } = useChatStore();
-  const [changes, setChanges] = useState<FileChange[]>([]);
-  const [expanded, setExpanded] = useState(true);
-  const [loading, setLoading] = useState(false);
+interface FileChangesPanelProps {
+  changes: FileChange[];
+}
 
-  useEffect(() => {
-    return bridge.on<FileChange[]>(Events.FileChangesUpdated, setChanges);
-  }, []);
+export function FileChangesPanel({ changes }: FileChangesPanelProps) {
+  const { isStreaming } = useChatStore();
+  const [loading, setLoading] = useState(false);
 
   const handleRevert = async (filePath?: string) => {
     setLoading(true);
@@ -110,24 +108,31 @@ export function FileChangesBar() {
     }
   };
 
-  if (!changes.length) return null;
-
   const stats = getTotalStats(changes);
 
+  if (!changes.length) {
+    return (
+      <div className="px-2.5 py-3 text-xs text-muted-foreground text-center">
+        No file changes
+      </div>
+    );
+  }
+
   return (
-    <div className="mb-1 border border-input rounded-md overflow-hidden bg-card">
-      <div className="min-h-8 flex items-center gap-2 px-2.5 py-1.5 text-xs cursor-pointer hover:bg-accent/30 select-none" onClick={() => setExpanded(!expanded)}>
-        {expanded ? <IconChevronDown className="size-3.5 text-muted-foreground shrink-0" /> : <IconChevronRight className="size-3.5 text-muted-foreground shrink-0" />}
-        <span className="font-medium">
-          {changes.length} file{changes.length !== 1 ? "s" : ""} changed
-        </span>
-        <div className="flex items-center gap-1 text-[10px] tabular-nums">
-          <span className="text-green-600 dark:text-green-400">+{stats.additions}</span>
-          <span className="text-red-600 dark:text-red-400">-{stats.deletions}</span>
+    <div className="flex flex-col bg-card">
+      {/* Header with actions */}
+      <div className="flex items-center justify-between px-2.5 py-1.5 text-xs bg-muted/30">
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">
+            {changes.length} file{changes.length !== 1 ? "s" : ""}
+          </span>
+          <div className="flex items-center gap-1 text-[10px] tabular-nums">
+            <span className="text-green-600 dark:text-green-400">+{stats.additions}</span>
+            <span className="text-red-600 dark:text-red-400">-{stats.deletions}</span>
+          </div>
         </div>
-        <div className="flex-1" />
         {!isStreaming && (
-          <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1">
             <Button variant="default" size="sm" className="h-5 px-2 text-[10px] cursor-pointer" onClick={() => handleKeep()} disabled={loading}>
               Keep All
             </Button>
@@ -137,20 +142,21 @@ export function FileChangesBar() {
           </div>
         )}
       </div>
-      {expanded && (
-        <div className="border-t border-input overflow-y-auto" style={{ maxHeight: "200px" }}>
-          {changes.map((file) => (
-            <FileItem
-              key={file.path}
-              file={file}
-              onRevert={() => handleRevert(file.path)}
-              onKeep={() => handleKeep(file.path)}
-              onViewDiff={() => bridge.openFileDiff(file.path)}
-              disabled={loading}
-            />
-          ))}
-        </div>
-      )}
+
+      {/* File list */}
+      <div className="overflow-y-auto flex-1">
+        {changes.map((file) => (
+          <FileItem
+            key={file.path}
+            file={file}
+            onRevert={() => handleRevert(file.path)}
+            onKeep={() => handleKeep(file.path)}
+            onViewDiff={() => bridge.openFileDiff(file.path)}
+            disabled={loading}
+            isStreaming={isStreaming}
+          />
+        ))}
+      </div>
     </div>
   );
 }

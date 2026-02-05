@@ -9,8 +9,7 @@ import { SlashCommandMenu } from "../SlashCommandMenu";
 import { FilePickerMenu } from "../FilePickerMenu";
 import { MediaThumbnail } from "../MediaThumbnail";
 import { MediaPreviewModal } from "../MediaPreviewModal";
-import { FileChangesBar } from "../FileChangesBar";
-import { QueuedMessages } from "../QueuedMessages";
+import { BottomToolbar } from "../BottomToolbar";
 import { ThinkingButton } from "../ThinkingButton";
 import { useChatStore, useSettingsStore, getModelById, getModelsForMedia } from "@/stores";
 import { bridge, Events } from "@/services";
@@ -268,8 +267,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
 
   return (
     <div className="p-2 pt-0!">
-      <FileChangesBar />
-      <QueuedMessages />
+      <BottomToolbar />
       <div className="relative">
         {showSlashMenu && filteredCommands.length > 0 && (
           <div ref={menuRef} className="absolute bottom-full left-0 right-0 mb-2 z-10">

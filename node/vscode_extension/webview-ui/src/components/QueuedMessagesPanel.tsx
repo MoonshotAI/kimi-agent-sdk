@@ -1,18 +1,25 @@
 import { useState } from "react";
-import { IconTrash, IconArrowUp, IconPencil, IconCheck, IconX, IconChevronDown } from "@tabler/icons-react";
+import { IconTrash, IconArrowUp, IconPencil, IconCheck, IconX } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores";
 import { Content } from "@/lib/content";
-import { cn } from "@/lib/utils";
 
-function QueueItem({ id, content, onEdit }: { id: string; content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[]; onEdit: (id: string) => void }) {
+function QueueItem({
+  id,
+  content,
+  onEdit,
+}: {
+  id: string;
+  content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[];
+  onEdit: (id: string) => void;
+}) {
   const { removeFromQueue, moveQueueItemUp, queue } = useChatStore();
   const text = Content.getText(content);
   const hasMedia = Content.hasMedia(content);
   const isFirst = queue[0]?.id === id;
 
   return (
-    <div className="group flex items-start gap-1.5 px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors">
+    <div className="group flex items-start gap-1.5 px-2.5 py-1.5 hover:bg-muted/50 transition-colors">
       <div className="flex-1 min-w-0">
         <p className="text-xs leading-relaxed line-clamp-2 text-foreground">{text || (hasMedia ? "(media)" : "")}</p>
         {hasMedia && text && <span className="text-[10px] text-muted-foreground">+ media</span>}
@@ -46,7 +53,7 @@ function EditingItem({ id, initialContent, onDone }: { id: string; initialConten
   };
 
   return (
-    <div className="flex items-center gap-1.5 px-2 py-1">
+    <div className="flex items-center gap-1.5 px-2.5 py-1.5">
       <input
         autoFocus
         value={text}
@@ -67,39 +74,20 @@ function EditingItem({ id, initialContent, onDone }: { id: string; initialConten
   );
 }
 
-export function QueuedMessages() {
+export function QueuedMessagesPanel() {
   const { queue } = useChatStore();
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
 
   if (queue.length === 0) return null;
 
   return (
-    <div className="mb-0.5 border border-border/60 rounded-md overflow-hidden bg-card/50">
-      <div
-        className="flex items-center gap-2 px-2.5 py-1.5 cursor-pointer hover:bg-muted/30 select-none"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <IconChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", !expanded && "-rotate-90")} />
-        <span className="text-xs font-medium">
-          {queue.length} Queued
-        </span>
-      </div>
-      {expanded && (
-        <div className="border-t border-border/40">
-          {queue.map((item) =>
-            editingId === item.id ? (
-              <EditingItem
-                key={item.id}
-                id={item.id}
-                initialContent={Content.getText(item.content)}
-                onDone={() => setEditingId(null)}
-              />
-            ) : (
-              <QueueItem key={item.id} id={item.id} content={item.content} onEdit={setEditingId} />
-            ),
-          )}
-        </div>
+    <div className="max-h-48 overflow-y-auto bg-card">
+      {queue.map((item) =>
+        editingId === item.id ? (
+          <EditingItem key={item.id} id={item.id} initialContent={Content.getText(item.content)} onDone={() => setEditingId(null)} />
+        ) : (
+          <QueueItem key={item.id} id={item.id} content={item.content} onEdit={setEditingId} />
+        )
       )}
     </div>
   );
