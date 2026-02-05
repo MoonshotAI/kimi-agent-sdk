@@ -459,12 +459,12 @@ const eventHandlers: Record<string, EventHandler> = {
       const { token_usage } = target.event.payload;
 
       if (token_usage) {
-        draft.activeTokenUsage = {
+        addTokenUsage(draft.activeTokenUsage, {
           input_other: token_usage.input_other || 0,
           output: token_usage.output || 0,
           input_cache_read: token_usage.input_cache_read || 0,
           input_cache_creation: token_usage.input_cache_creation || 0,
-        };
+        });
       }
 
       return;
@@ -501,12 +501,12 @@ const eventHandlers: Record<string, EventHandler> = {
     const { context_usage, token_usage } = payload;
 
     if (token_usage) {
-      draft.activeTokenUsage = {
+      addTokenUsage(draft.activeTokenUsage, {
         input_other: token_usage.input_other || 0,
         output: token_usage.output || 0,
         input_cache_read: token_usage.input_cache_read || 0,
         input_cache_creation: token_usage.input_cache_creation || 0,
-      };
+      });
     }
 
     draft.lastStatus = { context_usage, token_usage };
