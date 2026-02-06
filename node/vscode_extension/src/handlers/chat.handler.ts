@@ -143,7 +143,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   // Track pending tool calls for baseline saving
   BaselineManager.initSession(workDir, sessionId);
 
-  ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model }, ctx.webviewId);
+  ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model, _sessionId: sessionId }, ctx.webviewId);
 
   const systemContext = buildSystemContext();
   const contentWithContext = prependSystemContext(params.content, systemContext);
@@ -202,12 +202,12 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         }
       }
 
-      ctx.broadcast(Events.StreamEvent, { ...event, sessionId }, ctx.webviewId);
+      ctx.broadcast(Events.StreamEvent, { ...event, _sessionId: sessionId }, ctx.webviewId);
     }
 
     result = await turn.result;
 
-    ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result, sessionId }, ctx.webviewId);
+    ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result, _sessionId: sessionId }, ctx.webviewId);
     ctx.setTurn(null);
 
     return { done: true };
@@ -228,7 +228,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         message,
         detail,
         phase,
-        sessionId,
+        _sessionId: sessionId,
       },
       ctx.webviewId,
     );
