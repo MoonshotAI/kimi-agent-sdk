@@ -15,11 +15,16 @@ import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
 function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
-  const { processEvent, startNewConversation } = useChatStore();
+  const { processEvent, startNewConversation, sessionId } = useChatStore();
   const { setMCPServers, setExtensionConfig, extensionConfig } = useSettingsStore();
 
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
+      // Filter out events from other sessions (after switching)
+      if ("sessionId" in event && event.sessionId && event.sessionId !== sessionId) {
+        console.log("Ignored stream event from another session:", event.sessionId);
+        return;
+      }
       processEvent(event);
       if (event.type === "error") {
         const streamError = event as StreamError;
@@ -28,7 +33,7 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
         }
       }
     });
-  }, [processEvent]);
+  }, [processEvent, sessionId]);
 
   useEffect(() => {
     const unsubs = [

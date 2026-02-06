@@ -105,7 +105,7 @@ export function SessionList({ onClose }: SessionListProps) {
   const doLoadSession = async (session: SessionInfo) => {
     try {
       const events = await bridge.loadSessionHistory(session.id);
-      loadSession(session.id, events);
+      await loadSession(session.id, events);
       onClose();
     } catch (error) {
       console.error("[SessionList] Failed to load session:", error);

@@ -97,7 +97,7 @@ export interface ChatState {
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
   processEvent: (event: UIStreamEvent) => void;
-  loadSession: (sessionId: string, events: UIStreamEvent[]) => void;
+  loadSession: (sessionId: string, events: UIStreamEvent[]) => Promise<void>;
   startNewConversation: () => Promise<void>;
   abort: () => void;
   addDraftMedia: (id: string, dataUri?: string) => void;
@@ -248,13 +248,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
 
-  loadSession: (sessionId, events) => {
+  loadSession: async (sessionId, events) => {
     clearHandshakeTimer();
     
     // Abort any ongoing stream when switching sessions
     const { isStreaming: wasStreaming } = get();
     if (wasStreaming) {
-      bridge.abortChat();
+      await bridge.abortChat();
     }
     
     set({

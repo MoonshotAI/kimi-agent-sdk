@@ -202,12 +202,12 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         }
       }
 
-      ctx.broadcast(Events.StreamEvent, event, ctx.webviewId);
+      ctx.broadcast(Events.StreamEvent, { ...event, sessionId }, ctx.webviewId);
     }
 
     result = await turn.result;
 
-    ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result }, ctx.webviewId);
+    ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result, sessionId }, ctx.webviewId);
     ctx.setTurn(null);
 
     return { done: true };
@@ -228,6 +228,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         message,
         detail,
         phase,
+        sessionId,
       },
       ctx.webviewId,
     );
