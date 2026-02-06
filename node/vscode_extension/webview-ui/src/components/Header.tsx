@@ -3,6 +3,7 @@ import { IconPlus, IconChevronDown, IconInfoCircle } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { StreamingConfirmDialog } from "./StreamingConfirmDialog";
 import { KimiLogo } from "./KimiLogo";
 import { SessionList } from "./SessionList";
 import { useChatStore } from "@/stores";
@@ -11,11 +12,23 @@ import { ChatStatus, TokenInfo } from "./ChatStatus";
 export function Header() {
   const [showSessionList, setShowSessionList] = useState(false);
   const [showSessionInfo, setShowSessionInfo] = useState(false);
-  const { startNewConversation, sessionId, messages } = useChatStore();
+  const [showConfirmNew, setShowConfirmNew] = useState(false);
+  const { startNewConversation, sessionId, messages, isStreaming } = useChatStore();
 
   const handleNewSession = async () => {
+    // If streaming, show confirmation dialog
+    if (isStreaming) {
+      setShowConfirmNew(true);
+      return;
+    }
+    
+    await doStartNewSession();
+  };
+
+  const doStartNewSession = async () => {
     await startNewConversation();
     setShowSessionList(false);
+    setShowConfirmNew(false);
   };
 
   return (
@@ -72,6 +85,15 @@ export function Header() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <StreamingConfirmDialog
+        open={showConfirmNew}
+        onOpenChange={(open) => !open && setShowConfirmNew(false)}
+        title="Start New Conversation?"
+        description="The current conversation is still generating a response. Starting a new one will truncate the output. Are you sure you want to continue?"
+        confirmLabel="New Conversation"
+        onConfirm={doStartNewSession}
+      />
     </header>
   );
 }

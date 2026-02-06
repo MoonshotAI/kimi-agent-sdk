@@ -1,8 +1,8 @@
+// node/vscode_extension/webview-ui/src/App.tsx
 import { useEffect, useState, useCallback } from "react";
 import { Header } from "./components/Header";
 import { ChatArea } from "./components/ChatArea";
 import { InputArea } from "./components/inputarea/InputArea";
-
 import { MCPServersModal } from "./components/MCPServersModal";
 import { ConfigErrorScreen } from "./components/ConfigErrorScreen";
 import { LoginScreen } from "./components/LoginScreen";
@@ -15,11 +15,16 @@ import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
 function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
-  const { processEvent, startNewConversation } = useChatStore();
+  const { processEvent, startNewConversation, sessionId } = useChatStore();
   const { setMCPServers, setExtensionConfig, extensionConfig } = useSettingsStore();
 
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
+      // 只有当前已有 session 时才过滤，确保 session_start 能正常处理
+      if (sessionId && "_sessionId" in event && event._sessionId && event._sessionId !== sessionId) {
+        console.log("Ignored stream event from another session:", event._sessionId);
+        return;
+      }
       processEvent(event);
       if (event.type === "error") {
         const streamError = event as StreamError;
@@ -28,7 +33,7 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
         }
       }
     });
-  }, [processEvent]);
+  }, [processEvent, sessionId]);
 
   useEffect(() => {
     const unsubs = [
@@ -82,7 +87,7 @@ export default function App() {
     refresh();
   }, [refresh]);
 
-  // 未登录且未 skip → 显示登录页
+  // 未登录且未跳过
   if (status === "not-logged-in" && !skippedLogin) {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
@@ -93,7 +98,7 @@ export default function App() {
     );
   }
 
-  // skip 登录但没有 models → 显示 no-models
+  // 跳过登录但没有模型
   if (skippedLogin && modelsCount === 0) {
     return (
       <div className="flex flex-col h-screen text-foreground overflow-hidden">
@@ -115,7 +120,7 @@ export default function App() {
     );
   }
 
-  // ready 或 skip 登录但有 models
+  // 正常状态
   return (
     <div className="flex flex-col h-screen text-foreground overflow-hidden">
       <Header />
