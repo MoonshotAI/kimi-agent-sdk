@@ -250,6 +250,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   loadSession: (sessionId, events) => {
     clearHandshakeTimer();
+    
+    // Abort any ongoing stream when switching sessions
+    const { isStreaming: wasStreaming } = get();
+    if (wasStreaming) {
+      bridge.abortChat();
+    }
+    
     set({
       sessionId,
       messages: [],
@@ -293,6 +300,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   startNewConversation: async () => {
     clearHandshakeTimer();
+    
+    // Abort any ongoing stream before starting new conversation
+    const { isStreaming: wasStreaming } = get();
+    if (wasStreaming) {
+      bridge.abortChat();
+    }
+    
     await bridge.resetSession();
     await bridge.clearTrackedFiles();
     set({

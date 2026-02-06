@@ -3,16 +3,7 @@ import { useRequest } from "ahooks";
 import { IconSearch, IconDots, IconTrash, IconCheck } from "@tabler/icons-react";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { StreamingConfirmDialog } from "./StreamingConfirmDialog";
 import { bridge } from "@/services";
 import type { SessionInfo } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
@@ -85,10 +76,11 @@ function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemPro
 }
 
 export function SessionList({ onClose }: SessionListProps) {
-  const { loadSession, sessionId, startNewConversation } = useChatStore();
+  const { loadSession, sessionId, startNewConversation, isStreaming } = useChatStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SessionInfo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingSession, setPendingSession] = useState<SessionInfo | null>(null);
 
   const { data: kimiSessions = [], loading, mutate } = useRequest(() => bridge.getKimiSessions());
 
@@ -100,6 +92,17 @@ export function SessionList({ onClose }: SessionListProps) {
 
   const handleSelect = async (session: SessionInfo) => {
     console.log("[SessionList] Loading session:", session.id);
+    
+    // If streaming, show confirmation dialog
+    if (isStreaming) {
+      setPendingSession(session);
+      return;
+    }
+    
+    await doLoadSession(session);
+  };
+
+  const doLoadSession = async (session: SessionInfo) => {
     try {
       const events = await bridge.loadSessionHistory(session.id);
       loadSession(session.id, events);
@@ -107,6 +110,12 @@ export function SessionList({ onClose }: SessionListProps) {
     } catch (error) {
       console.error("[SessionList] Failed to load session:", error);
     }
+  };
+
+  const handleConfirmSwitch = async () => {
+    if (!pendingSession) return;
+    await doLoadSession(pendingSession);
+    setPendingSession(null);
   };
 
   const handleDelete = async () => {
@@ -159,20 +168,26 @@ export function SessionList({ onClose }: SessionListProps) {
         </div>
       </div>
 
-      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Conversation?</AlertDialogTitle>
-            <AlertDialogDescription>This will permanently delete this conversation. This action cannot be undone.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} disabled={isDeleting} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              {isDeleting ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StreamingConfirmDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete Conversation?"
+        description="This will permanently delete this conversation. This action cannot be undone."
+        confirmLabel="Delete"
+        onConfirm={handleDelete}
+        confirmDisabled={isDeleting}
+        cancelDisabled={isDeleting}
+        confirmLoading={isDeleting}
+      />
+
+      <StreamingConfirmDialog
+        open={pendingSession !== null}
+        onOpenChange={(open) => !open && setPendingSession(null)}
+        title="Switch Conversation?"
+        description="The current conversation is still generating a response. Switching will truncate the output. Are you sure you want to continue?"
+        confirmLabel="Switch"
+        onConfirm={handleConfirmSwitch}
+      />
     </>
   );
 }
