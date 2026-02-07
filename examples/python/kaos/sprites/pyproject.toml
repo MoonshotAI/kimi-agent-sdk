@@ -1,0 +1,13 @@
+[project]
+name = "kimi-agent-sdk-sprites-sandbox"
+version = "0.1.0"
+description = "Run Kimi Agent SDK with a Sprites-backed KAOS"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "kimi-agent-sdk",
+    "sprites-py>=0.0.1a1",
+]
+
+[tool.uv.sources]
+kimi-agent-sdk = { path = "../../../../python" }

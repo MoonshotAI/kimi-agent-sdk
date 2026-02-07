@@ -375,7 +375,9 @@ else:
             if error in {"exists", "exists_not_dir"}:
                 raise FileExistsError(f"{abs_path} already exists")
             if error == "parent_missing":
-                raise FileNotFoundError(f"Parent directory {posixpath.dirname(abs_path)} does not exist")
+                raise FileNotFoundError(
+                    f"Parent directory {posixpath.dirname(abs_path)} does not exist"
+                )
             if error == "parent_not_dir":
                 raise NotADirectoryError(
                     f"Parent path {posixpath.dirname(abs_path)} is not a directory"

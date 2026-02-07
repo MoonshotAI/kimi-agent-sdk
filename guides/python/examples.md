@@ -9,3 +9,4 @@ teaches.
 | [customized-tools](../../examples/python/customized-tools) | Loading agent files and custom tools | Registers a custom tool via `myagent.yaml` and asks the agent about its tools |
 | [project-tracker](../../examples/python/project-tracker) | Multi-turn `Session` flow and resume | Feeds multiple log updates, keeps running state, then resumes after close |
 | [message-logger](../../examples/python/message-logger) | Prompt streaming, logging, and file output | Catalogs all examples and writes a Markdown report while logging every message |
+| [kaos](../../examples/python/kaos) | Running with multiple KAOS sandbox backends | Compares BoxLite, E2B, and Sprites examples and shows how to route tools into each backend |

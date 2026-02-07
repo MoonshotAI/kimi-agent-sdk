@@ -5,10 +5,10 @@ import os
 from pathlib import Path
 
 import boxlite
+from boxlite_kaos import BoxliteKaos
 from kaos import reset_current_kaos, set_current_kaos
 from kaos.path import KaosPath
 
-from boxlite_kaos import BoxliteKaos
 from kimi_agent_sdk import prompt
 
 

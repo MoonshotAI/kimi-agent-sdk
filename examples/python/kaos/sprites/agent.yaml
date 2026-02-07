@@ -1,0 +1,7 @@
+version: 1
+agent:
+  extend: default
+  name: "sprites"
+  # Grep tool only supports local KAOS; disable it for Sprites sandboxes.
+  exclude_tools:
+    - "kimi_cli.tools.file:Grep"

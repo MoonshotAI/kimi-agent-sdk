@@ -22,7 +22,6 @@ from e2b import (  # type: ignore[import-untyped]
 
 # `e2b` does not ship type hints.
 from e2b.sandbox_async.commands.command import Commands  # type: ignore[import-untyped]
-
 from kaos import AsyncReadable, AsyncWritable, Kaos, KaosProcess, StatResult, StrOrKaosPath
 from kaos.path import KaosPath
 
