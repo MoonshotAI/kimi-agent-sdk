@@ -7,4 +7,4 @@ This example shows how to:
 - Install `E2BKaos` with `set_current_kaos(...)`
 - Run Kimi Agent tools inside the remote E2B environment
 
-For setup, comparison, and run commands, see `/Users/moonshot/Projects/kimi-agent-sdk/examples/python/kaos/README.md`.
+For architecture overview and backend comparison, see `/Users/moonshot/Projects/kimi-agent-sdk/examples/python/kaos/README.md`.

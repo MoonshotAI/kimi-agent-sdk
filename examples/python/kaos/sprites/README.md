@@ -7,4 +7,4 @@ This example shows how to:
 - Install `SpritesKaos` with `set_current_kaos(...)`
 - Run Kimi Agent tools in the Sprite filesystem/process context
 
-For setup, comparison, and run commands, see `/Users/moonshot/Projects/kimi-agent-sdk/examples/python/kaos/README.md`.
+For architecture overview and backend comparison, see `/Users/moonshot/Projects/kimi-agent-sdk/examples/python/kaos/README.md`.

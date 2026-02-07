@@ -15,89 +15,50 @@ All three use the same pattern:
 
 ```mermaid
 flowchart LR
-    subgraph App["Your App"]
-        SDK["Kimi Agent SDK"] --> CLI["Kimi CLI Tools"]
+    subgraph Server
+        App["Your App"] --> SDK["Kimi Agent SDK"] --> CLI["Kimi CLI"]
+        subgraph Tools["Tools"]
+            ReadFile["ReadFile"]
+            WriteFile["WriteFile"]
+            Shell["Shell"]
+        end
+        CLI --- Tools
     end
 
-    CLI --> KAOS["KAOS Interface"]
-    KAOS --> B["BoxLite (local)"]
-    KAOS --> E["E2B (cloud)"]
-    KAOS --> S["Sprites (cloud, persistent)"]
+    subgraph BoxLite["BoxLite Box"]
+        BFS[("Filesystem")]
+        BSH{{"Shell"}}
+    end
+
+    subgraph E2B["E2B Sandbox"]
+        EFS[("Filesystem")]
+        ESH{{"Shell"}}
+    end
+
+    subgraph Sprites["Sprites Sandbox"]
+        SFS[("Filesystem")]
+        SSH{{"Shell"}}
+    end
+
+    ReadFile -->|"Kaos.readtext()"| FSRouter["Selected KAOS Backend"]
+    WriteFile -->|"Kaos.writetext()"| FSRouter
+    Shell -->|"Kaos.exec()"| SHRouter["Selected KAOS Backend"]
+
+    FSRouter --> BFS
+    FSRouter --> EFS
+    FSRouter --> SFS
+    SHRouter --> BSH
+    SHRouter --> ESH
+    SHRouter --> SSH
+
+    style Tools stroke-dasharray: 5 5
 ```
 
-## Common Setup
+## Backends
 
-```sh
-# Common required env vars
-export KIMI_API_KEY=your-api-key
-export KIMI_BASE_URL=https://api.moonshot.ai/v1
-export KIMI_MODEL_NAME=kimi-k2-thinking-turbo
-```
-
-## BoxLite
-
-Path: `examples/python/kaos/boxlite`
-
-```sh
-cd examples/python/kaos/boxlite
-uv sync --reinstall
-
-# Optional
-export BOXLITE_IMAGE=python:3.12-slim
-export KIMI_WORK_DIR=/root/kimi-workdir
-
-uv run main.py
-```
-
-Notes:
-- Runs locally via BoxLite.
-- Script creates a box, runs the task, then stops the box.
-
-## E2B
-
-Path: `examples/python/kaos/e2b`
-
-```sh
-cd examples/python/kaos/e2b
-uv sync --reinstall
-
-# Required
-export E2B_API_KEY=your-e2b-api-key
-
-# Optional
-export E2B_SANDBOX_ID=...
-export KIMI_WORK_DIR=/home/user/kimi-workdir
-
-uv run main.py
-```
-
-Notes:
-- If `E2B_SANDBOX_ID` is unset, a new sandbox is created.
-- Sandbox lifecycle is managed outside the SDK.
-
-## Sprites
-
-Path: `examples/python/kaos/sprites`
-
-```sh
-cd examples/python/kaos/sprites
-uv sync --reinstall
-
-# Required
-export SPRITE_TOKEN=your-sprites-token
-
-# Optional
-export SPRITE_NAME=my-existing-sprite
-export SPRITES_BASE_URL=https://api.sprites.dev
-export KIMI_WORK_DIR=/home/sprite/kimi-workdir
-export SPRITE_DELETE_ON_EXIT=1
-
-uv run main.py
-```
-
-Notes:
-- If `SPRITE_NAME` is unset, script creates `kimi-agent-xxxx` automatically.
-- Created sprite is kept by default; set `SPRITE_DELETE_ON_EXIT=1` to delete on exit.
+- `examples/python/kaos/boxlite`: local BoxLite runtime backend
+- `examples/python/kaos/e2b`: E2B cloud sandbox backend
+- `examples/python/kaos/sprites`: Sprites cloud sandbox backend
 
 ## Files
 
