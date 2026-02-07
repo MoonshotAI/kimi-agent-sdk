@@ -20,44 +20,23 @@ All three backends follow the same four-step pattern:
 4. **Reset** KAOS context and clean up resources
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph Server
         App["Your App"] --> SDK["Kimi Agent SDK"] --> CLI["Kimi CLI"]
         subgraph Tools["Tools"]
-            ReadFile["ReadFile"]
-            WriteFile["WriteFile"]
-            Shell["Shell"]
+            RF["ReadFile"] & WF["WriteFile"] & SH["Shell"]
         end
         CLI --- Tools
     end
 
-    subgraph BoxLite["BoxLite Box"]
-        BFS[("Filesystem")]
-        BSH{{"Shell"}}
-    end
+    Tools -->|"readtext · writetext · exec"| KAOS["Active KAOS Backend"]
 
-    subgraph E2B["E2B Sandbox"]
-        EFS[("Filesystem")]
-        ESH{{"Shell"}}
-    end
-
-    subgraph Sprites["Sprites Sandbox"]
-        SFS[("Filesystem")]
-        SSH{{"Shell"}}
-    end
-
-    ReadFile -->|"Kaos.readtext()"| FSRouter["Selected KAOS Backend"]
-    WriteFile -->|"Kaos.writetext()"| FSRouter
-    Shell -->|"Kaos.exec()"| SHRouter["Selected KAOS Backend"]
-
-    FSRouter --> BFS
-    FSRouter --> EFS
-    FSRouter --> SFS
-    SHRouter --> BSH
-    SHRouter --> ESH
-    SHRouter --> SSH
+    KAOS -.-> B["BoxLite Box"]
+    KAOS -.-> E["E2B Sandbox"]
+    KAOS -.-> S["Sprites Sandbox"]
 
     style Tools stroke-dasharray: 5 5
+    style KAOS fill:#f0e6ff,stroke:#7c3aed
 ```
 
 > **Note:** The `Grep` tool currently only supports local KAOS, so all sandbox examples disable it in their `agent.yaml`.
