@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from kimi_cli.wire.types import StepBegin
+from kimi_cli.wire.types import StepBegin, TurnEnd
 from kosong.message import TextPart, ToolCall
 from kosong.tooling import ToolOk, ToolResult
 
@@ -26,6 +26,16 @@ def test_aggregator_flushes_step_with_tool_results() -> None:
     assert messages[0].tool_calls
     assert messages[1].role == "tool"
     assert messages[1].tool_call_id == "call-1"
+
+
+def test_aggregator_ignores_turn_end() -> None:
+    agg = MessageAggregator()
+    agg.feed(TextPart(text="hello"))
+    assert agg.feed(TurnEnd()) == []
+
+    messages = agg.flush()
+    assert len(messages) == 1
+    assert messages[0].extract_text() == "hello"
 
 
 def test_aggregator_final_only_returns_last_step() -> None:

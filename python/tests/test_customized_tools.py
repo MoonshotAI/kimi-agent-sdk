@@ -7,6 +7,10 @@ from typing import Any, cast
 
 import pytest
 from kaos.path import KaosPath
+from kimi_cli.exception import SystemPromptTemplateError as CliSystemPromptTemplateError
+from kimi_cli.tools.display import ShellDisplayBlock as CliShellDisplayBlock
+from kimi_cli.tools.display import TodoDisplayItem as CliTodoDisplayItem
+from kimi_cli.wire.types import TurnEnd as CliTurnEnd
 from kosong.tooling import (
     CallableTool2 as KosongCallableTool2,
 )
@@ -25,9 +29,13 @@ from kimi_agent_sdk import (
     CallableTool2,
     Config,
     Session,
+    ShellDisplayBlock,
+    SystemPromptTemplateError,
+    TodoDisplayItem,
     ToolError,
     ToolOk,
     ToolReturnValue,
+    TurnEnd,
 )
 
 
@@ -36,6 +44,17 @@ def test_tooling_exports_match_kosong() -> None:
     assert ToolOk is KosongToolOk
     assert ToolError is KosongToolError
     assert ToolReturnValue is KosongToolReturnValue
+
+
+def test_wire_type_exports_match_sources() -> None:
+    assert TurnEnd is CliTurnEnd
+    assert ShellDisplayBlock is CliShellDisplayBlock
+    assert TodoDisplayItem is CliTodoDisplayItem
+
+
+def test_system_prompt_template_error_is_kimi_exception() -> None:
+    assert SystemPromptTemplateError is CliSystemPromptTemplateError
+    assert issubclass(SystemPromptTemplateError, (ValueError, Exception))
 
 
 def test_custom_tool_uses_sdk_exports() -> None:
