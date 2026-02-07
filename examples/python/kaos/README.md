@@ -13,6 +13,18 @@ All three use the same pattern:
 3. Call `prompt(...)` or `Session` normally
 4. Reset KAOS context and optionally clean up resources
 
+```mermaid
+flowchart LR
+    subgraph App["Your App"]
+        SDK["Kimi Agent SDK"] --> CLI["Kimi CLI Tools"]
+    end
+
+    CLI --> KAOS["KAOS Interface"]
+    KAOS --> B["BoxLite (local)"]
+    KAOS --> E["E2B (cloud)"]
+    KAOS --> S["Sprites (cloud, persistent)"]
+```
+
 ## Common Setup
 
 ```sh

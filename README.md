@@ -55,4 +55,4 @@ Python quick start: [guides/python/quickstart.md](./guides/python/quickstart.md)
 ## Examples
 
 - Go: [examples/go/ralph-loop](./examples/go/ralph-loop), [examples/go/rumor-buster](./examples/go/rumor-buster)
-- Python: [examples/python/customized-tools](./examples/python/customized-tools), [examples/python/kaos](./examples/python/kaos)
+- Python: [examples/python/customized-tools](./examples/python/customized-tools), [examples/python/kaos](./examples/python/kaos) (KAOS sandbox backends: run the same agent tools in BoxLite, E2B, or Sprites)
