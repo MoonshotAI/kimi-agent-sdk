@@ -59,9 +59,3 @@ flowchart LR
 - `examples/python/kaos/boxlite`: local BoxLite runtime backend
 - `examples/python/kaos/e2b`: E2B cloud sandbox backend
 - `examples/python/kaos/sprites`: Sprites cloud sandbox backend
-
-## Files
-
-- `examples/python/kaos/boxlite/boxlite_kaos.py`
-- `examples/python/kaos/e2b/e2b_kaos.py`
-- `examples/python/kaos/sprites/sprites_kaos.py`
