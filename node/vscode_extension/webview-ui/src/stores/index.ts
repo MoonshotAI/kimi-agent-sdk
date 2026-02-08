@@ -7,3 +7,5 @@ export type { MediaRequirements } from "./settings.store";
 
 export { useApprovalStore } from "./approval.store";
 export type { ApprovalRequest } from "./approval.store";
+
+export { useFocusStore } from "./focus.store";

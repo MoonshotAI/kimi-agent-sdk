@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { bridge, Events } from "@/services";
-import { useSettingsStore } from "@/stores";
+import { useSettingsStore, useFocusStore } from "@/stores";
 import type { ExtensionConfig, CLICheckResult } from "shared/types";
 
 export type AppStatus = "loading" | "no-workspace" | "cli-error" | "not-logged-in" | "no-models" | "ready";
@@ -36,6 +36,23 @@ export function useAppInit(): AppInitState {
       }
     });
   }, [setExtensionConfig, refresh]);
+
+  // Track window focus state for notification sounds
+  useEffect(() => {
+    const handleFocus = () => useFocusStore.getState().setFocused(true);
+    const handleBlur = () => useFocusStore.getState().setFocused(false);
+
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("blur", handleBlur);
+
+    // Set initial state
+    useFocusStore.getState().setFocused(document.hasFocus());
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
