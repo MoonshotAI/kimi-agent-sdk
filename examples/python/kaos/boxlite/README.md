@@ -1,6 +1,6 @@
 # BoxLite KAOS Example
 
-[BoxLite](https://github.com/aspect-build/boxlite) is a local sandbox runtime that runs isolated container workloads on your machine.
+[BoxLite](https://github.com/boxlite-ai/boxlite) is a local sandbox runtime that runs isolated container workloads on your machine.
 
 This example creates a BoxLite box, installs `BoxliteKaos` as the KAOS backend, and runs the agent inside the container's filesystem and process environment.
 
