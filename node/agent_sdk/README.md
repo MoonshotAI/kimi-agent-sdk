@@ -5,10 +5,12 @@ TypeScript SDK for interacting with Kimi Code CLI via wire protocol.
 ## Installation
 
 ```bash
-npm install @moonshot-ai/kimi-agent-sdk
+npm install @moonshot-ai/kimi-agent-sdk zod
 # or
-pnpm add @moonshot-ai/kimi-agent-sdk
+pnpm add @moonshot-ai/kimi-agent-sdk zod
 ```
+
+**Note**: This SDK requires `zod` (v3.24.0+ or v4.x) as a peer dependency. You need to install it in your project.
 
 ## Quick Start
 
@@ -375,6 +377,46 @@ Formats content output as a string.
 ---
 
 ## Usage Examples
+
+### Creating External Tools
+
+```typescript
+import { z } from 'zod';
+import { createExternalTool, createSession } from '@moonshot-ai/kimi-agent-sdk';
+
+// Define your custom tool with zod schema
+const weatherTool = createExternalTool({
+  name: 'get_weather',
+  description: 'Get weather information for a city',
+  parameters: z.object({
+    city: z.string().describe('City name'),
+    unit: z.enum(['celsius', 'fahrenheit']).optional(),
+  }),
+  handler: async (params) => {
+    // Your tool logic here
+    const weather = await fetchWeather(params.city, params.unit);
+    return {
+      output: `Weather in ${params.city}: ${weather.temp}°`,
+      message: 'Weather fetched successfully',
+    };
+  },
+});
+
+// Use the tool in a session
+const session = createSession({
+  workDir: process.cwd(),
+  externalTools: [weatherTool],
+});
+
+const turn = session.prompt('What is the weather in Beijing?');
+for await (const event of turn) {
+  if (event.type === 'ContentPart' && event.payload.type === 'text') {
+    console.log(event.payload.text);
+  }
+}
+```
+
+**Note**: Works with both zod v3 and v4. The SDK will use your project's zod version.
 
 ### Handling Tool Approvals
 
