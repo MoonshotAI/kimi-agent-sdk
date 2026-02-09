@@ -25,6 +25,7 @@ export interface HandlerContext {
   getOrCreateSession: (model: string, thinking: boolean, sessionId?: string) => Session;
   closeSession: () => Promise<void>;
   saveAllDirty: () => Promise<void>;
+  resolveAskUserWithOption: (requestId: string, response: string) => void;
 }
 
 export type Handler<TParams = void, TResult = unknown> = (params: TParams, ctx: HandlerContext) => Promise<TResult>;

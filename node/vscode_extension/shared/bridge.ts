@@ -57,6 +57,7 @@ export const Methods = {
   GetImageDataUri: "getImageDataUri",
   ShowLogs: "showLogs",
   ReloadWebview: "reloadWebview",
+  RespondAskUser: "respondAskUser",
 } as const;
 
 export const Events = {
@@ -69,4 +70,5 @@ export const Events = {
   FileChangesUpdated: "fileChangesUpdated",
   RollbackInput: "rollbackInput",
   LoginUrl: "loginUrl",
+  AskUserRequest: "askUserRequest",
 } as const;

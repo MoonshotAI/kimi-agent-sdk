@@ -29,9 +29,6 @@ importers:
       toml:
         specifier: ^3.0.0
         version: 3.0.0
-      zod:
-        specifier: ^3.24.0
-        version: 3.25.76
       zod-to-json-schema:
         specifier: ^3.25.1
         version: 3.25.1(zod@3.25.76)
@@ -54,12 +51,18 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.3)(jiti@2.6.1)(lightningcss@1.30.2)(msw@2.12.4(@types/node@22.19.3)(typescript@5.9.3))
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
 
   vscode_extension:
     dependencies:
       debug:
         specifier: ^4.4.3
         version: 4.4.3
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: 22.x

@@ -3,6 +3,7 @@ import { produce } from "immer";
 import { bridge } from "@/services";
 import { Content } from "@/lib/content";
 import { useApprovalStore } from "./approval.store";
+import { useAskUserStore } from "./askuser.store";
 import { useSettingsStore } from "./settings.store";
 import { processEvent } from "./event-handlers";
 import type { StatusUpdate, ContentPart } from "@moonshot-ai/kimi-agent-sdk/schema";
@@ -195,6 +196,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
 
     doSend(get(), content, currentModel);
   },
@@ -222,6 +224,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
 
     doSend(get(), pendingInput.content, pendingInput.model);
   },
@@ -271,6 +274,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       queue: [],
     });
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
     bridge.clearTrackedFiles();
 
     for (const event of events) {
@@ -323,12 +327,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
       queue: [],
     });
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
   },
 
   abort: () => {
     clearHandshakeTimer();
     bridge.abortChat();
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
   },
 
   addDraftMedia: (id, dataUri) => {
@@ -437,6 +443,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
+    useAskUserStore.getState().clearRequests();
 
     doSend(get(), next.content, next.model);
   },

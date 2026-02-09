@@ -196,6 +196,10 @@ class Bridge {
     return this.call<{ ok: boolean }>(Methods.RespondApproval, { requestId, response });
   }
 
+  respondAskUser(requestId: string, response: string) {
+    return this.call<{ ok: boolean }>(Methods.RespondAskUser, { requestId, response });
+  }
+
   getKimiSessions() {
     return this.call<SessionInfo[]>(Methods.GetKimiSessions);
   }

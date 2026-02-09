@@ -79,3 +79,9 @@ export interface CLICheckResult {
 export interface LoginStatus {
   loggedIn: boolean;
 }
+
+export interface AskUserRequest {
+  id: string;
+  question: string;
+  options: string[];
+}

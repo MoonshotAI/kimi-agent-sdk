@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { FileChangesPanel } from "./FileChangesPanel";
 import { QueuedMessagesPanel } from "./QueuedMessagesPanel";
 import { ApprovalDialog } from "./ApprovalDialog";
+import { AskUserDialog } from "./AskUserDialog";
 import type { FileChange } from "shared/types";
 
 type TabId = "queue" | "changes" | null;
@@ -41,8 +42,9 @@ export function BottomToolbar() {
 
   return (
     <div className="flex flex-col min-h-0 flex-1 overflow-hidden">
-      {/* ApprovalDialog - priority, shrink-0 */}
+      {/* ApprovalDialog and AskUserDialog - priority, shrink-0 */}
       <ApprovalDialog />
+      <AskUserDialog />
 
       {/* Queue/Changes panel - takes remaining space */}
       {activeTab && (
