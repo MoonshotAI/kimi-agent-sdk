@@ -258,8 +258,7 @@ const respondApproval: Handler<RespondApprovalParams, { ok: boolean }> = async (
 };
 
 const respondAskUserWithOption: Handler<RespondAskUserWithOptionParams, { ok: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn();
-  turn?.respondAskUserWithOption(params.requestId, params.response);
+  ctx.resolveAskUserWithOption(params.requestId, params.response);
   return { ok: true };
 };
 

@@ -2,7 +2,9 @@ import * as vscode from "vscode";
 import { VSCodeSettings } from "./config/vscode-settings";
 import { getCLIManager, FileManager } from "./managers";
 import { handlers, type HandlerContext, type BroadcastFn, type ReloadWebviewFn, type ShowLogsFn } from "./handlers";
-import { createSession, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn } from "@moonshot-ai/kimi-agent-sdk";
+import { createSession, createExternalTool, parseConfig, getModelThinkingMode, getModelById, type Session, type Turn, type ExternalTool } from "@moonshot-ai/kimi-agent-sdk";
+import { z } from "zod";
+import { Events } from "../shared/bridge";
 
 interface RpcMessage {
   id: string;
@@ -20,6 +22,7 @@ export class BridgeHandler {
   private sessions = new Map<string, Session>();
   private turns = new Map<string, Turn>();
   private fileManager: FileManager;
+  private pendingAskUserWithOption = new Map<string, { resolve: (response: string) => void }>();
 
   constructor(
     private broadcast: BroadcastFn,
@@ -54,6 +57,37 @@ export class BridgeHandler {
       throw new Error("No workspace folder open");
     }
     return w;
+  }
+
+  private createAskUserTool(webviewId: string): ExternalTool {
+    return createExternalTool({
+      name: "AskUserWithOption",
+      description: "Ask the user a question with predefined options. Use when you need user input to proceed. You can provide 1-3 options for the user to choose from.",
+      parameters: z.object({
+        question: z.string().describe("The question to ask the user"),
+        options: z.array(z.string()).describe("1-3 options for the user to choose from"),
+      }),
+      handler: async (params) => {
+        if (VSCodeSettings.yoloMode) {
+          return { output: "YOLO mode enabled, cannot ask user", message: "User interaction disabled" };
+        }
+        const requestId = `askuser_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        return new Promise((resolve) => {
+          this.pendingAskUserWithOption.set(requestId, {
+            resolve: (response: string) => resolve({ output: response, message: "User responded" }),
+          });
+          this.broadcast(Events.AskUserWithOptionRequest, { id: requestId, question: params.question, options: params.options }, webviewId);
+        });
+      },
+    });
+  }
+
+  private resolveAskUserWithOption(requestId: string, response: string): void {
+    const pending = this.pendingAskUserWithOption.get(requestId);
+    if (pending) {
+      pending.resolve(response);
+      this.pendingAskUserWithOption.delete(requestId);
+    }
   }
 
   private async dispatch(method: string, params: unknown, webviewId: string): Promise<unknown> {
@@ -94,6 +128,7 @@ export class BridgeHandler {
         this.turns.delete(webviewId);
       },
       saveAllDirty: () => this.saveAllDirty(),
+      resolveAskUserWithOption: (requestId: string, response: string) => this.resolveAskUserWithOption(requestId, response),
     };
   }
 
@@ -156,6 +191,7 @@ export class BridgeHandler {
       sessionId,
       executable,
       env,
+      externalTools: [this.createAskUserTool(webviewId)],
       clientInfo: { name: "kimi-code-for-vs-code", version: VSCodeSettings.getExtensionConfig().version },
     });
 
