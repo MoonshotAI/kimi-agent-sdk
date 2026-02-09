@@ -11,7 +11,7 @@ import { useChatStore, useSettingsStore, useAskUserStore } from "./stores";
 import { bridge, Events } from "./services";
 import { useAppInit } from "./hooks/useAppInit";
 import { isPreflightError } from "shared/errors";
-import type { UIStreamEvent, StreamError, ExtensionConfig, AskUserRequest } from "shared/types";
+import type { UIStreamEvent, StreamError, ExtensionConfig, AskUserWithOptionRequest } from "shared/types";
 import "./styles/index.css";
 
 function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
@@ -41,7 +41,7 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
       bridge.on(Events.ExtensionConfigChanged, ({ config }: { config: ExtensionConfig }) => setExtensionConfig(config)),
       bridge.on(Events.FocusInput, () => document.querySelector<HTMLTextAreaElement>("textarea")?.focus()),
       bridge.on(Events.NewConversation, () => startNewConversation()),
-      bridge.on<AskUserRequest>(Events.AskUserRequest, (req) => useAskUserStore.getState().addRequest(req)),
+      bridge.on<AskUserWithOptionRequest>(Events.AskUserWithOptionRequest, (req) => useAskUserStore.getState().addRequest(req)),
     ];
     return () => unsubs.forEach((u) => u());
   }, [setMCPServers, setExtensionConfig, startNewConversation]);

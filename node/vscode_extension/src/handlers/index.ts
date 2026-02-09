@@ -6,7 +6,6 @@ import { chatHandlers } from "./chat.handler";
 import { fileHandlers } from "./file.handler";
 import { workspaceHandlers } from "./workspace.handler";
 import { authHandlers } from "./auth.handler";
-import { askUserHandlers } from "./askuser.handler";
 import type { Handler } from "./types";
 
 export type { Handler, HandlerContext, BroadcastFn, ReloadWebviewFn, ShowLogsFn } from "./types";
@@ -20,5 +19,4 @@ export const handlers: Record<string, Handler<any, any>> = {
   ...chatHandlers,
   ...fileHandlers,
   ...authHandlers,
-  ...askUserHandlers,
 };

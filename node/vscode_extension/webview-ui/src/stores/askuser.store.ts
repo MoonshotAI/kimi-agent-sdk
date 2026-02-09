@@ -1,10 +1,10 @@
 import { create } from "zustand";
 import { bridge } from "@/services";
-import type { AskUserRequest } from "shared/types";
+import type { AskUserWithOptionRequest } from "shared/types";
 
 interface AskUserState {
-  pending: AskUserRequest[];
-  addRequest: (request: AskUserRequest) => void;
+  pending: AskUserWithOptionRequest[];
+  addRequest: (request: AskUserWithOptionRequest) => void;
   removeRequest: (id: string) => void;
   respondToRequest: (id: string, response: string) => Promise<void>;
   clearRequests: () => void;
@@ -19,7 +19,7 @@ export const useAskUserStore = create<AskUserState>((set, get) => ({
     set((s) => ({ pending: s.pending.filter((r) => r.id !== id) }));
   },
   respondToRequest: async (id, response) => {
-    await bridge.respondAskUser(id, response);
+    await bridge.respondAskUserWithOption(id, response);
     get().removeRequest(id);
   },
   clearRequests: () => {

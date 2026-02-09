@@ -80,8 +80,9 @@ export interface LoginStatus {
   loggedIn: boolean;
 }
 
-export interface AskUserRequest {
+export interface AskUserWithOptionRequest {
   id: string;
+  tool_call_id: string;
   question: string;
   options: string[];
 }

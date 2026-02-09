@@ -22,6 +22,11 @@ interface RespondApprovalParams {
   response: ApprovalResponse;
 }
 
+interface RespondAskUserWithOptionParams {
+  requestId: string;
+  response: string;
+}
+
 interface PendingToolCall {
   id: string;
   name: string;
@@ -252,6 +257,12 @@ const respondApproval: Handler<RespondApprovalParams, { ok: boolean }> = async (
   return { ok: true };
 };
 
+const respondAskUserWithOption: Handler<RespondAskUserWithOptionParams, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn();
+  turn?.respondAskUserWithOption(params.requestId, params.response);
+  return { ok: true };
+};
+
 const resetSession: Handler<void, { ok: boolean }> = async (_, ctx) => {
   await ctx.closeSession();
   ctx.fileManager.clearTracked(ctx.webviewId);
@@ -262,5 +273,6 @@ export const chatHandlers: Record<string, Handler<any, any>> = {
   [Methods.StreamChat]: streamChat,
   [Methods.AbortChat]: abortChat,
   [Methods.RespondApproval]: respondApproval,
+  [Methods.RespondAskUserWithOption]: respondAskUserWithOption,
   [Methods.ResetSession]: resetSession,
 };

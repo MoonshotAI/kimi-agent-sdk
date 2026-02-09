@@ -350,6 +350,19 @@ export const ApprovalResponseEventSchema = z.object({
 });
 export type ApprovalResponseEvent = z.infer<typeof ApprovalResponseEventSchema>;
 
+// AskUserWithOption request payload
+export const AskUserWithOptionRequestPayloadSchema = z.object({
+  // Request ID, referenced when responding
+  id: z.string(),
+  // Associated tool call ID
+  tool_call_id: z.string(),
+  // Question to ask the user
+  question: z.string(),
+  // Options for the user to choose from (1-3 options)
+  options: z.array(z.string()),
+});
+export type AskUserWithOptionRequestPayload = z.infer<typeof AskUserWithOptionRequestPayloadSchema>;
+
 // Parse error payload
 export interface ParseErrorPayload {
   code: string;
@@ -386,7 +399,10 @@ export type WireEvent =
   | { type: "ApprovalResponse"; payload: ApprovalResponseEvent }
   | { type: "ParseError"; payload: ParseErrorPayload };
 
-export type WireRequest = { type: "ApprovalRequest"; payload: ApprovalRequestPayload } | { type: "ToolCallRequest"; payload: ToolCallRequest };
+export type WireRequest =
+  | { type: "ApprovalRequest"; payload: ApprovalRequestPayload }
+  | { type: "AskUserWithOptionRequest"; payload: AskUserWithOptionRequestPayload }
+  | { type: "ToolCallRequest"; payload: ToolCallRequest };
 
 // Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
@@ -406,6 +422,7 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
 // Request type -> schema mapping
 export const RequestSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequest: ApprovalRequestPayloadSchema,
+  AskUserWithOptionRequest: AskUserWithOptionRequestPayloadSchema,
   ToolCallRequest: ToolCallRequestSchema,
 };
 
