@@ -85,7 +85,6 @@ export type {
   StepBegin,
   StatusUpdate,
   ApprovalRequestPayload,
-  AskUserWithOptionRequestPayload,
   SubagentEvent,
   StreamEvent,
   RunResult,

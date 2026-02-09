@@ -227,15 +227,6 @@ export class ProtocolClient {
     return Promise.resolve();
   }
 
-  sendAskUserWithOptionResponse(requestId: string, response: string): Promise<void> {
-    this.writeLine({
-      jsonrpc: "2.0",
-      id: requestId,
-      result: { request_id: requestId, response },
-    });
-    return Promise.resolve();
-  }
-
   private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo): Promise<InitializeResult> {
     let clientName = `${SDK_NAME}/${SDK_VERSION}`;
     if (clientInfo?.name && clientInfo?.version) {

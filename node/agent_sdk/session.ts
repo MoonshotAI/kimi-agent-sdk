@@ -24,8 +24,6 @@ export interface Turn {
   interrupt(): Promise<void>;
   /** Respond to approval request */
   approve(requestId: string, response: ApprovalResponse): Promise<void>;
-  /** Respond to AskUserWithOption request */
-  respondAskUserWithOption(requestId: string, response: string): Promise<void>;
   /** Promise of the result after the turn is completed */
   readonly result: Promise<RunResult>;
 }
@@ -125,14 +123,6 @@ class TurnImpl implements Turn {
       throw new SessionError("SESSION_CLOSED", "Cannot approve: no active client");
     }
     return client.sendApproval(requestId, response);
-  }
-
-  async respondAskUserWithOption(requestId: string, response: string): Promise<void> {
-    const client = this.getCurrentClient();
-    if (!client?.isRunning) {
-      throw new SessionError("SESSION_CLOSED", "Cannot respond: no active client");
-    }
-    return client.sendAskUserWithOptionResponse(requestId, response);
   }
 }
 
