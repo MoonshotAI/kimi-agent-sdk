@@ -1222,7 +1222,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "kimi-cli", specifier = ">=1.9.0,<1.10.0" },
+    { name = "kimi-cli", specifier = ">=1.10.0,<1.11.0" },
     { name = "kosong", specifier = ">=0.42.0,<0.43.0" },
 ]
 
@@ -1239,7 +1239,7 @@ dev = [
 
 [[package]]
 name = "kimi-cli"
-version = "1.9.0"
+version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "agent-client-protocol" },
@@ -1271,9 +1271,9 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/96/f1/58800a860334c4a23a06df55a851e9ee30174baeb95b1902dbbd687bd6f8/kimi_cli-1.9.0.tar.gz", hash = "sha256:d9d2d4d951f90c0336493d2b9fc247582ae48e2af156217f7368bdef513243fa", size = 4453196, upload-time = "2026-02-06T18:27:33.944Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/b6/9b3bf4beaff92d69c84e69b48503eab16e5850acfcd25857a5231988d7f2/kimi_cli-1.10.0.tar.gz", hash = "sha256:9d6166956b6a3469864fff6e906696fac6909c7cd805585ef9dfb1efa5a0cd0f", size = 4452611, upload-time = "2026-02-09T14:52:37.957Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2a/a9/26451853d13f1bbe43cc93bf2ea668a956dfb7a610ca5ea6113f2efa7058/kimi_cli-1.9.0-py3-none-any.whl", hash = "sha256:0d08e5083c20850022f75d5047759290c190eb60ad5b594982a785fc8d916afa", size = 4719240, upload-time = "2026-02-06T18:27:31.06Z" },
+    { url = "https://files.pythonhosted.org/packages/0d/44/2a08ac8ab1ed07778ad5cc14816eafb8cee85f187911443a13ed068772b9/kimi_cli-1.10.0-py3-none-any.whl", hash = "sha256:109168ab62206f0d4a5a54ca038e9ccc87ef66b01d3da0ece7f49fda5d9d4c0d", size = 4720925, upload-time = "2026-02-09T14:52:34.854Z" },
 ]
 
 [[package]]
