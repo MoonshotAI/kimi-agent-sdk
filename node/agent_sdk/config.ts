@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as toml from "toml";
 import { z } from "zod";
-import { KimiPaths } from "./paths";
+import { KimiPaths, createKimiPaths } from "./paths";
 import { log } from "./logger";
 import type { KimiConfig, ModelConfig } from "./schema";
 
@@ -90,22 +90,23 @@ const ConfigSchema = z.object({
 type Config = z.infer<typeof ConfigSchema>;
 
 // Config Parsing
-function readConfigToml(): unknown | null {
-  if (!fs.existsSync(KimiPaths.config)) {
+function readConfigToml(configPath: string): unknown | null {
+  if (!fs.existsSync(configPath)) {
     return null;
   }
   try {
-    return toml.parse(fs.readFileSync(KimiPaths.config, "utf-8"));
+    return toml.parse(fs.readFileSync(configPath, "utf-8"));
   } catch (err) {
     log.config("Failed to read/parse config.toml: %O", err);
     return null;
   }
 }
 
-export function parseConfig(): KimiConfig {
-  const raw = readConfigToml();
+export function parseConfig(shareDir?: string): KimiConfig {
+  const paths = shareDir ? createKimiPaths(shareDir) : KimiPaths;
+  const raw = readConfigToml(paths.config);
   if (!raw) {
-    log.config("Config file not found: %s", KimiPaths.config);
+    log.config("Config file not found: %s", paths.config);
     return { defaultModel: null, defaultThinking: false, models: [] };
   }
 
@@ -140,8 +141,9 @@ function isPlainObject(val: unknown): val is Record<string, unknown> {
   return !!val && typeof val === "object" && !Array.isArray(val);
 }
 
-export function isLoggedIn(): boolean {
-  const raw = readConfigToml();
+export function isLoggedIn(shareDir?: string): boolean {
+  const paths = shareDir ? createKimiPaths(shareDir) : KimiPaths;
+  const raw = readConfigToml(paths.config);
   if (!raw || !isPlainObject(raw)) {
     return false;
   }
@@ -168,8 +170,9 @@ export function isLoggedIn(): boolean {
 // Config Saving
 // This is deliberately simple and only handles the default_model setting.
 // Otherwise the toml lib will change the format / default values.
-export function saveDefaultModel(modelId: string, thinking?: boolean): void {
-  const configPath = KimiPaths.config;
+export function saveDefaultModel(modelId: string, thinking?: boolean, shareDir?: string): void {
+  const paths = shareDir ? createKimiPaths(shareDir) : KimiPaths;
+  const configPath = paths.config;
 
   if (!fs.existsSync(configPath)) {
     let content = `default_model = "${modelId}"\n`;
