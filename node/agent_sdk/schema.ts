@@ -197,7 +197,7 @@ export const ToolCallSchema = z.object({
     arguments: z.string().nullable().optional(),
   }),
   // Extra metadata
-  extras: z.record(z.unknown()).nullable().optional(),
+  extras: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type ToolCall = z.infer<typeof ToolCallSchema>;
 
@@ -214,7 +214,7 @@ export const ToolReturnValueSchema = z.object({
   output: z.union([z.string(), z.array(ContentPartSchema)]),
   message: z.string(),
   display: z.array(DisplayBlockSchema),
-  extras: z.record(z.unknown()).nullable().optional(),
+  extras: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 export type ToolReturnValue = z.infer<typeof ToolReturnValueSchema>;
 
@@ -251,7 +251,7 @@ export type SlashCommandInfo = z.infer<typeof SlashCommandInfoSchema>;
 export const ExternalToolDefinitionSchema = z.object({
   name: z.string(),
   description: z.string(),
-  parameters: z.record(z.unknown()),
+  parameters: z.record(z.string(), z.unknown()),
 });
 export type ExternalToolDefinition = z.infer<typeof ExternalToolDefinitionSchema>;
 
@@ -630,7 +630,7 @@ export const ContextRecordSchema = z.object({
         function: z
           .object({
             name: z.string().optional(),
-            arguments: z.union([z.string(), z.record(z.unknown())]).optional(),
+            arguments: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
           })
           .optional(),
       }),

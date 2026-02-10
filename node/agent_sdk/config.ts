@@ -20,8 +20,8 @@ const LLMProviderSchema = z.object({
   type: ProviderTypeSchema,
   base_url: z.string(),
   api_key: z.string(),
-  env: z.record(z.string()).optional(),
-  custom_headers: z.record(z.string()).optional(),
+  env: z.record(z.string(), z.string()).optional(),
+  custom_headers: z.record(z.string(), z.string()).optional(),
   oauth: OAuthConfigSchema.optional(),
 });
 
@@ -43,13 +43,13 @@ const LoopControlSchema = z.object({
 const MoonshotSearchConfigSchema = z.object({
   base_url: z.string(),
   api_key: z.string(),
-  custom_headers: z.record(z.string()).optional(),
+  custom_headers: z.record(z.string(), z.string()).optional(),
 });
 
 const MoonshotFetchConfigSchema = z.object({
   base_url: z.string(),
   api_key: z.string(),
-  custom_headers: z.record(z.string()).optional(),
+  custom_headers: z.record(z.string(), z.string()).optional(),
 });
 
 const ServicesSchema = z.object({
@@ -80,8 +80,8 @@ const DefaultThinkingSchema = z
 const ConfigSchema = z.object({
   default_model: z.string().default(""),
   default_thinking: DefaultThinkingSchema,
-  models: z.record(LLMModelSchema).default({}),
-  providers: z.record(LLMProviderSchema).default({}),
+  models: z.record(z.string(), LLMModelSchema).default({}),
+  providers: z.record(z.string(), LLMProviderSchema).default({}),
   loop_control: LoopControlSchema.default({}),
   services: ServicesSchema.default({}),
   mcp: MCPConfigSchema.default({}),
