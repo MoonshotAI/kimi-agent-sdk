@@ -24,11 +24,27 @@ function ScrollButton() {
 function MessageList() {
   const { messages, isStreaming } = useChatStore();
 
+  // Calculate turn index for each assistant message
+  // Turn index is 0-indexed, counting user messages
+  const getTurnIndex = (idx: number): number | undefined => {
+    if (messages[idx]?.role !== "assistant") return undefined;
+    let turnCount = 0;
+    for (let i = 0; i < idx; i++) {
+      if (messages[i].role === "user") turnCount++;
+    }
+    return turnCount - 1; // 0-indexed (first turn = 0)
+  };
+
   return (
     <>
       <div className="">
         {messages.map((message, idx) => (
-          <ChatMessage key={message.id} message={message} isStreaming={isStreaming && idx === messages.length - 1 && message.role === "assistant"} />
+          <ChatMessage
+            key={message.id}
+            message={message}
+            turnIndex={getTurnIndex(idx)}
+            isStreaming={isStreaming && idx === messages.length - 1 && message.role === "assistant"}
+          />
         ))}
       </div>
       <ScrollButton />

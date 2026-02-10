@@ -212,6 +212,10 @@ class Bridge {
     return this.call<{ ok: boolean }>(Methods.DeleteKimiSession, { sessionId });
   }
 
+  forkSession(sessionId: string, turnIndex: number) {
+    return this.call<{ sessionId: string; sessionDir: string } | null>(Methods.ForkKimiSession, { sessionId, turnIndex });
+  }
+
   pickMedia(maxCount: number, includeVideo = true) {
     return this.call<string[]>(Methods.PickMedia, { maxCount, includeVideo });
   }

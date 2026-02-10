@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconLoader3 } from "@tabler/icons-react";
+import { IconLoader3, IconGitFork } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Content } from "@/lib/content";
 import { Markdown } from "./Markdown";
@@ -10,11 +10,16 @@ import { CompactionCard } from "./CompactionCard";
 import { MediaThumbnail } from "./MediaThumbnail";
 import { MediaPreviewModal } from "./MediaPreviewModal";
 import { InlineError } from "./InlineError";
+import { StreamingConfirmDialog } from "./StreamingConfirmDialog";
+import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores";
+import { bridge } from "@/services";
 import type { ChatMessage as ChatMessageType, UIStep, UIStepItem } from "@/stores/chat.store";
 
 interface ChatMessageProps {
   message: ChatMessageType;
+  /** 0-indexed turn number for this message */
+  turnIndex?: number;
   isStreaming?: boolean;
 }
 
@@ -97,6 +102,83 @@ function MessageMedia({ images, videos, onPreview }: { images: string[]; videos:
   );
 }
 
+interface ForkButtonProps {
+  turnIndex: number;
+  className?: string;
+}
+
+function ForkButton({ turnIndex, className }: ForkButtonProps) {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isForking, setIsForking] = useState(false);
+  const { sessionId, isStreaming, loadSession, abort } = useChatStore();
+
+  const handleFork = () => {
+    if (!sessionId || turnIndex < 0) return;
+    setShowConfirm(true);
+  };
+
+  const doFork = async () => {
+    if (!sessionId) return;
+
+    setIsForking(true);
+    try {
+      // Abort if streaming
+      if (isStreaming) {
+        abort();
+        // Small delay to let abort complete
+        await new Promise((r) => setTimeout(r, 100));
+      }
+
+      const result = await bridge.forkSession(sessionId, turnIndex);
+      if (result) {
+        // Load the forked session
+        const events = await bridge.loadSessionHistory(result.sessionId);
+        await loadSession(result.sessionId, events);
+      }
+    } catch (err) {
+      console.error("Fork session failed:", err);
+    } finally {
+      setIsForking(false);
+      setShowConfirm(false);
+    }
+  };
+
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        className={cn(
+          "h-5 w-5 text-muted-foreground hover:text-foreground transition-all border-0! hover:bg-zinc-200 dark:hover:bg-zinc-800 cursor-pointer",
+          isForking && "opacity-50 pointer-events-none",
+          className,
+        )}
+        onClick={handleFork}
+        disabled={isForking || !sessionId}
+        title="Fork conversation from this point"
+      >
+        <IconGitFork className="size-3.5" />
+      </Button>
+
+      <StreamingConfirmDialog
+        open={showConfirm}
+        onOpenChange={setShowConfirm}
+        title="Fork Conversation"
+        description={
+          isStreaming
+            ? "The current conversation is still generating a response. Forking will stop the generation and create a new conversation from this point. Continue?"
+            : "This will create a new conversation branching from this point. All messages after this turn will be removed in the forked conversation. Continue?"
+        }
+        confirmLabel="Fork"
+        onConfirm={doFork}
+        confirmLoading={isForking}
+        confirmDisabled={isForking}
+        cancelDisabled={isForking}
+      />
+    </>
+  );
+}
+
 function UserMessage({ message }: { message: ChatMessageType }) {
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
   const displayContent = Content.getText(message.content);
@@ -121,7 +203,7 @@ function UserMessage({ message }: { message: ChatMessageType }) {
   );
 }
 
-function AssistantMessage({ message, isStreaming }: { message: ChatMessageType; isStreaming?: boolean }) {
+function AssistantMessage({ message, turnIndex, isStreaming }: { message: ChatMessageType; turnIndex?: number; isStreaming?: boolean }) {
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
   const { isCompacting } = useChatStore();
 
@@ -186,8 +268,9 @@ function AssistantMessage({ message, isStreaming }: { message: ChatMessageType; 
               <div className="inline-flex flex-1">{isStreaming && !isShowingInlineError && !isCompacting && <ThinkingIndicator />}</div>
               <div className="inline-flex flex-1" />
               {!isStreaming && contentToCopy.trim().length > 0 && (
-                <div className="flex justify-start pt-1 opacity-0 group-hover/message:opacity-100 transition-opacity duration-100">
+                <div className="flex justify-start pt-1 gap-1 opacity-0 group-hover/message:opacity-100 transition-opacity duration-100">
                   <CopyButton content={contentToCopy} />
+                  {turnIndex !== undefined && turnIndex >= 0 && <ForkButton turnIndex={turnIndex} />}
                 </div>
               )}
             </div>
@@ -206,9 +289,9 @@ function hasMessageContent(message: ChatMessageType): boolean {
   return message.steps?.some((s) => s.items.length > 0) ?? false;
 }
 
-export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
+export function ChatMessage({ message, turnIndex, isStreaming }: ChatMessageProps) {
   if (message.role === "user") {
     return <UserMessage message={message} />;
   }
-  return <AssistantMessage message={message} isStreaming={isStreaming} />;
+  return <AssistantMessage message={message} turnIndex={turnIndex} isStreaming={isStreaming} />;
 }

@@ -29,7 +29,8 @@ export { createSession, prompt } from "./session";
 export type { Session, Turn, SessionState } from "./session";
 
 // Storage
-export { listSessions, deleteSession } from "./storage";
+export { listSessions, deleteSession, forkSession } from "./storage";
+export type { ForkSessionOptions, ForkSessionResult } from "./storage";
 
 // History
 export { parseSessionEvents } from "./history/context-extract";

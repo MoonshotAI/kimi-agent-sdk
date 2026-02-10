@@ -41,6 +41,7 @@ export const Methods = {
   GetKimiSessions: "getKimiSessions",
   LoadKimiSessionHistory: "loadKimiSessionHistory",
   DeleteKimiSession: "deleteKimiSession",
+  ForkKimiSession: "forkKimiSession",
   GetProjectFiles: "getProjectFiles",
   GetEditorContext: "getEditorContext",
   InsertText: "insertText",
