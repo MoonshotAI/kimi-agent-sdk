@@ -164,6 +164,38 @@ describe("ProtocolClient", () => {
     proc.stdout.push(line + "\n");
   }
 
+  // Helper to send initialize response (needed because start() waits for it)
+  function sendInitializeResponse(proc: ReturnType<typeof createMockProcess>, reqId: number) {
+    pushLine(
+      proc,
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: reqId,
+        result: {
+          protocol_version: "1.1",
+          server: { name: "kimi-code", version: "1.0.0" },
+          slash_commands: [],
+        },
+      }),
+    );
+  }
+
+  // Helper to start client with initialize response
+  async function startClientWithInit(client: InstanceType<typeof ProtocolClient>, proc: ReturnType<typeof createMockProcess>, options: Parameters<InstanceType<typeof ProtocolClient>["start"]>[0]) {
+    // Start client (this triggers initialize request)
+    const startPromise = client.start(options);
+    
+    // Wait a tick for the initialize request to be written
+    await new Promise((r) => setImmediate(r));
+    
+    // Get the initialize request ID and respond
+    const initReqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+    sendInitializeResponse(proc, initReqId);
+    
+    // Wait for start to complete
+    return startPromise;
+  }
+
   describe("isRunning", () => {
     it("returns false when not started", () => {
       const client = new ProtocolClient();
@@ -172,16 +204,16 @@ describe("ProtocolClient", () => {
   });
 
   describe("start", () => {
-    it("throws ALREADY_STARTED when called twice", () => {
+    it("throws ALREADY_STARTED when called twice", async () => {
       const proc = createMockProcess();
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
+      // First start (don't await - just trigger it)
       client.start({ sessionId: "test", workDir: "/tmp" });
 
-      expect(() => {
-        client.start({ sessionId: "test", workDir: "/tmp" });
-      }).toThrow(TransportError);
+      // Second start should throw immediately
+      await expect(client.start({ sessionId: "test", workDir: "/tmp" })).rejects.toThrow(TransportError);
     });
 
     it("builds correct args with all options", () => {
@@ -223,26 +255,50 @@ describe("ProtocolClient", () => {
       expect(mockSpawn).toHaveBeenCalledWith("kimi", expect.arrayContaining(["--no-thinking"]), expect.anything());
     });
 
-    it("throws SPAWN_FAILED when spawn fails", () => {
+    it("builds args with --skills-dir when skillsDir is provided", () => {
+      const proc = createMockProcess();
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new ProtocolClient();
+      client.start({
+        sessionId: "test",
+        workDir: "/tmp",
+        skillsDir: "/path/to/my-skills",
+      });
+
+      expect(mockSpawn).toHaveBeenCalledWith("kimi", expect.arrayContaining(["--skills-dir", "/path/to/my-skills"]), expect.anything());
+    });
+
+    it("does not include --skills-dir when skillsDir is not provided", () => {
+      const proc = createMockProcess();
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new ProtocolClient();
+      client.start({
+        sessionId: "test",
+        workDir: "/tmp",
+      });
+
+      const callArgs = mockSpawn.mock.calls[0][1] as string[];
+      expect(callArgs).not.toContain("--skills-dir");
+    });
+
+    it("throws SPAWN_FAILED when spawn fails", async () => {
       mockSpawn.mockImplementation(() => {
         throw new Error("spawn ENOENT");
       });
 
       const client = new ProtocolClient();
-      expect(() => {
-        client.start({ sessionId: "test", workDir: "/tmp" });
-      }).toThrow(TransportError);
+      await expect(client.start({ sessionId: "test", workDir: "/tmp" })).rejects.toThrow(TransportError);
     });
 
-    it("throws SPAWN_FAILED when stdio missing", () => {
+    it("throws SPAWN_FAILED when stdio missing", async () => {
       const proc = createMockProcess();
       proc.stdout = null as unknown as Readable;
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      expect(() => {
-        client.start({ sessionId: "test", workDir: "/tmp" });
-      }).toThrow(TransportError);
+      await expect(client.start({ sessionId: "test", workDir: "/tmp" })).rejects.toThrow(TransportError);
     });
   });
 
@@ -331,7 +387,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
@@ -345,8 +401,8 @@ describe("ProtocolClient", () => {
         }),
       );
 
-      // Push response to finish
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      // Push response to finish (call[1] is the prompt request, call[0] was initialize)
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -376,7 +432,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
@@ -384,6 +440,7 @@ describe("ProtocolClient", () => {
         proc,
         JSON.stringify({
           jsonrpc: "2.0",
+          id: "server-req-1",
           method: "request",
           params: {
             type: "ApprovalRequest",
@@ -398,7 +455,7 @@ describe("ProtocolClient", () => {
         }),
       );
 
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -427,13 +484,13 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
       pushLine(proc, "not valid json{{{");
 
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -462,7 +519,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
@@ -475,7 +532,7 @@ describe("ProtocolClient", () => {
         }),
       );
 
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -504,11 +561,11 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -533,11 +590,11 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
-      const reqId = JSON.parse(proc.stdin.write.mock.calls[0][0]).id;
+      const reqId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
       pushLine(
         proc,
         JSON.stringify({
@@ -564,7 +621,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 
@@ -578,7 +635,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stream = client.sendPrompt("Hello");
 

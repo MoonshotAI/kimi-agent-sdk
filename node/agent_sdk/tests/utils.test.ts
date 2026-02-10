@@ -1,6 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { extractBrief, extractTextFromContentParts, formatContentOutput } from "../utils";
-import type { DisplayBlock, ContentPart } from "../schema";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { extractBrief, extractTextFromContentParts, formatContentOutput, collectText } from "../utils";
+import { createKimiPaths } from "../paths";
+import * as os from "node:os";
+import * as path from "node:path";
+import type { DisplayBlock, ContentPart, StreamEvent } from "../schema";
 
 // ============================================================================
 // extractBrief Tests
@@ -138,5 +141,136 @@ describe("formatContentOutput", () => {
     // Edge case: input is neither string nor array
     const obj = { foo: "bar" } as unknown as string | ContentPart[];
     expect(formatContentOutput(obj)).toBe('{"foo":"bar"}');
+  });
+});
+
+// ============================================================================
+// collectText Tests
+// ============================================================================
+describe("collectText", () => {
+  it("collects text from ContentPart events", () => {
+    const events: StreamEvent[] = [
+      { type: "ContentPart", payload: { type: "text", text: "Hello " } },
+      { type: "ContentPart", payload: { type: "text", text: "World" } },
+    ];
+    expect(collectText(events)).toBe("Hello World");
+  });
+
+  it("filters out non-text ContentPart events", () => {
+    const events: StreamEvent[] = [
+      { type: "ContentPart", payload: { type: "text", text: "Before" } },
+      { type: "ContentPart", payload: { type: "think", think: "thinking..." } },
+      { type: "ContentPart", payload: { type: "text", text: "After" } },
+    ];
+    expect(collectText(events)).toBe("BeforeAfter");
+  });
+
+  it("filters out non-ContentPart events", () => {
+    const events: StreamEvent[] = [
+      { type: "TurnBegin", payload: { user_input: "test" } },
+      { type: "ContentPart", payload: { type: "text", text: "Response" } },
+      { type: "StepBegin", payload: { n: 1 } },
+      { type: "ContentPart", payload: { type: "text", text: " done" } },
+      { type: "StatusUpdate", payload: {} },
+    ];
+    expect(collectText(events)).toBe("Response done");
+  });
+
+  it("returns empty string for empty array", () => {
+    expect(collectText([])).toBe("");
+  });
+
+  it("returns empty string when no text ContentPart events", () => {
+    const events: StreamEvent[] = [
+      { type: "TurnBegin", payload: { user_input: "test" } },
+      { type: "ContentPart", payload: { type: "think", think: "thinking..." } },
+      { type: "StepBegin", payload: { n: 1 } },
+    ];
+    expect(collectText(events)).toBe("");
+  });
+
+  it("handles single text event", () => {
+    const events: StreamEvent[] = [{ type: "ContentPart", payload: { type: "text", text: "Single" } }];
+    expect(collectText(events)).toBe("Single");
+  });
+
+  it("handles image_url ContentPart events", () => {
+    const events: StreamEvent[] = [
+      { type: "ContentPart", payload: { type: "text", text: "Image: " } },
+      { type: "ContentPart", payload: { type: "image_url", image_url: { url: "data:image/png;base64,..." } } },
+      { type: "ContentPart", payload: { type: "text", text: "done" } },
+    ];
+    expect(collectText(events)).toBe("Image: done");
+  });
+});
+
+// ============================================================================
+// createKimiPaths Tests
+// ============================================================================
+describe("createKimiPaths", () => {
+  const originalEnv = process.env.KIMI_SHARE_DIR;
+
+  beforeEach(() => {
+    delete process.env.KIMI_SHARE_DIR;
+  });
+
+  afterEach(() => {
+    if (originalEnv !== undefined) {
+      process.env.KIMI_SHARE_DIR = originalEnv;
+    } else {
+      delete process.env.KIMI_SHARE_DIR;
+    }
+  });
+
+  it("uses provided shareDir", () => {
+    const paths = createKimiPaths("/custom/kimi");
+    expect(paths.home).toBe("/custom/kimi");
+    expect(paths.config).toBe("/custom/kimi/config.toml");
+    expect(paths.mcpConfig).toBe("/custom/kimi/mcp.json");
+  });
+
+  it("uses KIMI_SHARE_DIR env var when shareDir not provided", () => {
+    process.env.KIMI_SHARE_DIR = "/env/kimi";
+    const paths = createKimiPaths();
+    expect(paths.home).toBe("/env/kimi");
+    expect(paths.config).toBe("/env/kimi/config.toml");
+  });
+
+  it("uses ~/.kimi as default", () => {
+    const paths = createKimiPaths();
+    const expectedHome = path.join(os.homedir(), ".kimi");
+    expect(paths.home).toBe(expectedHome);
+    expect(paths.config).toBe(path.join(expectedHome, "config.toml"));
+  });
+
+  it("shareDir takes precedence over env var", () => {
+    process.env.KIMI_SHARE_DIR = "/env/kimi";
+    const paths = createKimiPaths("/custom/kimi");
+    expect(paths.home).toBe("/custom/kimi");
+  });
+
+  it("generates correct session paths", () => {
+    const paths = createKimiPaths("/kimi");
+    const sessionsDir = paths.sessionsDir("/project");
+    const sessionDir = paths.sessionDir("/project", "sess-123");
+    const baselineDir = paths.baselineDir("/project", "sess-123");
+
+    expect(sessionsDir).toMatch(/^\/kimi\/sessions\/[a-f0-9]{32}$/);
+    expect(sessionDir).toMatch(/^\/kimi\/sessions\/[a-f0-9]{32}\/sess-123$/);
+    expect(baselineDir).toMatch(/^\/kimi\/sessions\/[a-f0-9]{32}\/sess-123\/baseline$/);
+  });
+
+  it("generates consistent hash for same workDir", () => {
+    const paths = createKimiPaths("/kimi");
+    const dir1 = paths.sessionsDir("/project");
+    const dir2 = paths.sessionsDir("/project");
+    expect(dir1).toBe(dir2);
+  });
+
+  it("generates different hash for different workDir", () => {
+    const paths = createKimiPaths("/kimi");
+    const dir1 = paths.sessionsDir("/project1");
+    const dir2 = paths.sessionsDir("/project2");
+    expect(dir1).not.toBe(dir2);
   });
 });

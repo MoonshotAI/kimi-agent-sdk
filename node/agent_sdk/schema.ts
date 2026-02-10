@@ -595,6 +595,10 @@ export interface SessionOptions {
   // Agent file path
   agentFile?: string;
   clientInfo?: { name: string; version: string };
+  // Custom skills directory path (--skills-dir)
+  skillsDir?: string;
+  // Custom share directory path, overrides KIMI_SHARE_DIR for CLI
+  shareDir?: string;
 }
 
 // Session info

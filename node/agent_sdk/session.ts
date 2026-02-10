@@ -14,6 +14,7 @@ interface ActiveConfig {
   executable: string;
   env: string; // JSON stringified for comparison
   externalTools: string;
+  skillsDir: string | undefined;
 }
 
 /** Turn interface, represents a single conversation turn */
@@ -138,6 +139,8 @@ class SessionImpl implements Session {
   private _env: Record<string, string>;
   private _externalTools: ExternalTool[];
   private _agentFile?: string;
+  private _skillsDir?: string;
+  private _shareDir?: string;
   private _slashCommands: SlashCommandInfo[] = [];
 
   private _state: SessionState = "idle";
@@ -157,6 +160,8 @@ class SessionImpl implements Session {
     this._env = options.env ?? {};
     this._externalTools = options.externalTools ?? [];
     this._agentFile = options.agentFile;
+    this._skillsDir = options.skillsDir;
+    this._shareDir = options.shareDir;
     this._clientInfo = options.clientInfo;
 
     log.session("Created session %s in %s", this._sessionId, this._workDir);
@@ -283,6 +288,7 @@ class SessionImpl implements Session {
     }
 
     this.client = new ProtocolClient();
+    const envVars = this._shareDir ? { KIMI_SHARE_DIR: this._shareDir, ...this._env } : this._env;
     const initResult = await this.client.start({
       sessionId: this._sessionId,
       workDir: this._workDir,
@@ -290,9 +296,10 @@ class SessionImpl implements Session {
       thinking: this._thinking,
       yoloMode: this._yoloMode,
       executablePath: this._executable,
-      environmentVariables: this._env,
+      environmentVariables: envVars,
       externalTools: this._externalTools,
       agentFile: this._agentFile,
+      skillsDir: this._skillsDir,
       clientInfo: this._clientInfo,
     });
 
@@ -310,6 +317,7 @@ class SessionImpl implements Session {
       executable: this._executable,
       env: JSON.stringify(this._env),
       externalTools: JSON.stringify(this._externalTools.map((t) => t.name)),
+      skillsDir: this._skillsDir,
     };
   }
 
@@ -321,7 +329,8 @@ class SessionImpl implements Session {
       current.yoloMode !== active.yoloMode ||
       current.executable !== active.executable ||
       current.env !== active.env ||
-      current.externalTools !== active.externalTools
+      current.externalTools !== active.externalTools ||
+      current.skillsDir !== active.skillsDir
     );
   }
 }

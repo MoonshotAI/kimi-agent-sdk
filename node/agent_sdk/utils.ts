@@ -1,9 +1,18 @@
-import type { DisplayBlock, BriefBlock, ContentPart } from "./schema";
+import type { DisplayBlock, BriefBlock, ContentPart, StreamEvent } from "./schema";
 
 // Display Block Helpers
 export function extractBrief(display?: DisplayBlock[]): string {
   const brief = display?.find((d): d is BriefBlock => d.type === "brief");
   return brief?.text ?? "";
+}
+
+// Stream Event Helpers
+/** Collect all text content from stream events */
+export function collectText(events: StreamEvent[]): string {
+  return events
+    .filter((e): e is { type: "ContentPart"; payload: { type: "text"; text: string } } => e.type === "ContentPart" && "payload" in e && e.payload.type === "text")
+    .map((e) => e.payload.text)
+    .join("");
 }
 
 // Content Part Helpers

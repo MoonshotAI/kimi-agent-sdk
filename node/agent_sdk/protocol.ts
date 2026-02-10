@@ -40,6 +40,7 @@ export interface ClientOptions {
   externalTools?: ExternalTool[];
   agentFile?: string;
   clientInfo?: ClientInfo;
+  skillsDir?: string;
 }
 
 // Prompt Stream
@@ -284,6 +285,9 @@ export class ProtocolClient {
     }
     if (options.agentFile) {
       args.push("--agent-file", options.agentFile);
+    }
+    if (options.skillsDir) {
+      args.push("--skills-dir", options.skillsDir);
     }
     return args;
   }

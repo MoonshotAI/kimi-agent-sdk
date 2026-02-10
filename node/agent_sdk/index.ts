@@ -39,7 +39,8 @@ export { parseConfig, saveDefaultModel, getModelById, isModelThinking, getModelT
 export type { ThinkingMode } from "./config";
 
 // Paths
-export { KimiPaths } from "./paths";
+export { KimiPaths, createKimiPaths } from "./paths";
+export type { KimiPathsType } from "./paths";
 
 // CLI Commands
 export { authMCP, resetAuthMCP, testMCP, login, logout } from "./cli/commands";
@@ -64,7 +65,7 @@ export {
 export type { ErrorCategory, TransportErrorCodeType, ProtocolErrorCodeType, SessionErrorCodeType, CliErrorCodeType } from "./errors";
 
 // Utils
-export { extractBrief, extractTextFromContentParts, formatContentOutput } from "./utils";
+export { extractBrief, extractTextFromContentParts, formatContentOutput, collectText } from "./utils";
 
 // Types
 export type {

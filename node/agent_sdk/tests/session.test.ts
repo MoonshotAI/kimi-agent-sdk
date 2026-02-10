@@ -74,6 +74,13 @@ function createFailingPromptStream(error: Error) {
   };
 }
 
+// Default InitializeResult for mocks
+const defaultInitializeResult = {
+  protocol_version: "1.1",
+  server: { name: "kimi", version: "1.0.0" },
+  slash_commands: [],
+};
+
 // ============================================================================
 // createSession Tests
 // ============================================================================
@@ -82,6 +89,7 @@ describe("createSession", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRunning = false;
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("creates session with required options", () => {
@@ -121,6 +129,17 @@ describe("createSession", () => {
     expect(session.env).toEqual({ MY_VAR: "value" });
   });
 
+  it("creates session with skillsDir and shareDir", () => {
+    const session = createSession({
+      workDir: "/project",
+      skillsDir: "/path/to/skills",
+      shareDir: "/custom/kimi",
+    });
+
+    expect(session.workDir).toBe("/project");
+    // skillsDir and shareDir are not exposed on Session interface, but should be passed to client
+  });
+
   it("uses default values for optional settings", () => {
     const session = createSession({ workDir: "/project" });
 
@@ -140,6 +159,7 @@ describe("Session state management", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRunning = false;
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("starts in idle state", () => {
@@ -200,6 +220,7 @@ describe("Session property modification", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsRunning = false;
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("allows modifying model", () => {
@@ -350,6 +371,7 @@ describe("Session.prompt()", () => {
     // After start, client becomes running
     mockStart.mockImplementation(() => {
       mockIsRunning = true;
+      return Promise.resolve(defaultInitializeResult);
     });
 
     const turn = session.prompt("Hello");
@@ -358,15 +380,100 @@ describe("Session.prompt()", () => {
       // drain
     }
 
-    expect(mockStart).toHaveBeenCalledWith({
-      sessionId: "test-123",
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: "test-123",
+        workDir: "/project",
+        model: "kimi-k2",
+        thinking: true,
+        yoloMode: false,
+        executablePath: "kimi",
+      }),
+    );
+  });
+
+  it("passes skillsDir to client.start", async () => {
+    mockIsRunning = false;
+
+    const session = createSession({
       workDir: "/project",
-      model: "kimi-k2",
-      thinking: true,
-      yoloMode: false,
-      executablePath: "kimi",
-      environmentVariables: {},
+      skillsDir: "/path/to/skills",
     });
+
+    mockSendPrompt.mockReturnValue(createMockPromptStream([], { status: "finished" }));
+    mockStart.mockImplementation(() => {
+      mockIsRunning = true;
+      return Promise.resolve(defaultInitializeResult);
+    });
+
+    const turn = session.prompt("Hello");
+    for await (const _ of turn) {
+      // drain
+    }
+
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skillsDir: "/path/to/skills",
+      }),
+    );
+  });
+
+  it("passes shareDir as KIMI_SHARE_DIR env var to client.start", async () => {
+    mockIsRunning = false;
+
+    const session = createSession({
+      workDir: "/project",
+      shareDir: "/custom/kimi",
+    });
+
+    mockSendPrompt.mockReturnValue(createMockPromptStream([], { status: "finished" }));
+    mockStart.mockImplementation(() => {
+      mockIsRunning = true;
+      return Promise.resolve(defaultInitializeResult);
+    });
+
+    const turn = session.prompt("Hello");
+    for await (const _ of turn) {
+      // drain
+    }
+
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environmentVariables: expect.objectContaining({
+          KIMI_SHARE_DIR: "/custom/kimi",
+        }),
+      }),
+    );
+  });
+
+  it("merges shareDir with existing env vars", async () => {
+    mockIsRunning = false;
+
+    const session = createSession({
+      workDir: "/project",
+      shareDir: "/custom/kimi",
+      env: { MY_VAR: "value" },
+    });
+
+    mockSendPrompt.mockReturnValue(createMockPromptStream([], { status: "finished" }));
+    mockStart.mockImplementation(() => {
+      mockIsRunning = true;
+      return Promise.resolve(defaultInitializeResult);
+    });
+
+    const turn = session.prompt("Hello");
+    for await (const _ of turn) {
+      // drain
+    }
+
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environmentVariables: expect.objectContaining({
+          KIMI_SHARE_DIR: "/custom/kimi",
+          MY_VAR: "value",
+        }),
+      }),
+    );
   });
 });
 
@@ -379,6 +486,7 @@ describe("Session config hot-reload", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("restarts client when model changes", async () => {
@@ -522,6 +630,7 @@ describe("Session.close()", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("stops the client", async () => {
@@ -593,6 +702,7 @@ describe("Turn async iteration", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("yields all events from stream", async () => {
@@ -763,6 +873,7 @@ describe("Turn.interrupt()", () => {
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
     mockSendCancel.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("calls sendCancel on client", async () => {
@@ -854,6 +965,7 @@ describe("Turn.approve()", () => {
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
     mockSendApproval.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("sends approval to client", async () => {
@@ -984,6 +1096,7 @@ describe("Turn.result", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("resolves after iteration completes", async () => {
@@ -1064,6 +1177,7 @@ describe("prompt() one-shot function", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("creates session, sends message, and returns result", async () => {
@@ -1139,6 +1253,7 @@ describe("Edge cases and error handling", () => {
     vi.clearAllMocks();
     mockIsRunning = true;
     mockStop.mockResolvedValue(undefined);
+    mockStart.mockResolvedValue(defaultInitializeResult);
   });
 
   it("handles empty event stream", async () => {

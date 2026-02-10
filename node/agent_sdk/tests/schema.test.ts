@@ -10,7 +10,7 @@ import {
   StepBeginSchema,
   StatusUpdateSchema,
   ApprovalRequestPayloadSchema,
-  ApprovalRequestResolvedSchema,
+  ApprovalResponseEventSchema,
   ApprovalResponseSchema,
   RunResultSchema,
   RpcMessageSchema,
@@ -372,12 +372,12 @@ describe("ApprovalRequestPayloadSchema", () => {
   });
 });
 
-describe("ApprovalRequestResolvedSchema", () => {
+describe("ApprovalResponseEventSchema", () => {
   it("parses all response types", () => {
     const responses = ["approve", "approve_for_session", "reject"] as const;
     for (const response of responses) {
       const input = { request_id: "req-123", response };
-      const result = ApprovalRequestResolvedSchema.safeParse(input);
+      const result = ApprovalResponseEventSchema.safeParse(input);
       expect(result.success).toBe(true);
       expect(result.data?.response).toBe(response);
     }
@@ -541,8 +541,8 @@ describe("parseEventPayload", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("parses ApprovalRequestResolved event", () => {
-    const result = parseEventPayload("ApprovalRequestResolved", {
+  it("parses ApprovalResponse event", () => {
+    const result = parseEventPayload("ApprovalResponse", {
       request_id: "req-1",
       response: "approve",
     });
