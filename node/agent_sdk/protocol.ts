@@ -5,8 +5,10 @@ import {
   parseEventPayload,
   parseRequestPayload,
   InitializeResultSchema,
+  ReplayResultSchema,
   type StreamEvent,
   type RunResult,
+  type ReplayResult,
   type ContentPart,
   type ApprovalResponse,
   type ParseError,
@@ -15,10 +17,10 @@ import {
   type ToolCallRequest,
   type ToolReturnValue,
 } from "./schema";
-import { TransportError, CliError } from "./errors";
+import { TransportError, ProtocolError, CliError } from "./errors";
 import { log } from "./logger";
 
-const PROTOCOL_VERSION = "1.1";
+const PROTOCOL_VERSION = "1.3";
 const SDK_NAME = "kimi-agent-sdk";
 
 declare const __SDK_VERSION__: string;
@@ -47,6 +49,12 @@ export interface ClientOptions {
 export interface PromptStream {
   events: AsyncIterable<StreamEvent>;
   result: Promise<RunResult>;
+}
+
+// Replay Stream (Wire 1.3)
+export interface ReplayStream {
+  events: AsyncIterable<StreamEvent>;
+  result: Promise<ReplayResult>;
 }
 
 // Event Channel Helper
@@ -217,6 +225,33 @@ export class ProtocolClient {
 
   sendCancel(): Promise<void> {
     return this.sendRequest("cancel").then(() => {});
+  }
+
+  sendReplay(): ReplayStream {
+    const { iterable, push, finish } = createEventChannel<StreamEvent>();
+
+    this.pushEvent = push;
+    this.finishEvents = () => {
+      finish();
+      this.pushEvent = null;
+      this.finishEvents = null;
+    };
+
+    const result = this.sendRequest("replay")
+      .then((res) => {
+        this.finishEvents?.();
+        const parsed = ReplayResultSchema.safeParse(res);
+        if (!parsed.success) {
+          throw new ProtocolError("SCHEMA_MISMATCH", `Invalid replay response: ${parsed.error.message}`);
+        }
+        return parsed.data;
+      })
+      .catch((err) => {
+        this.finishEvents?.();
+        throw err;
+      });
+
+    return { events: iterable, result };
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {

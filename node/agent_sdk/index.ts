@@ -84,12 +84,14 @@ export type {
   ToolResult,
   ToolReturnValue,
   TurnBegin,
+  TurnEnd,
   StepBegin,
   StatusUpdate,
   ApprovalRequestPayload,
   SubagentEvent,
   StreamEvent,
   RunResult,
+  ReplayResult,
   ModelConfig,
   MCPServerConfig,
   KimiConfig,
@@ -114,6 +116,7 @@ export {
   ToolCallSchema,
   ToolResultSchema,
   RunResultSchema,
+  ReplayResultSchema,
   InitializeResultSchema,
   SlashCommandInfoSchema,
   parseEventPayload,
@@ -122,6 +125,7 @@ export {
 
 // Protocol
 export { ProtocolClient } from "./protocol";
+export type { PromptStream, ReplayStream } from "./protocol";
 
 // Logging
 export { enableLogs, disableLogs, setLogSink } from "./logger";

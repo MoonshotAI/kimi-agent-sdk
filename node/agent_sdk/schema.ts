@@ -297,6 +297,10 @@ export const TurnBeginSchema = z.object({
 });
 export type TurnBegin = z.infer<typeof TurnBeginSchema>;
 
+// Turn end event (Wire 1.2)
+// Sent after all other events in a turn. May not be sent if the turn is interrupted.
+export type TurnEnd = z.infer<typeof EmptyPayloadSchema>;
+
 // Step begin event
 export const StepBeginSchema = z.object({
   // Step number, starting from 1
@@ -304,7 +308,7 @@ export const StepBeginSchema = z.object({
 });
 export type StepBegin = z.infer<typeof StepBeginSchema>;
 
-// Empty payload (for StepInterrupted, CompactionBegin, CompactionEnd)
+// Empty payload (for TurnEnd, StepInterrupted, CompactionBegin, CompactionEnd)
 export const EmptyPayloadSchema = z.object({});
 // Step interrupted, no additional fields
 export type StepInterrupted = z.infer<typeof EmptyPayloadSchema>;
@@ -373,6 +377,7 @@ export interface SubagentEvent {
  */
 export type WireEvent =
   | { type: "TurnBegin"; payload: TurnBegin }
+  | { type: "TurnEnd"; payload: TurnEnd }
   | { type: "StepBegin"; payload: StepBegin }
   | { type: "StepInterrupted"; payload: StepInterrupted }
   | { type: "CompactionBegin"; payload: CompactionBegin }
@@ -393,6 +398,7 @@ export type WireRequest =
 // Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
   TurnBegin: TurnBeginSchema,
+  TurnEnd: EmptyPayloadSchema,
   StepBegin: StepBeginSchema,
   StepInterrupted: EmptyPayloadSchema,
   CompactionBegin: EmptyPayloadSchema,
@@ -488,6 +494,21 @@ export const RunResultSchema = z.object({
   steps: z.number().optional(),
 });
 export type RunResult = z.infer<typeof RunResultSchema>;
+
+// Replay result (Wire 1.3)
+export const ReplayResultSchema = z.object({
+  /**
+   * Replay completion status
+   * - `finished`: Replay completed normally
+   * - `cancelled`: Replay was cancelled via cancel()
+   */
+  status: z.enum(["finished", "cancelled"]),
+  // Number of events replayed
+  events: z.number(),
+  // Number of requests replayed
+  requests: z.number(),
+});
+export type ReplayResult = z.infer<typeof ReplayResultSchema>;
 
 // ============================================================================
 // RPC Messages
