@@ -3,6 +3,9 @@
 
 ## Unreleased
 
+## 0.0.5 (2026-02-11)
+- Dependencies: Update kimi-cli to version 1.12
+
 ## 0.0.4 (2026-02-10)
 - Dependencies: Update kimi-cli to version 1.10, kosong to version 0.42
 - API: Re-export `TurnEnd`, `ShellDisplayBlock`, `TodoDisplayItem`, and `SystemPromptTemplateError`
