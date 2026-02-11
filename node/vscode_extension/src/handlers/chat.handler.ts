@@ -65,7 +65,7 @@ function prependSystemContext(content: string | ContentPart[], ctx: string): str
   }
 
   if (typeof content === "string") {
-    return ctx + content;
+    return content + "\n" + ctx;
   }
 
   const idx = content.findIndex((p) => p.type === "text");
