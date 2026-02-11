@@ -7,7 +7,7 @@ import { StreamingConfirmDialog } from "./StreamingConfirmDialog";
 import { bridge } from "@/services";
 import type { SessionInfo } from "@moonshot-ai/kimi-agent-sdk/schema";
 import { cn } from "@/lib/utils";
-import { useChatStore } from "@/stores";
+import { useChatStore, useSettingsStore } from "@/stores";
 import { cleanSystemTags } from "shared/utils";
 
 interface SessionListProps {
@@ -31,9 +31,10 @@ interface SessionItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  dirLabel: string | null; // null = current dir, string = relative path
 }
 
-function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemProps) {
+function SessionItem({ session, isSelected, onSelect, onDelete, dirLabel }: SessionItemProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -45,9 +46,10 @@ function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemPro
     >
       <p className="text-xs leading-relaxed line-clamp-3 text-foreground">{cleanSystemTags(session.brief) || "Untitled"}</p>
       <div className="flex items-center justify-between mt-0.5">
-        <div className="flex items-center gap-1.5">
-          {isSelected && <IconCheck className="size-3 text-blue-500" />}
-          <span className="text-[10px] text-muted-foreground">{formatRelativeDate(session.updatedAt)}</span>
+        <div className="flex items-center gap-1.5 min-w-0 flex-1">
+          {isSelected && <IconCheck className="size-3 text-blue-500 shrink-0" />}
+          <span className="text-[10px] text-muted-foreground shrink-0">{formatRelativeDate(session.updatedAt)}</span>
+          {dirLabel && <span className="text-[10px] text-muted-foreground/70 truncate" title={session.workDir}>· {dirLabel}</span>}
         </div>
         <div className={cn("transition-opacity", isHovered ? "opacity-100" : "opacity-0")}>
           <DropdownMenu>
@@ -77,12 +79,27 @@ function SessionItem({ session, isSelected, onSelect, onDelete }: SessionItemPro
 
 export function SessionList({ onClose }: SessionListProps) {
   const { loadSession, sessionId, startNewConversation, isStreaming } = useChatStore();
+  const { workspaceRoot, currentWorkDir, setCurrentWorkDir } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SessionInfo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingSession, setPendingSession] = useState<SessionInfo | null>(null);
 
-  const { data: kimiSessions = [], loading, mutate } = useRequest(() => bridge.getKimiSessions());
+  const { data: kimiSessions = [], loading, mutate } = useRequest(() => bridge.getAllKimiSessions());
+
+  const getWorkDirLabel = (sessionWorkDir: string): string | null => {
+    const activeWorkDir = currentWorkDir || workspaceRoot;
+    if (sessionWorkDir === activeWorkDir) return null;
+    if (!workspaceRoot) return sessionWorkDir;
+    // Show (root) for workspace root, relative path for subdirs
+    if (sessionWorkDir === workspaceRoot) {
+      return "/";
+    }
+    if (sessionWorkDir.startsWith(workspaceRoot)) {
+      return "." + sessionWorkDir.slice(workspaceRoot.length);
+    }
+    return sessionWorkDir;
+  };
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return kimiSessions;
@@ -104,6 +121,15 @@ export function SessionList({ onClose }: SessionListProps) {
 
   const doLoadSession = async (session: SessionInfo) => {
     try {
+      // Switch workDir if session is from a different directory
+      const activeWorkDir = currentWorkDir || workspaceRoot;
+      if (session.workDir !== activeWorkDir) {
+        const newWorkDir = session.workDir === workspaceRoot ? null : session.workDir;
+        const result = await bridge.setWorkDir(newWorkDir);
+        if (result.ok) {
+          setCurrentWorkDir(newWorkDir);
+        }
+      }
       const events = await bridge.loadSessionHistory(session.id);
       await loadSession(session.id, events);
       onClose();
@@ -161,6 +187,7 @@ export function SessionList({ onClose }: SessionListProps) {
                   isSelected={sessionId === session.id}
                   onSelect={() => handleSelect(session)}
                   onDelete={() => setDeleteTarget(session)}
+                  dirLabel={getWorkDirLabel(session.workDir)}
                 />
               ))
             )}

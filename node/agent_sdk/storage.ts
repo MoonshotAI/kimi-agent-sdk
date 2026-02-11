@@ -7,6 +7,26 @@ import { KimiPaths } from "./paths";
 import { log } from "./logger";
 import type { SessionInfo, ContentPart } from "./schema";
 
+// ============================================================================
+// kimi.json & metadata.json helpers
+// ============================================================================
+
+function readKimiJson(): { work_dirs?: Array<{ path: string }> } | null {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(KimiPaths.home, "kimi.json"), "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function readSessionMetadata(sessionDir: string): { title?: string } | null {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(sessionDir, "metadata.json"), "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
 // Constants
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -21,6 +41,34 @@ export interface ForkSessionOptions {
 export interface ForkSessionResult {
   sessionId: string;
   sessionDir: string;
+}
+
+/** Get all workDirs registered under a workspace (from kimi.json) */
+export function getRegisteredWorkDirs(workspaceRoot: string): string[] {
+  const config = readKimiJson();
+  if (!config?.work_dirs) {
+    return [workspaceRoot];
+  }
+
+  const sep = path.sep;
+  const dirs = config.work_dirs
+    .map((e) => e.path)
+    .filter((p) => p === workspaceRoot || p.startsWith(workspaceRoot + sep));
+
+  return dirs.length > 0 ? dirs : [workspaceRoot];
+}
+
+/** List sessions from all registered workDirs under a workspace */
+export async function listSessionsForWorkspace(workspaceRoot: string): Promise<SessionInfo[]> {
+  const workDirs = getRegisteredWorkDirs(workspaceRoot);
+  const allSessions: SessionInfo[] = [];
+
+  for (const workDir of workDirs) {
+    const sessions = await listSessions(workDir);
+    allSessions.push(...sessions);
+  }
+
+  return allSessions.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 // List Sessions (Async)
@@ -62,7 +110,9 @@ export async function listSessions(workDir: string): Promise<SessionInfo[]> {
         continue;
       }
 
-      const brief = await getFirstUserMessage(wireFile);
+      // Priority: metadata.json > wire.jsonl
+      const metadata = readSessionMetadata(sessionDir);
+      const brief = metadata?.title || (await getFirstUserMessage(wireFile));
       if (!brief) {
         continue;
       }

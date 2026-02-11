@@ -21,7 +21,7 @@ export function useAppInit(): AppInitState {
     modelsCount: 0,
   });
   const [initKey, setInitKey] = useState(0);
-  const { initModels, setExtensionConfig, setMCPServers, setWireSlashCommands, setIsLoggedIn } = useSettingsStore();
+  const { initModels, setExtensionConfig, setMCPServers, setWireSlashCommands, setIsLoggedIn, setWorkspaceRoot } = useSettingsStore();
 
   const refresh = useCallback(() => {
     setState({ status: "loading", errorMessage: null, cliResult: null, modelsCount: 0 });
@@ -51,6 +51,8 @@ export function useAppInit(): AppInitState {
           setState({ status: "no-workspace", errorMessage: null, cliResult: null, modelsCount: 0 });
           return;
         }
+
+        setWorkspaceRoot(workspace.workspaceRoot ?? workspace.path ?? null);
 
         const [extensionConfig, mcpServers, cliResult] = await Promise.all([bridge.getExtensionConfig(), bridge.getMCPServers(), bridge.checkCLI()]);
         if (cancelled) {

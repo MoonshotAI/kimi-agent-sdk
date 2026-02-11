@@ -39,6 +39,10 @@ export const Methods = {
   RespondApproval: "respondApproval",
 
   GetKimiSessions: "getKimiSessions",
+  GetAllKimiSessions: "getAllKimiSessions",
+  GetRegisteredWorkDirs: "getRegisteredWorkDirs",
+  SetWorkDir: "setWorkDir",
+  BrowseWorkDir: "browseWorkDir",
   LoadKimiSessionHistory: "loadKimiSessionHistory",
   DeleteKimiSession: "deleteKimiSession",
   ForkKimiSession: "forkKimiSession",

@@ -11,6 +11,7 @@ export { KimiMascot } from "./KimiMascot";
 export { ToolCallCard } from "./ToolRenderers";
 export { ApprovalDialog } from "./ApprovalDialog";
 export { MCPServersModal } from "./MCPServersModal";
+export { WorkDirModal } from "./WorkDirModal";
 export { ThinkingBlock } from "./ThinkingBlock";
 export { ThinkingButton } from "./ThinkingButton";
 export { CompactionCard } from "./CompactionCard";

@@ -204,6 +204,22 @@ class Bridge {
     return this.call<SessionInfo[]>(Methods.GetKimiSessions);
   }
 
+  getAllKimiSessions() {
+    return this.call<SessionInfo[]>(Methods.GetAllKimiSessions);
+  }
+
+  getRegisteredWorkDirs() {
+    return this.call<string[]>(Methods.GetRegisteredWorkDirs);
+  }
+
+  setWorkDir(workDir: string | null) {
+    return this.call<{ ok: boolean; workDir: string }>(Methods.SetWorkDir, { workDir });
+  }
+
+  browseWorkDir() {
+    return this.call<{ ok: boolean; workDir: string | null }>(Methods.BrowseWorkDir);
+  }
+
   loadSessionHistory(sessionId: string) {
     return this.call<UIStreamEvent[]>(Methods.LoadKimiSessionHistory, { kimiSessionId: sessionId });
   }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconSettings, IconServer, IconLogout, IconLogin, IconLoader2, IconRefresh, IconFileText } from "@tabler/icons-react";
+import { IconSettings, IconServer, IconLogout, IconLogin, IconLoader2, IconRefresh, IconFileText, IconFolder } from "@tabler/icons-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -56,6 +56,11 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
     setOpen(false);
   };
 
+  const handleChangeWorkDir = () => {
+    useSettingsStore.getState().setWorkDirModalOpen(true);
+    setOpen(false);
+  };
+
   const handleReset = () => {
     setOpen(false);
     bridge.reloadWebview();
@@ -89,6 +94,10 @@ export function ActionMenu({ className, onAuthAction }: ActionMenuProps) {
       </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-1rem)] max-w-72 p-1.5 gap-0!" align="end" side="top">
         <MenuSection title="Settings">
+          <MenuItem onClick={handleChangeWorkDir}>
+            <IconFolder className="size-4 text-muted-foreground" />
+            <span className="flex-1">Working Directory</span>
+          </MenuItem>
           <MenuItem onClick={handleOpenMCPServers}>
             <IconServer className="size-4 text-muted-foreground" />
             <span className="flex-1">MCP Servers</span>
