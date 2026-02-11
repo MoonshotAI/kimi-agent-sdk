@@ -3,6 +3,13 @@
 
 ## Unreleased
 
+### Added
+- **New module: `kimi_agent_sdk.skills`** - Skill development utilities
+  - `SkillValidator`: Comprehensive validation for skill structure, frontmatter format, and content quality
+  - `SkillWatcher`: File system monitoring for hot-reload development workflows
+  - Full test coverage with 33 test cases
+  - Example scripts: `skill_dev_server.py`, `validate_skills.py`
+
 ## 0.0.4 (2026-02-10)
 - Dependencies: Update kimi-cli to version 1.10, kosong to version 0.42
 - API: Re-export `TurnEnd`, `ShellDisplayBlock`, `TodoDisplayItem`, and `SystemPromptTemplateError`

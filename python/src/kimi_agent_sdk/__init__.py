@@ -10,6 +10,8 @@ Key features:
   handlers.
 - `kimi_agent_sdk.Session` offers low-level control with Wire message access, manual approval
   handling, session persistence, and context management for long-running agent interactions.
+- `kimi_agent_sdk.skills` provides utilities for skill development, including validation and
+  file watching for hot-reload workflows.
 - Message structures, approval types, and exceptions are re-exported from kosong and kimi_cli
   for convenient access.
 
