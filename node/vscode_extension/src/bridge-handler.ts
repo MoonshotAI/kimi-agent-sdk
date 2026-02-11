@@ -21,6 +21,7 @@ interface RpcResult {
 export class BridgeHandler {
   private sessions = new Map<string, Session>();
   private turns = new Map<string, Turn>();
+  private customWorkDirs = new Map<string, string>(); // webviewId -> custom workDir
   private fileManager: FileManager;
   private pendingAskUserWithOption = new Map<string, { resolve: (response: string) => void }>();
 
@@ -30,7 +31,7 @@ export class BridgeHandler {
     private reloadWebview: ReloadWebviewFn,
     private showLogs: ShowLogsFn,
   ) {
-    this.fileManager = new FileManager(() => this.workDir, broadcast);
+    this.fileManager = new FileManager(() => this.workspaceRoot, broadcast);
   }
 
   async handle(msg: RpcMessage, webviewId: string): Promise<RpcResult> {
@@ -47,12 +48,28 @@ export class BridgeHandler {
     }
   }
 
-  private get workDir(): string | null {
+  private get workspaceRoot(): string | null {
     return vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? null;
   }
 
-  private requireWorkDir(): string {
-    const w = this.workDir;
+  private getWorkDir(webviewId: string): string | null {
+    return this.customWorkDirs.get(webviewId) ?? this.workspaceRoot;
+  }
+
+  setCustomWorkDir(webviewId: string, workDir: string | null): void {
+    if (workDir && workDir !== this.workspaceRoot) {
+      this.customWorkDirs.set(webviewId, workDir);
+    } else {
+      this.customWorkDirs.delete(webviewId);
+    }
+    // Close session when workDir changes
+    this.sessions.get(webviewId)?.close();
+    this.sessions.delete(webviewId);
+    this.turns.delete(webviewId);
+  }
+
+  private requireWorkDir(webviewId: string): string {
+    const w = this.getWorkDir(webviewId);
     if (!w) {
       throw new Error("No workspace folder open");
     }
@@ -101,9 +118,10 @@ export class BridgeHandler {
   private createContext(webviewId: string): HandlerContext {
     return {
       webviewId,
-      workDir: this.workDir,
+      workDir: this.getWorkDir(webviewId),
+      workspaceRoot: this.workspaceRoot,
       workspaceState: this.workspaceState,
-      requireWorkDir: () => this.requireWorkDir(),
+      requireWorkDir: () => this.requireWorkDir(webviewId),
       broadcast: this.broadcast,
       fileManager: this.fileManager,
       reloadWebview: () => this.reloadWebview(webviewId),
@@ -129,6 +147,7 @@ export class BridgeHandler {
       },
       saveAllDirty: () => this.saveAllDirty(),
       resolveAskUserWithOption: (requestId: string, response: string) => this.resolveAskUserWithOption(requestId, response),
+      setCustomWorkDir: (workDir: string | null) => this.setCustomWorkDir(webviewId, workDir),
     };
   }
 
@@ -138,7 +157,7 @@ export class BridgeHandler {
   }
 
   private getOrCreateSession(webviewId: string, model: string, thinking: boolean, sessionId?: string): Session {
-    const workDir = this.requireWorkDir();
+    const workDir = this.requireWorkDir(webviewId);
     const cli = getCLIManager();
     const config = parseConfig();
 

@@ -11,6 +11,7 @@ export type ShowLogsFn = () => void;
 export interface HandlerContext {
   webviewId: string;
   workDir: string | null;
+  workspaceRoot: string | null;
   workspaceState: vscode.Memento;
   requireWorkDir: () => string;
   broadcast: BroadcastFn;
@@ -26,6 +27,7 @@ export interface HandlerContext {
   closeSession: () => Promise<void>;
   saveAllDirty: () => Promise<void>;
   resolveAskUserWithOption: (requestId: string, response: string) => void;
+  setCustomWorkDir: (workDir: string | null) => void;
 }
 
 export type Handler<TParams = void, TResult = unknown> = (params: TParams, ctx: HandlerContext) => Promise<TResult>;

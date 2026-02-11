@@ -43,6 +43,7 @@ export interface ExtensionConfig {
 export interface WorkspaceStatus {
   hasWorkspace: boolean;
   path?: string;
+  workspaceRoot?: string;
 }
 
 export type ErrorPhase = "preflight" | "runtime";

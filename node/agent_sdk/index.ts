@@ -29,7 +29,7 @@ export { createSession, prompt } from "./session";
 export type { Session, Turn, SessionState } from "./session";
 
 // Storage
-export { listSessions, deleteSession, forkSession } from "./storage";
+export { listSessions, listSessionsForWorkspace, getRegisteredWorkDirs, deleteSession, forkSession } from "./storage";
 export type { ForkSessionOptions, ForkSessionResult } from "./storage";
 
 // History
@@ -84,12 +84,14 @@ export type {
   ToolResult,
   ToolReturnValue,
   TurnBegin,
+  TurnEnd,
   StepBegin,
   StatusUpdate,
   ApprovalRequestPayload,
   SubagentEvent,
   StreamEvent,
   RunResult,
+  ReplayResult,
   ModelConfig,
   MCPServerConfig,
   KimiConfig,
@@ -114,6 +116,7 @@ export {
   ToolCallSchema,
   ToolResultSchema,
   RunResultSchema,
+  ReplayResultSchema,
   InitializeResultSchema,
   SlashCommandInfoSchema,
   parseEventPayload,
@@ -122,6 +125,7 @@ export {
 
 // Protocol
 export { ProtocolClient } from "./protocol";
+export type { PromptStream, ReplayStream } from "./protocol";
 
 // Logging
 export { enableLogs, disableLogs, setLogSink } from "./logger";

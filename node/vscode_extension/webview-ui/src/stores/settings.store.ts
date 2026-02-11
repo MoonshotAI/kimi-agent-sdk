@@ -62,6 +62,9 @@ interface SettingsState {
   extensionConfig: ExtensionConfig;
   mcpServers: MCPServerConfig[];
   mcpModalOpen: boolean;
+  workDirModalOpen: boolean;
+  currentWorkDir: string | null;
+  workspaceRoot: string | null;
   models: ModelConfig[];
   defaultModel: string | null;
   defaultThinking: boolean;
@@ -77,6 +80,9 @@ interface SettingsState {
   setExtensionConfig: (config: ExtensionConfig) => void;
   setMCPServers: (servers: MCPServerConfig[]) => void;
   setMCPModalOpen: (open: boolean) => void;
+  setWorkDirModalOpen: (open: boolean) => void;
+  setCurrentWorkDir: (workDir: string | null) => void;
+  setWorkspaceRoot: (root: string | null) => void;
   initModels: (models: ModelConfig[], defaultModel: string | null, defaultThinking: boolean) => void;
   setWireSlashCommands: (commands: SlashCommandInfo[]) => void;
   setIsLoggedIn: (loggedIn: boolean) => void;
@@ -89,6 +95,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   extensionConfig: DEFAULT_EXTENSION_CONFIG,
   mcpServers: [],
   mcpModalOpen: false,
+  workDirModalOpen: false,
+  currentWorkDir: null,
+  workspaceRoot: null,
   models: [],
   defaultModel: null,
   defaultThinking: false,
@@ -146,6 +155,12 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   setMCPServers: (mcpServers) => set({ mcpServers }),
 
   setMCPModalOpen: (mcpModalOpen) => set({ mcpModalOpen }),
+
+  setWorkDirModalOpen: (workDirModalOpen) => set({ workDirModalOpen }),
+
+  setCurrentWorkDir: (currentWorkDir) => set({ currentWorkDir }),
+
+  setWorkspaceRoot: (workspaceRoot) => set({ workspaceRoot }),
 
   initModels: (models, defaultModel, defaultThinking) => {
     const initialModel = defaultModel || (models.length > 0 ? models[0].id : "");
