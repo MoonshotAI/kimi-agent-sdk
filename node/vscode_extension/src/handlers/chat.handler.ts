@@ -56,7 +56,7 @@ function buildSystemContext(): string {
     info.push(`selection: lines ${sel.start.line + 1}-${sel.end.line + 1}`);
   }
 
-  return `<system>${info.join(", ")}</system>\n`;
+  return `<system>Useful Info: User's cursor currently at: ${info.join(", ")}</system>\n`;
 }
 
 function prependSystemContext(content: string | ContentPart[], ctx: string): string | ContentPart[] {
