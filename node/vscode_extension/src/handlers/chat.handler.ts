@@ -36,27 +36,44 @@ interface PendingToolCall {
 
 const FILE_TOOLS = new Set(["WriteFile", "CreateFile", "StrReplaceFile", "PatchFile", "DeleteFile", "AppendFile"]);
 
-function buildSystemContext(): string {
+// Track sessions: sessionId -> last injected file path
+const injectedEditorContextSessions = new Map<string, string>();
+
+function buildSystemContext(sessionId: string): string {
+  const mode = VSCodeSettings.editorContext;
+  if (mode === "never") {
+    return "";
+  }
+
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     return "";
   }
 
   const doc = editor.document;
-  const sel = editor.selection;
   const relativePath = vscode.workspace.asRelativePath(doc.uri);
+  const lastPath = injectedEditorContextSessions.get(sessionId);
 
-  const info: string[] = [`file: ${relativePath}`, `language: ${doc.languageId}`, `cursor: line ${sel.active.line + 1}`];
-
-  if (doc.isDirty) {
-    info.push("unsaved: true");
+  if (mode === "onConversationStart") {
+    // Already injected once, skip
+    if (lastPath !== undefined) {
+      return "";
+    }
+  } else {
+    // onFileChange: skip if same file
+    if (lastPath === relativePath) {
+      return "";
+    }
   }
 
-  if (!sel.isEmpty) {
-    info.push(`selection: lines ${sel.start.line + 1}-${sel.end.line + 1}`);
-  }
+  injectedEditorContextSessions.set(sessionId, relativePath);
 
-  return `<system>Editor context (use only if relevant to user's query): ${info.join(", ")}</system>\n`;
+  const sel = editor.selection;
+
+  const selectionInfo = !sel.isEmpty ? ` (L${sel.start.line + 1}-${sel.end.line + 1} selected)` : "";
+  const unsavedInfo = doc.isDirty ? ", unsaved" : "";
+
+  return `<system>Editor context (use only if relevant to user's query): ${relativePath}:${sel.active.line + 1}${selectionInfo}${unsavedInfo}.</system>\n`;
 }
 
 function prependSystemContext(content: string | ContentPart[], ctx: string): string | ContentPart[] {
@@ -150,7 +167,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
 
   ctx.broadcast(Events.StreamEvent, { type: "session_start", sessionId, model: session.model, _sessionId: sessionId }, ctx.webviewId);
 
-  const systemContext = buildSystemContext();
+  const systemContext = buildSystemContext(sessionId);
   const contentWithContext = prependSystemContext(params.content, systemContext);
 
   const pendingToolCalls = new Map<string, PendingToolCall>();
@@ -263,6 +280,10 @@ const respondAskUserWithOption: Handler<RespondAskUserWithOptionParams, { ok: bo
 };
 
 const resetSession: Handler<void, { ok: boolean }> = async (_, ctx) => {
+  const session = ctx.getSession();
+  if (session) {
+    injectedEditorContextSessions.delete(session.sessionId);
+  }
   await ctx.closeSession();
   ctx.fileManager.clearTracked(ctx.webviewId);
   return { ok: true };

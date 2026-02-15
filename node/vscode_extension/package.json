@@ -3,7 +3,7 @@
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code (Technical Preview)",
   "description": "Official Kimi Code plugin for VS Code",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -86,6 +86,17 @@
           "type": "boolean",
           "default": false,
           "description": "Auto-expand thinking/reasoning sections so you can see the AI's thought process in real-time"
+        },
+        "kimi.editorContext": {
+          "type": "string",
+          "default": "never",
+          "enum": ["never", "onConversationStart", "onFileChange"],
+          "enumDescriptions": [
+            "Never share editor context",
+            "Share once when conversation starts",
+            "Share when active file changes"
+          ],
+          "description": "Control when to share the active editor's file and cursor position with Kimi"
         }
       }
     },
