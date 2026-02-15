@@ -36,10 +36,15 @@ interface PendingToolCall {
 
 const FILE_TOOLS = new Set(["WriteFile", "CreateFile", "StrReplaceFile", "PatchFile", "DeleteFile", "AppendFile"]);
 
-// Track sessions: sessionId -> last injected file path (re-inject when file changes)
+// Track sessions: sessionId -> last injected file path
 const injectedEditorContextSessions = new Map<string, string>();
 
 function buildSystemContext(sessionId: string): string {
+  const mode = VSCodeSettings.editorContext;
+  if (mode === "never") {
+    return "";
+  }
+
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     return "";
@@ -47,10 +52,18 @@ function buildSystemContext(sessionId: string): string {
 
   const doc = editor.document;
   const relativePath = vscode.workspace.asRelativePath(doc.uri);
+  const lastPath = injectedEditorContextSessions.get(sessionId);
 
-  // Same file, skip injection
-  if (injectedEditorContextSessions.get(sessionId) === relativePath) {
-    return "";
+  if (mode === "onConversationStart") {
+    // Already injected once, skip
+    if (lastPath !== undefined) {
+      return "";
+    }
+  } else {
+    // onFileChange: skip if same file
+    if (lastPath === relativePath) {
+      return "";
+    }
   }
 
   injectedEditorContextSessions.set(sessionId, relativePath);
