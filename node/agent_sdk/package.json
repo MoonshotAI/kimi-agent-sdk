@@ -2,7 +2,7 @@
   "name": "@moonshot-ai/kimi-agent-sdk",
   "version": "0.1.4",
   "description": "SDK for interacting with Kimi Code CLI",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MoonshotAI/kimi-agent-sdk.git",
