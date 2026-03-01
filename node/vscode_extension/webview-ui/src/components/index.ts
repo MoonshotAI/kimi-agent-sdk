@@ -21,4 +21,4 @@ export { MediaPreviewModal } from "./MediaPreviewModal";
 export { MediaThumbnail } from "./MediaThumbnail";
 export { BottomToolbar } from "./BottomToolbar";
 export { InlineError } from "./InlineError";
-export { AskUserDialog } from "./AskUserDialog";
+export { QuestionDialog } from "./QuestionDialog";

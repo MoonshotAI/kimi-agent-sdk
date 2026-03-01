@@ -196,8 +196,8 @@ class Bridge {
     return this.call<{ ok: boolean }>(Methods.RespondApproval, { requestId, response });
   }
 
-  respondAskUserWithOption(requestId: string, response: string) {
-    return this.call<{ ok: boolean }>(Methods.RespondAskUserWithOption, { requestId, response });
+  respondQuestion(rpcRequestId: string, questionRequestId: string, answers: Record<string, string>) {
+    return this.call<{ ok: boolean }>(Methods.RespondQuestion, { rpcRequestId, questionRequestId, answers });
   }
 
   getKimiSessions() {

@@ -1,45 +1,54 @@
 import { useState, useEffect } from "react";
-import { useAskUserStore } from "@/stores";
+import { useChatStore } from "@/stores";
 import { cn } from "@/lib/utils";
 
-export function AskUserDialog() {
-  const { pending, respondToRequest } = useAskUserStore();
+export function QuestionDialog() {
+  const { pendingQuestion, respondQuestion } = useChatStore();
   const [customInput, setCustomInput] = useState("");
   const [showCustom, setShowCustom] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(1);
 
-  const req = pending[0];
+  // For now, only handle the first question
+  const question = pendingQuestion?.questions?.[0];
 
   useEffect(() => {
-    if (req) {
+    if (pendingQuestion) {
       setShowCustom(false);
       setCustomInput("");
       setSelectedIndex(1);
     }
-  }, [req?.id]);
+  }, [pendingQuestion?.id]);
 
-  if (!req) return null;
+  if (!pendingQuestion || !question) return null;
 
-  const handleSelect = async (option: string) => {
-    await respondToRequest(req.id, option);
+  const handleSelect = async (optionLabel: string) => {
+    const answers: Record<string, string> = {
+      [question.question]: optionLabel,
+    };
+    await respondQuestion(answers);
   };
 
   const handleCustomSubmit = async () => {
     if (!customInput.trim()) return;
-    await respondToRequest(req.id, customInput.trim());
+    const answers: Record<string, string> = {
+      [question.question]: customInput.trim(),
+    };
+    await respondQuestion(answers);
   };
 
-  const customIndex = req.options.length + 1;
+  const options = question.options || [];
+  const customIndex = options.length + 1;
 
   return (
     <div className={cn("mb-0.5 border border-blue-200 dark:border-blue-800 rounded-lg overflow-hidden bg-background flex flex-col shrink")}>
       <div className="p-2 space-y-2">
-        <div className="text-xs font-semibold text-foreground">{req.question}</div>
+        {question.header && <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{question.header}</div>}
+        <div className="text-xs font-semibold text-foreground">{question.question}</div>
         <div className="space-y-1.5">
-          {req.options.map((option, idx) => (
+          {options.map((option, idx) => (
             <button
               key={idx}
-              onClick={() => handleSelect(option)}
+              onClick={() => handleSelect(option.label)}
               onMouseEnter={() => setSelectedIndex(idx + 1)}
               className={cn(
                 "w-full text-left px-2 py-1 rounded-md text-xs transition-colors",
@@ -48,7 +57,10 @@ export function AskUserDialog() {
               )}
             >
               <span className={cn("mr-2", selectedIndex === idx + 1 ? "text-blue-200" : "text-muted-foreground")}>{idx + 1}</span>
-              <span className="font-medium">{option}</span>
+              <span className="font-medium">{option.label}</span>
+              {option.description && (
+                <span className={cn("ml-2", selectedIndex === idx + 1 ? "text-blue-200" : "text-muted-foreground")}>- {option.description}</span>
+              )}
             </button>
           ))}
           {showCustom ? (

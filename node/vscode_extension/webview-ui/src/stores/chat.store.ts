@@ -3,10 +3,10 @@ import { produce } from "immer";
 import { bridge } from "@/services";
 import { Content } from "@/lib/content";
 import { useApprovalStore } from "./approval.store";
-import { useAskUserStore } from "./askuser.store";
+
 import { useSettingsStore } from "./settings.store";
 import { processEvent } from "./event-handlers";
-import type { StatusUpdate, ContentPart } from "@moonshot-ai/kimi-agent-sdk/schema";
+import type { StatusUpdate, ContentPart, QuestionRequest } from "@moonshot-ai/kimi-agent-sdk/schema";
 import type { UIStreamEvent } from "shared/types";
 
 const HANDSHAKE_TIMEOUT_MS = 30_000;
@@ -94,6 +94,7 @@ export interface ChatState {
   activeTokenUsage: TokenUsage;
   pendingInput: PendingInput | null;
   queue: QueuedItem[];
+  pendingQuestion: QuestionRequest | null;
 
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
@@ -108,6 +109,7 @@ export interface ChatState {
   getMediaInConversation: () => MediaInConversation;
   hasProcessingMedia: () => boolean;
   rollbackInput: (content: string | ContentPart[]) => void;
+  respondQuestion: (answers: Record<string, string>) => Promise<void>;
 
   enqueue: (content: string | ContentPart[], model: string) => void;
   removeFromQueue: (id: string) => void;
@@ -166,6 +168,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   activeTokenUsage: createEmptyTokenUsage(),
   pendingInput: null,
   queue: [],
+  pendingQuestion: null,
 
   sendMessage: (text) => {
     const { draftMedia, isStreaming } = get();
@@ -196,7 +199,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
 
     doSend(get(), content, currentModel);
   },
@@ -224,7 +226,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
 
     doSend(get(), pendingInput.content, pendingInput.model);
   },
@@ -272,9 +273,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       activeTokenUsage: createEmptyTokenUsage(),
       pendingInput: null,
       queue: [],
+      pendingQuestion: null,
     });
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
     bridge.clearTrackedFiles();
 
     for (const event of events) {
@@ -297,6 +298,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
         draft.isStreaming = false;
         draft.isCompacting = false;
+        draft.pendingQuestion = null;
       }),
     );
     useApprovalStore.getState().clearRequests();
@@ -325,16 +327,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       activeTokenUsage: createEmptyTokenUsage(),
       pendingInput: null,
       queue: [],
+      pendingQuestion: null,
     });
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
   },
 
   abort: () => {
     clearHandshakeTimer();
     bridge.abortChat();
+    set({ pendingQuestion: null });
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
   },
 
   addDraftMedia: (id, dataUri) => {
@@ -396,6 +398,13 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set({ pendingInput: { content, model: currentModel } });
   },
 
+  respondQuestion: async (answers) => {
+    const { pendingQuestion } = get();
+    if (!pendingQuestion) return;
+    await bridge.respondQuestion(pendingQuestion.id, pendingQuestion.id, answers);
+    set({ pendingQuestion: null });
+  },
+
   enqueue: (content, model) => {
     set((s) => ({
       queue: [...s.queue, { id: crypto.randomUUID(), content, model }],
@@ -443,7 +452,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
     useApprovalStore.getState().clearRequests();
-    useAskUserStore.getState().clearRequests();
 
     doSend(get(), next.content, next.model);
   },
