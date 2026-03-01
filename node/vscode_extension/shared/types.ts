@@ -81,9 +81,5 @@ export interface LoginStatus {
   loggedIn: boolean;
 }
 
-export interface AskUserWithOptionRequest {
-  id: string;
-  tool_call_id: string;
-  question: string;
-  options: string[];
-}
+// Re-export QuestionRequest from SDK for webview use
+export type { QuestionRequest, QuestionItem, QuestionOption, QuestionResponse } from "@moonshot-ai/kimi-agent-sdk";
