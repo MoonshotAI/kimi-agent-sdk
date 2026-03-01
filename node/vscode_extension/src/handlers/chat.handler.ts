@@ -22,9 +22,10 @@ interface RespondApprovalParams {
   response: ApprovalResponse;
 }
 
-interface RespondAskUserWithOptionParams {
-  requestId: string;
-  response: string;
+interface RespondQuestionParams {
+  rpcRequestId: string;
+  questionRequestId: string;
+  answers: Record<string, string>;
 }
 
 interface PendingToolCall {
@@ -274,8 +275,11 @@ const respondApproval: Handler<RespondApprovalParams, { ok: boolean }> = async (
   return { ok: true };
 };
 
-const respondAskUserWithOption: Handler<RespondAskUserWithOptionParams, { ok: boolean }> = async (params, ctx) => {
-  ctx.resolveAskUserWithOption(params.requestId, params.response);
+const respondQuestion: Handler<RespondQuestionParams, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn();
+  if (turn) {
+    await turn.respondQuestion(params.rpcRequestId, params.questionRequestId, params.answers);
+  }
   return { ok: true };
 };
 
@@ -293,6 +297,6 @@ export const chatHandlers: Record<string, Handler<any, any>> = {
   [Methods.StreamChat]: streamChat,
   [Methods.AbortChat]: abortChat,
   [Methods.RespondApproval]: respondApproval,
-  [Methods.RespondAskUserWithOption]: respondAskUserWithOption,
+  [Methods.RespondQuestion]: respondQuestion,
   [Methods.ResetSession]: resetSession,
 };
