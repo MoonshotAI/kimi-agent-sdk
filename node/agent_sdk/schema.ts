@@ -261,10 +261,25 @@ export const ExternalToolsResultSchema = z.object({
 });
 export type ExternalToolsResult = z.infer<typeof ExternalToolsResultSchema>;
 
+// Client capabilities (Wire 1.4)
+export const ClientCapabilitiesSchema = z.object({
+  // Whether the client supports handling QuestionRequest messages
+  supports_question: z.boolean().optional(),
+});
+export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
+
+// Server capabilities (Wire 1.4)
+export const ServerCapabilitiesSchema = z.object({
+  // Whether the server supports sending QuestionRequest messages
+  supports_question: z.boolean().optional(),
+});
+export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
+
 export const InitializeParamsSchema = z.object({
   protocol_version: z.string(),
   client: ClientInfoSchema.optional(),
   external_tools: z.array(ExternalToolDefinitionSchema).optional(),
+  capabilities: ClientCapabilitiesSchema.optional(),
 });
 export type InitializeParams = z.infer<typeof InitializeParamsSchema>;
 
@@ -273,6 +288,7 @@ export const InitializeResultSchema = z.object({
   server: ServerInfoSchema,
   slash_commands: z.array(SlashCommandInfoSchema),
   external_tools: ExternalToolsResultSchema.optional(),
+  capabilities: ServerCapabilitiesSchema.optional(),
 });
 export type InitializeResult = z.infer<typeof InitializeResultSchema>;
 
@@ -286,6 +302,48 @@ export const ToolCallRequestSchema = z.object({
   arguments: z.string().nullable().optional(),
 });
 export type ToolCallRequest = z.infer<typeof ToolCallRequestSchema>;
+
+// ============================================================================
+// Question Request (Wire 1.4)
+// ============================================================================
+
+export const QuestionOptionSchema = z.object({
+  // Option label
+  label: z.string(),
+  // Option description
+  description: z.string().optional(),
+});
+export type QuestionOption = z.infer<typeof QuestionOptionSchema>;
+
+export const QuestionItemSchema = z.object({
+  // Question text
+  question: z.string(),
+  // Short header label (max 12 chars)
+  header: z.string().optional(),
+  // Options (2-4)
+  options: z.array(QuestionOptionSchema),
+  // Whether multiple selection is allowed
+  multi_select: z.boolean().optional(),
+});
+export type QuestionItem = z.infer<typeof QuestionItemSchema>;
+
+export const QuestionRequestSchema = z.object({
+  // Request ID, used for response reference
+  id: z.string(),
+  // Associated tool call ID
+  tool_call_id: z.string(),
+  // Questions (1-4)
+  questions: z.array(QuestionItemSchema),
+});
+export type QuestionRequest = z.infer<typeof QuestionRequestSchema>;
+
+export const QuestionResponseSchema = z.object({
+  // Corresponding request ID
+  request_id: z.string(),
+  // Answer mapping: question text -> selected option label(s)
+  answers: z.record(z.string(), z.string()),
+});
+export type QuestionResponse = z.infer<typeof QuestionResponseSchema>;
 
 // ============================================================================
 // Wire Events
@@ -393,7 +451,8 @@ export type WireEvent =
 
 export type WireRequest =
   | { type: "ApprovalRequest"; payload: ApprovalRequestPayload }
-  | { type: "ToolCallRequest"; payload: ToolCallRequest };
+  | { type: "ToolCallRequest"; payload: ToolCallRequest }
+  | { type: "QuestionRequest"; payload: QuestionRequest };
 
 // Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
@@ -415,6 +474,7 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
 export const RequestSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequest: ApprovalRequestPayloadSchema,
   ToolCallRequest: ToolCallRequestSchema,
+  QuestionRequest: QuestionRequestSchema,
 };
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };

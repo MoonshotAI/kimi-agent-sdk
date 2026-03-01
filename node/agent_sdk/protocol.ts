@@ -20,7 +20,7 @@ import {
 import { TransportError, ProtocolError, CliError } from "./errors";
 import { log } from "./logger";
 
-const PROTOCOL_VERSION = "1.3";
+const PROTOCOL_VERSION = "1.4";
 const SDK_NAME = "kimi-agent-sdk";
 
 declare const __SDK_VERSION__: string;
@@ -263,6 +263,15 @@ export class ProtocolClient {
     return Promise.resolve();
   }
 
+  sendQuestionResponse(requestId: string, questionRequestId: string, answers: Record<string, string>): Promise<void> {
+    this.writeLine({
+      jsonrpc: "2.0",
+      id: requestId,
+      result: { request_id: questionRequestId, answers },
+    });
+    return Promise.resolve();
+  }
+
   private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo): Promise<InitializeResult> {
     let clientName = `${SDK_NAME}/${SDK_VERSION}`;
     if (clientInfo?.name && clientInfo?.version) {
@@ -274,6 +283,9 @@ export class ProtocolClient {
       client: {
         name: clientName,
         version: SDK_VERSION,
+      },
+      capabilities: {
+        supports_question: true,
       },
     };
 
