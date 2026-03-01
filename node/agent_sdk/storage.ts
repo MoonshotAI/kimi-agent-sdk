@@ -267,12 +267,14 @@ export async function forkSession(options: ForkSessionOptions): Promise<ForkSess
 }
 
 /**
- * Truncate wire.jsonl to include only events up to and including the specified turn.
+ * Truncate wire.jsonl to include only complete turns up to the specified turn index.
+ * If the target turn is incomplete (no TurnEnd), it will be discarded to prevent
+ * API errors from incomplete tool calls.
  */
 async function truncateWireAtTurn(wireFile: string, turnIndex: number): Promise<string[]> {
   const lines: string[] = [];
   let turnCount = 0;
-  let inTargetTurn = false;
+  let lastTurnEndIndex = -1;
 
   const stream = fs.createReadStream(wireFile, { encoding: "utf-8" });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -287,9 +289,7 @@ async function truncateWireAtTurn(wireFile: string, turnIndex: number): Promise<
       const messageType = record.message?.type;
 
       if (messageType === "TurnBegin") {
-        if (turnCount === turnIndex) {
-          inTargetTurn = true;
-        } else if (turnCount > turnIndex) {
+        if (turnCount > turnIndex) {
           break;
         }
         turnCount++;
@@ -297,7 +297,9 @@ async function truncateWireAtTurn(wireFile: string, turnIndex: number): Promise<
 
       lines.push(line);
 
-      if (messageType === "TurnEnd" && inTargetTurn) {
+      // Track the last TurnEnd position
+      if (messageType === "TurnEnd" && turnCount === turnIndex + 1) {
+        lastTurnEndIndex = lines.length;
         break;
       }
     } catch {
@@ -310,16 +312,38 @@ async function truncateWireAtTurn(wireFile: string, turnIndex: number): Promise<
   rl.close();
   stream.destroy();
 
-  return lines;
+  // If target turn completed normally, return all lines
+  if (lastTurnEndIndex > 0) {
+    return lines.slice(0, lastTurnEndIndex);
+  }
+
+  // Target turn is incomplete - find the last complete turn
+  // Scan backwards for the last TurnEnd
+  for (let i = lines.length - 1; i >= 0; i--) {
+    try {
+      const record = JSON.parse(lines[i]);
+      if (record.message?.type === "TurnEnd") {
+        log.storage("Target turn incomplete, truncating to last complete turn");
+        return lines.slice(0, i + 1);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  // No complete turn found - return empty or just the first TurnBegin
+  // to allow user to continue from scratch
+  log.storage("No complete turn found in session");
+  return [];
 }
 
 /**
  * Truncate context.jsonl to include only messages up to and including the specified turn.
+ * If the last assistant message has incomplete tool_calls, it will be removed.
  */
 async function truncateContextAtTurn(contextFile: string, turnIndex: number): Promise<string[]> {
   const lines: string[] = [];
   let userMessageCount = 0;
-  let lastAssistantLineIndex = -1;
 
   const stream = fs.createReadStream(contextFile, { encoding: "utf-8" });
   const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
@@ -333,6 +357,7 @@ async function truncateContextAtTurn(contextFile: string, turnIndex: number): Pr
       const record = JSON.parse(line);
       const role = record.role;
 
+      // Always include markers
       if (role === "_checkpoint" || role === "_usage") {
         lines.push(line);
         continue;
@@ -343,16 +368,11 @@ async function truncateContextAtTurn(contextFile: string, turnIndex: number): Pr
           break;
         }
         userMessageCount++;
-        lines.push(line);
-      } else if (role === "assistant") {
-        if (userMessageCount > turnIndex + 1) {
-          break;
-        }
-        lines.push(line);
-        lastAssistantLineIndex = lines.length - 1;
-      } else {
-        lines.push(line);
+      } else if (role === "assistant" && userMessageCount > turnIndex + 1) {
+        break;
       }
+
+      lines.push(line);
     } catch {
       lines.push(line);
     }
@@ -361,28 +381,66 @@ async function truncateContextAtTurn(contextFile: string, turnIndex: number): Pr
   rl.close();
   stream.destroy();
 
-  if (lastAssistantLineIndex >= 0 && lastAssistantLineIndex < lines.length - 1) {
-    const trailingLines = lines.slice(lastAssistantLineIndex + 1);
-    const hasNonMarkerTrailing = trailingLines.some((l) => {
-      try {
-        const r = JSON.parse(l);
-        return r.role !== "_checkpoint" && r.role !== "_usage";
-      } catch {
-        return true;
-      }
-    });
+  // Check if last assistant has incomplete tool_calls
+  return removeIncompleteToolCalls(lines);
+}
 
-    if (hasNonMarkerTrailing) {
-      return lines.slice(0, lastAssistantLineIndex + 1).concat(
-        trailingLines.filter((l) => {
+/**
+ * Remove assistant messages with incomplete tool_calls (missing tool responses).
+ */
+function removeIncompleteToolCalls(lines: string[]): string[] {
+  // Collect tool_call IDs from assistant messages and tool responses
+  const expectedIds = new Set<string>();
+  const receivedIds = new Set<string>();
+  const assistantIndicesWithToolCalls: number[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    try {
+      const record = JSON.parse(lines[i]);
+      if (record.role === "assistant" && Array.isArray(record.tool_calls)) {
+        for (const tc of record.tool_calls) {
+          if (tc.id) expectedIds.add(tc.id);
+        }
+        if (record.tool_calls.length > 0) {
+          assistantIndicesWithToolCalls.push(i);
+        }
+      } else if (record.role === "tool" && record.tool_call_id) {
+        receivedIds.add(record.tool_call_id);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  // Check if all tool_calls have responses
+  const hasIncomplete = [...expectedIds].some((id) => !receivedIds.has(id));
+  if (!hasIncomplete) {
+    return lines;
+  }
+
+  // Find the last assistant with incomplete tool_calls and truncate before it
+  for (let i = assistantIndicesWithToolCalls.length - 1; i >= 0; i--) {
+    const idx = assistantIndicesWithToolCalls[i];
+    try {
+      const record = JSON.parse(lines[idx]);
+      const ids = (record.tool_calls || []).map((tc: { id?: string }) => tc.id).filter(Boolean);
+      const incomplete = ids.some((id: string) => !receivedIds.has(id));
+      if (incomplete) {
+        log.storage("Removing incomplete assistant message at index %d", idx);
+        // Keep lines before this assistant, plus any markers after
+        const before = lines.slice(0, idx);
+        const after = lines.slice(idx + 1).filter((l) => {
           try {
             const r = JSON.parse(l);
             return r.role === "_checkpoint" || r.role === "_usage";
           } catch {
             return false;
           }
-        }),
-      );
+        });
+        return [...before, ...after];
+      }
+    } catch {
+      continue;
     }
   }
 
