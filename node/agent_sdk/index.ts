@@ -115,6 +115,8 @@ export type {
   QuestionResponseSchema,
   ClientInfo,
   ServerInfo,
+  SteerInput,
+  SetPlanModeResult,
 } from "./schema";
 
 // Schemas
@@ -129,6 +131,8 @@ export {
   SlashCommandInfoSchema,
   parseEventPayload,
   parseRequestPayload,
+  SteerInputSchema,
+  SetPlanModeResultSchema,
 } from "./schema";
 
 // Protocol
