@@ -36,6 +36,8 @@ export const Methods = {
   StreamChat: "streamChat",
   AbortChat: "abortChat",
   ResetSession: "resetSession",
+  SetPlanMode: "setPlanMode",
+  SteerChat: "steerChat",
   RespondApproval: "respondApproval",
 
   GetKimiSessions: "getKimiSessions",

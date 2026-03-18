@@ -276,6 +276,14 @@ class Bridge {
     return this.call<string | null>(Methods.GetImageDataUri, { filePath });
   }
 
+  setPlanMode(enabled: boolean) {
+    return this.call<{ ok: boolean; planMode: boolean }>(Methods.SetPlanMode, { enabled });
+  }
+
+  steerChat(content: string | ContentPart[]) {
+    return this.call<{ ok: boolean }>(Methods.SteerChat, { content });
+  }
+
   showLogs() {
     return this.call<{ ok: boolean }>(Methods.ShowLogs);
   }
