@@ -10,6 +10,7 @@ import { FilePickerMenu } from "../FilePickerMenu";
 import { MediaThumbnail } from "../MediaThumbnail";
 import { MediaPreviewModal } from "../MediaPreviewModal";
 import { BottomToolbar } from "../BottomToolbar";
+import { StreamingConfirmDialog } from "../StreamingConfirmDialog";
 import { ThinkingButton } from "../ThinkingButton";
 import { PlanModeButton } from "../PlanModeButton";
 import { useChatStore, useSettingsStore, getModelById, getModelsForMedia } from "@/stores";
@@ -40,10 +41,23 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const isProcessing = hasProcessingMedia();
   const thinkingMode = getCurrentThinkingMode();
 
+  const [showPlanModeConfirm, setShowPlanModeConfirm] = useState(false);
+
   const handleTogglePlanMode = () => {
+    // Turning OFF during streaming needs confirmation — user may want next turn, not current
+    if (planMode && isStreaming) {
+      setShowPlanModeConfirm(true);
+      return;
+    }
     const newState = !planMode;
     useChatStore.setState({ planMode: newState }); // optimistic
-    bridge.setPlanMode(newState); // StatusUpdate will confirm/correct
+    bridge.setPlanMode(newState);
+  };
+
+  const handleConfirmExitPlanMode = () => {
+    useChatStore.setState({ planMode: false });
+    bridge.setPlanMode(false);
+    setShowPlanModeConfirm(false);
   };
 
   const mediaReq = useMemo(() => {
@@ -410,6 +424,14 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
         </div>
       </div>
       <MediaPreviewModal src={previewMedia} onClose={() => setPreviewMedia(null)} />
+      <StreamingConfirmDialog
+        open={showPlanModeConfirm}
+        onOpenChange={setShowPlanModeConfirm}
+        title="Exit Plan Mode"
+        description="The agent is still working. Exiting plan mode now will affect the current turn. Are you sure you want to exit plan mode immediately?"
+        confirmLabel="Exit Now"
+        onConfirm={handleConfirmExitPlanMode}
+      />
     </div>
   );
 }
