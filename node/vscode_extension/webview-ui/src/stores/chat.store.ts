@@ -33,6 +33,7 @@ export type UIStepItem =
   | { type: "thinking"; content: string; finished?: boolean }
   | { type: "text"; content: string; finished?: boolean }
   | { type: "compaction" }
+  | { type: "steer"; content: string | ContentPart[] }
   | {
       type: "tool_use";
       id: string;

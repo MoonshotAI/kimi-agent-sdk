@@ -33,6 +33,17 @@ function ThinkingIndicator() {
   );
 }
 
+function SteerBubble({ content }: { content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[] }) {
+  const text = typeof content === "string" ? content : Content.getText(content);
+  return (
+    <div className="flex justify-end my-1">
+      <div className="max-w-[85%] px-3 py-1 rounded-2xl rounded-br-md bg-zinc-100 dark:bg-zinc-800 text-foreground">
+        <p className="text-xs leading-relaxed">{text}</p>
+      </div>
+    </div>
+  );
+}
+
 function StepItemRenderer({ item }: { item: UIStepItem }) {
   switch (item.type) {
     case "thinking":
@@ -43,6 +54,8 @@ function StepItemRenderer({ item }: { item: UIStepItem }) {
       return <ToolCallCard call={item.call} result={item.result} subagentSteps={item.subagent_steps} />;
     case "compaction":
       return <CompactionCard />;
+    case "steer":
+      return <SteerBubble content={item.content} />;
     default:
       return null;
   }

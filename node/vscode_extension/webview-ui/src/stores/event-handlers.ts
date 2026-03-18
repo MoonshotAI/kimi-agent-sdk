@@ -536,8 +536,15 @@ const eventHandlers: Record<string, EventHandler> = {
     }
   },
 
-  SteerInput: () => {
-    // Server echo event — steer content appears via subsequent events in the turn
+  SteerInput: (draft, payload: { user_input: string | ContentPart[] }) => {
+    const last = getLastAssistant(draft);
+    if (!last?.steps) return;
+
+    const currentStep = last.steps.at(-1);
+    if (!currentStep) return;
+
+    finishAllTextItems(last.steps);
+    currentStep.items.push({ type: "steer", content: payload.user_input });
   },
 };
 
