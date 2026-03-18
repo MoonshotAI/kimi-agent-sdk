@@ -261,10 +261,12 @@ export const ExternalToolsResultSchema = z.object({
 });
 export type ExternalToolsResult = z.infer<typeof ExternalToolsResultSchema>;
 
-// Client capabilities (Wire 1.4)
+// Client capabilities (Wire 1.4+)
 export const ClientCapabilitiesSchema = z.object({
   // Whether the client supports handling QuestionRequest messages
   supports_question: z.boolean().optional(),
+  // Whether the client supports plan mode (Wire 1.5)
+  supports_plan_mode: z.boolean().optional(),
 });
 export type ClientCapabilities = z.infer<typeof ClientCapabilitiesSchema>;
 
@@ -346,6 +348,28 @@ export const QuestionResponseSchema = z.object({
 export type QuestionResponse = z.infer<typeof QuestionResponseSchema>;
 
 // ============================================================================
+// Steer Input (Wire 1.5)
+// ============================================================================
+
+// Server→client echo event emitted after consuming each steer
+export const SteerInputSchema = z.object({
+  // User steer input, can be plain text or array of content parts
+  user_input: z.union([z.string(), z.array(ContentPartSchema)]),
+});
+export type SteerInput = z.infer<typeof SteerInputSchema>;
+
+// ============================================================================
+// SetPlanModeResult (Wire 1.5)
+// ============================================================================
+
+// Result of a SetPlanMode request (status: "ok" only; failures use JSON-RPC error)
+export const SetPlanModeResultSchema = z.object({
+  status: z.literal("ok"),
+  plan_mode: z.boolean(),
+});
+export type SetPlanModeResult = z.infer<typeof SetPlanModeResultSchema>;
+
+// ============================================================================
 // Wire Events
 // ============================================================================
 
@@ -383,6 +407,8 @@ export const StatusUpdateSchema = z.object({
   token_usage: TokenUsageSchema.nullable().optional(),
   // Message ID for the current step
   message_id: z.string().nullable().optional(),
+  // Whether plan mode is active (null = unchanged, undefined = not sent)
+  plan_mode: z.boolean().nullable().optional(),
 });
 export type StatusUpdate = z.infer<typeof StatusUpdateSchema>;
 
@@ -445,6 +471,7 @@ export type WireEvent =
   | { type: "ToolCall"; payload: ToolCall }
   | { type: "ToolCallPart"; payload: ToolCallPart }
   | { type: "ToolResult"; payload: ToolResult }
+  | { type: "SteerInput"; payload: SteerInput }
   | { type: "SubagentEvent"; payload: SubagentEvent }
   | { type: "ApprovalResponse"; payload: ApprovalResponseEvent }
   | { type: "ParseError"; payload: ParseErrorPayload };
@@ -468,6 +495,7 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
   ToolCallPart: ToolCallPartSchema,
   ToolResult: ToolResultSchema,
   ApprovalResponse: ApprovalResponseEventSchema,
+  SteerInput: SteerInputSchema,
 };
 
 // Request type -> schema mapping

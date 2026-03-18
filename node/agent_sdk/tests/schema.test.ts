@@ -16,6 +16,9 @@ import {
   RpcMessageSchema,
   parseEventPayload,
   parseRequestPayload,
+  SteerInputSchema,
+  SetPlanModeResultSchema,
+  ClientCapabilitiesSchema,
   type ContentPart,
   type DisplayBlock,
   type UnknownBlock,
@@ -616,6 +619,89 @@ describe("SubagentEvent parsing", () => {
       expect(result.value.payload.task_tool_call_id).toBe("task-1");
       expect(result.value.payload.event.type).toBe("ContentPart");
     }
+  });
+});
+
+// ============================================================================
+// SteerInput Tests
+// ============================================================================
+describe("SteerInputSchema", () => {
+  it("parses string user_input", () => {
+    const input = { user_input: "change the approach" };
+    const result = SteerInputSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(input);
+  });
+  it("parses ContentPart[] user_input", () => {
+    const input = { user_input: [{ type: "text", text: "hello" }] };
+    const result = SteerInputSchema.safeParse(input);
+    expect(result.success).toBe(true);
+  });
+});
+
+// ============================================================================
+// SetPlanModeResult Tests
+// ============================================================================
+describe("SetPlanModeResultSchema", () => {
+  it("parses valid result", () => {
+    const input = { status: "ok", plan_mode: true };
+    const result = SetPlanModeResultSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(input);
+  });
+  it("rejects invalid status", () => {
+    const input = { status: "error", plan_mode: true };
+    const result = SetPlanModeResultSchema.safeParse(input);
+    expect(result.success).toBe(false);
+  });
+});
+
+// ============================================================================
+// StatusUpdate plan_mode Tests
+// ============================================================================
+describe("StatusUpdateSchema plan_mode", () => {
+  it("parses with plan_mode true", () => {
+    const input = { plan_mode: true };
+    const result = StatusUpdateSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data?.plan_mode).toBe(true);
+  });
+  it("parses with plan_mode null (unchanged)", () => {
+    const input = { plan_mode: null };
+    const result = StatusUpdateSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data?.plan_mode).toBeNull();
+  });
+  it("parses without plan_mode (backwards compat)", () => {
+    const input = { context_usage: 0.5 };
+    const result = StatusUpdateSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data?.plan_mode).toBeUndefined();
+  });
+});
+
+// ============================================================================
+// parseEventPayload SteerInput Tests
+// ============================================================================
+describe("parseEventPayload SteerInput", () => {
+  it("parses SteerInput event", () => {
+    const result = parseEventPayload("SteerInput", { user_input: "redirect" });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.value.type).toBe("SteerInput");
+    }
+  });
+});
+
+// ============================================================================
+// ClientCapabilities Tests
+// ============================================================================
+describe("ClientCapabilitiesSchema", () => {
+  it("parses with supports_plan_mode", () => {
+    const input = { supports_question: true, supports_plan_mode: true };
+    const result = ClientCapabilitiesSchema.safeParse(input);
+    expect(result.success).toBe(true);
+    expect(result.data?.supports_plan_mode).toBe(true);
   });
 });
 
