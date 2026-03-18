@@ -283,6 +283,32 @@ const respondQuestion: Handler<RespondQuestionParams, { ok: boolean }> = async (
   return { ok: true };
 };
 
+interface SetPlanModeParams {
+  enabled: boolean;
+}
+
+const setPlanMode: Handler<SetPlanModeParams, { ok: boolean; planMode: boolean }> = async (params, ctx) => {
+  const session = ctx.getSession();
+  if (!session) {
+    return { ok: false, planMode: false };
+  }
+  const planMode = await session.setPlanMode(params.enabled);
+  return { ok: true, planMode };
+};
+
+interface SteerChatParams {
+  content: string | ContentPart[];
+}
+
+const steerChat: Handler<SteerChatParams, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn();
+  if (!turn) {
+    return { ok: false };
+  }
+  await turn.steer(params.content);
+  return { ok: true };
+};
+
 const resetSession: Handler<void, { ok: boolean }> = async (_, ctx) => {
   const session = ctx.getSession();
   if (session) {
@@ -298,5 +324,7 @@ export const chatHandlers: Record<string, Handler<any, any>> = {
   [Methods.AbortChat]: abortChat,
   [Methods.RespondApproval]: respondApproval,
   [Methods.RespondQuestion]: respondQuestion,
+  [Methods.SetPlanMode]: setPlanMode,
+  [Methods.SteerChat]: steerChat,
   [Methods.ResetSession]: resetSession,
 };
