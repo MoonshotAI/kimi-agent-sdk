@@ -11,6 +11,8 @@ const PLATFORMS = {
   "darwin-x64": { target: "x86_64-apple-darwin-onedir", ext: "tar.gz" },
   "linux-arm64": { target: "aarch64-unknown-linux-gnu-onedir", ext: "tar.gz" },
   "linux-x64": { target: "x86_64-unknown-linux-gnu-onedir", ext: "tar.gz" },
+  "alpine-x64": { target: null, ext: null }, // No native CLI; UV fallback at runtime
+  "alpine-arm64": { target: null, ext: null }, // No native CLI; UV fallback at runtime
   "win32-x64": { target: "x86_64-pc-windows-msvc-onedir", ext: "zip" },
   "win32-arm64": { target: "aarch64-pc-windows-msvc-onedir", ext: "zip" },
 };
@@ -45,6 +47,7 @@ async function buildManifest(release, bundledPlatform) {
   const platforms = {};
 
   for (const [key, info] of Object.entries(PLATFORMS)) {
+    if (!info.target) continue; // No native binary for this platform (e.g. Alpine)
     const filename = `kimi-${version}-${info.target}.${info.ext}`;
     const asset = release.assets.find((a) => a.name === filename);
     const sha256Asset = release.assets.find((a) => a.name === `${filename}.sha256`);
