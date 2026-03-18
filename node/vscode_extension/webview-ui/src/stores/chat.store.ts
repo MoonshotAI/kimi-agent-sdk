@@ -20,6 +20,7 @@ export interface UIToolCall {
 export interface UIStep {
   n: number;
   items: UIStepItem[];
+  planMode?: boolean;
 }
 
 export interface InlineError {
@@ -95,6 +96,7 @@ export interface ChatState {
   pendingInput: PendingInput | null;
   queue: QueuedItem[];
   pendingQuestion: QuestionRequest | null;
+  planMode: boolean;
 
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
@@ -169,6 +171,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   pendingInput: null,
   queue: [],
   pendingQuestion: null,
+  planMode: false,
 
   sendMessage: (text) => {
     const { draftMedia, isStreaming } = get();
@@ -274,6 +277,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       pendingInput: null,
       queue: [],
       pendingQuestion: null,
+      planMode: false,
     });
     useApprovalStore.getState().clearRequests();
     bridge.clearTrackedFiles();
@@ -328,6 +332,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       pendingInput: null,
       queue: [],
       pendingQuestion: null,
+      planMode: false,
     });
     useApprovalStore.getState().clearRequests();
   },

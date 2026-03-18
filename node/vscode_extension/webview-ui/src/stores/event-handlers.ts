@@ -388,6 +388,14 @@ const eventHandlers: Record<string, EventHandler> = {
       }
 
       applyEventToSteps(last.steps, { type: "StepBegin", payload });
+
+      // Tag the newly created step with current plan mode state
+      // Note: only top-level steps get tagged. Subagent steps go through
+      // SubagentEvent -> applyEventToSteps and won't inherit main agent's planMode.
+      const newStep = last.steps.at(-1);
+      if (newStep && draft.planMode) {
+        newStep.planMode = true;
+      }
     }
   },
 
@@ -504,7 +512,11 @@ const eventHandlers: Record<string, EventHandler> = {
   },
 
   StatusUpdate: (draft, payload) => {
-    const { context_usage, token_usage } = payload;
+    const { context_usage, token_usage, plan_mode } = payload;
+
+    if (plan_mode !== undefined && plan_mode !== null) {
+      draft.planMode = plan_mode;
+    }
 
     if (token_usage) {
       addTokenUsage(draft.activeTokenUsage, {
@@ -522,6 +534,10 @@ const eventHandlers: Record<string, EventHandler> = {
     if (last) {
       last.status = draft.lastStatus;
     }
+  },
+
+  SteerInput: () => {
+    // Server echo event — steer content appears via subsequent events in the turn
   },
 };
 
