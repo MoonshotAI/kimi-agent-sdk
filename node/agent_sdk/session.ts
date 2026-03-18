@@ -27,6 +27,8 @@ export interface Turn {
   approve(requestId: string, response: ApprovalResponse): Promise<void>;
   /** Respond to question request (Wire 1.4) */
   respondQuestion(rpcRequestId: string, questionRequestId: string, answers: Record<string, string>): Promise<void>;
+  /** Steer the current turn with additional user input (Wire 1.5) */
+  steer(content: string | ContentPart[]): Promise<void>;
   /** Promise of the result after the turn is completed */
   readonly result: Promise<RunResult>;
 }
@@ -53,6 +55,10 @@ export interface Session {
   env: Record<string, string>;
   // Exported external tools
   externalTools: ExternalTool[];
+  /** Whether plan mode is currently enabled */
+  readonly planMode: boolean;
+  /** Toggle plan mode on/off */
+  setPlanMode(enabled: boolean): Promise<boolean>;
   /** Send a message, returns a Turn object */
   prompt(content: string | ContentPart[]): Turn;
   /** Close the session, release resources */
@@ -135,6 +141,14 @@ class TurnImpl implements Turn {
     }
     return client.sendQuestionResponse(rpcRequestId, questionRequestId, answers);
   }
+
+  async steer(content: string | ContentPart[]): Promise<void> {
+    const client = this.getCurrentClient();
+    if (!client?.isRunning) {
+      throw new SessionError("SESSION_CLOSED", "Cannot steer: no active client");
+    }
+    return client.sendSteer(content);
+  }
 }
 
 class SessionImpl implements Session {
@@ -152,6 +166,7 @@ class SessionImpl implements Session {
   private _skillsDir?: string;
   private _shareDir?: string;
   private _slashCommands: SlashCommandInfo[] = [];
+  private _planMode: boolean = false;
 
   private _state: SessionState = "idle";
 
@@ -224,6 +239,21 @@ class SessionImpl implements Session {
   }
   set externalTools(v: ExternalTool[]) {
     this._externalTools = v;
+  }
+  get planMode(): boolean {
+    return this._planMode;
+  }
+
+  async setPlanMode(enabled: boolean): Promise<boolean> {
+    if (this._state === "closed") {
+      throw new SessionError("SESSION_CLOSED", "Session is closed");
+    }
+    if (!this.client?.isRunning) {
+      throw new SessionError("SESSION_CLOSED", "Cannot set plan mode: no active client");
+    }
+    const result = await this.client.sendSetPlanMode(enabled);
+    this._planMode = result.plan_mode;
+    return this._planMode;
   }
 
   prompt(content: string | ContentPart[]): Turn {
