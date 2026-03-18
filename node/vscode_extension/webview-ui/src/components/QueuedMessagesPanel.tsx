@@ -1,14 +1,22 @@
 import { useState } from "react";
-import { IconTrash, IconArrowUp, IconPencil, IconCheck, IconX } from "@tabler/icons-react";
+import { IconTrash, IconArrowUp, IconPencil, IconCheck, IconX, IconBolt } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores";
+import { bridge } from "@/services";
 import { Content } from "@/lib/content";
 
-function QueueItem({ id, content, onEdit }: { id: string; content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[]; onEdit: (id: string) => void }) {
+function QueueItem({ id, content, isStreaming, onEdit }: { id: string; content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[]; isStreaming: boolean; onEdit: (id: string) => void }) {
   const { removeFromQueue, moveQueueItemUp, queue } = useChatStore();
   const text = Content.getText(content);
   const hasMedia = Content.hasMedia(content);
   const isFirst = queue[0]?.id === id;
+
+  const handleSteer = async () => {
+    const result = await bridge.steerChat(content);
+    if (result.ok) {
+      removeFromQueue(id);
+    }
+  };
 
   return (
     <div className="group flex items-start px-2.5 py-0.5 hover:bg-muted/50 transition-colors">
@@ -17,6 +25,11 @@ function QueueItem({ id, content, onEdit }: { id: string; content: string | impo
         {hasMedia && text && <span className="text-[10px] text-muted-foreground">+ media</span>}
       </div>
       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        {isStreaming && (
+          <Button variant="ghost" size="icon" className="size-5 border-0! text-amber-500 hover:text-amber-600" onClick={handleSteer} title="Insert now (steer)">
+            <IconBolt className="size-3" />
+          </Button>
+        )}
         <Button variant="ghost" size="icon" className="size-5 border-0!" onClick={() => onEdit(id)}>
           <IconPencil className="size-3" />
         </Button>
@@ -67,7 +80,7 @@ function EditingItem({ id, initialContent, onDone }: { id: string; initialConten
 }
 
 export function QueuedMessagesPanel() {
-  const { queue } = useChatStore();
+  const { queue, isStreaming } = useChatStore();
   const [editingId, setEditingId] = useState<string | null>(null);
 
   if (queue.length === 0) return null;
@@ -78,7 +91,7 @@ export function QueuedMessagesPanel() {
         editingId === item.id ? (
           <EditingItem key={item.id} id={item.id} initialContent={Content.getText(item.content)} onDone={() => setEditingId(null)} />
         ) : (
-          <QueueItem key={item.id} id={item.id} content={item.content} onEdit={setEditingId} />
+          <QueueItem key={item.id} id={item.id} content={item.content} isStreaming={isStreaming} onEdit={setEditingId} />
         ),
       )}
     </div>
