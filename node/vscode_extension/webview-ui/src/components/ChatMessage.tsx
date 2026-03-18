@@ -10,6 +10,7 @@ import { CompactionCard } from "./CompactionCard";
 import { MediaThumbnail } from "./MediaThumbnail";
 import { MediaPreviewModal } from "./MediaPreviewModal";
 import { InlineError } from "./InlineError";
+import { PlanCard } from "./PlanCard";
 import { StreamingConfirmDialog } from "./StreamingConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { useChatStore } from "@/stores";
@@ -100,6 +101,26 @@ function MessageMedia({ images, videos, onPreview }: { images: string[]; videos:
       ))}
     </div>
   );
+}
+
+interface StepGroup {
+  planMode: boolean;
+  steps: UIStep[];
+  startIndex: number;
+}
+
+function groupStepsByPlanMode(steps: UIStep[]): StepGroup[] {
+  const groups: StepGroup[] = [];
+  for (let i = 0; i < steps.length; i++) {
+    const isPlan = steps[i].planMode === true;
+    const last = groups.at(-1);
+    if (last && last.planMode === isPlan) {
+      last.steps.push(steps[i]);
+    } else {
+      groups.push({ planMode: isPlan, steps: [steps[i]], startIndex: i });
+    }
+  }
+  return groups;
 }
 
 interface ForkButtonProps {
@@ -245,10 +266,22 @@ function AssistantMessage({ message, turnIndex, isStreaming }: { message: ChatMe
           <div className="flex flex-col">
             <div className="[&>*:not(:last-child)]:mb-3">
               {hasSteps &&
-                steps.map((step, idx) => {
-                  const hasNextIndicator = stepHasIndicator.slice(idx + 1).some(Boolean);
-                  const showConnector = stepHasIndicator[idx] && hasNextIndicator;
-                  return <StepContent key={step.n} step={step} showConnector={showConnector} />;
+                groupStepsByPlanMode(steps).map((group, gi) => {
+                  const totalSteps = steps.length;
+                  const stepsContent = group.steps.map((step, i) => {
+                    const globalIndex = group.startIndex + i;
+                    const isLastInGroup = i === group.steps.length - 1;
+                    const isLastOverall = globalIndex === totalSteps - 1;
+                    const hasIndicator = stepHasIndicator[globalIndex];
+                    const hasNextIndicator = stepHasIndicator.slice(globalIndex + 1).some(Boolean);
+                    const showConnector = hasIndicator && hasNextIndicator && !isLastInGroup && !isLastOverall;
+                    return <StepContent key={step.n} step={step} showConnector={showConnector} />;
+                  });
+
+                  if (group.planMode) {
+                    return <PlanCard key={`plan-${gi}`}>{stepsContent}</PlanCard>;
+                  }
+                  return <div key={`normal-${gi}`}>{stepsContent}</div>;
                 })}
               {!hasSteps && displayContent && <Markdown content={displayContent} className="text-xs leading-relaxed @[420px]:pl-5" enableEnrichment={!isStreaming} />}
               {(images.length > 0 || videos.length > 0) && (
