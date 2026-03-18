@@ -12,7 +12,7 @@ export function PlanCard({ children }: PlanCardProps) {
         <IconClipboardList className="size-3.5 text-amber-600 dark:text-amber-400" />
         <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300">Plan Mode</span>
       </div>
-      <div className="px-1 py-1">
+      <div className="px-1 py-1 [&>*:not(:last-child)]:mb-3">
         {children}
       </div>
     </div>

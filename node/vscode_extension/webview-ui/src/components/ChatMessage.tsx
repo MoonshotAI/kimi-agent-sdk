@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { IconLoader3, IconGitFork } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
 import { Content } from "@/lib/content";
@@ -281,7 +281,7 @@ function AssistantMessage({ message, turnIndex, isStreaming }: { message: ChatMe
                   if (group.planMode) {
                     return <PlanCard key={`plan-${gi}`}>{stepsContent}</PlanCard>;
                   }
-                  return <div key={`normal-${gi}`}>{stepsContent}</div>;
+                  return <Fragment key={`normal-${gi}`}>{stepsContent}</Fragment>;
                 })}
               {!hasSteps && displayContent && <Markdown content={displayContent} className="text-xs leading-relaxed @[420px]:pl-5" enableEnrichment={!isStreaming} />}
               {(images.length > 0 || videos.length > 0) && (
