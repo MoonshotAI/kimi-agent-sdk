@@ -11,6 +11,7 @@ import { MediaThumbnail } from "../MediaThumbnail";
 import { MediaPreviewModal } from "../MediaPreviewModal";
 import { BottomToolbar } from "../BottomToolbar";
 import { ThinkingButton } from "../ThinkingButton";
+import { PlanModeButton } from "../PlanModeButton";
 import { useChatStore, useSettingsStore, getModelById, getModelsForMedia } from "@/stores";
 import { bridge, Events } from "@/services";
 import { Content } from "@/lib/content";
@@ -33,11 +34,17 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const [cursorPos, setCursorPos] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
 
-  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue } = useChatStore();
+  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue, planMode } = useChatStore();
   const { currentModel, thinkingEnabled, updateModel, toggleThinking, models, extensionConfig, getCurrentThinkingMode } = useSettingsStore();
 
   const isProcessing = hasProcessingMedia();
   const thinkingMode = getCurrentThinkingMode();
+
+  const handleTogglePlanMode = () => {
+    const newState = !planMode;
+    useChatStore.setState({ planMode: newState }); // optimistic
+    bridge.setPlanMode(newState); // StatusUpdate will confirm/correct
+  };
 
   const mediaReq = useMemo(() => {
     const media = getMediaInConversation();
@@ -374,6 +381,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
               </DropdownMenu>
 
               <ThinkingButton mode={thinkingMode} enabled={thinkingEnabled} disabled={isStreaming} onToggle={toggleThinking} />
+              <PlanModeButton active={planMode} onToggle={handleTogglePlanMode} />
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
