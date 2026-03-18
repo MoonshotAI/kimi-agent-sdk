@@ -16,11 +16,13 @@ import {
   type ExternalTool,
   type ToolCallRequest,
   type ToolReturnValue,
+  SetPlanModeResultSchema,
+  type SetPlanModeResult,
 } from "./schema";
 import { TransportError, ProtocolError, CliError } from "./errors";
 import { log } from "./logger";
 
-const PROTOCOL_VERSION = "1.4";
+const PROTOCOL_VERSION = "1.5";
 const SDK_NAME = "kimi-agent-sdk";
 
 declare const __SDK_VERSION__: string;
@@ -272,6 +274,21 @@ export class ProtocolClient {
     return Promise.resolve();
   }
 
+  sendSetPlanMode(enabled: boolean): Promise<SetPlanModeResult> {
+    return this.sendRequest("set_plan_mode", { enabled })
+      .then((res) => {
+        const parsed = SetPlanModeResultSchema.safeParse(res);
+        if (!parsed.success) {
+          throw new ProtocolError("SCHEMA_MISMATCH", `Invalid set_plan_mode response: ${parsed.error.message}`);
+        }
+        return parsed.data;
+      });
+  }
+
+  sendSteer(content: string | ContentPart[]): Promise<void> {
+    return this.sendRequest("steer", { user_input: content }).then(() => {});
+  }
+
   private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo): Promise<InitializeResult> {
     let clientName = `${SDK_NAME}/${SDK_VERSION}`;
     if (clientInfo?.name && clientInfo?.version) {
@@ -286,6 +303,7 @@ export class ProtocolClient {
       },
       capabilities: {
         supports_question: true,
+        supports_plan_mode: true,
       },
     };
 
