@@ -37,8 +37,20 @@ const PLATFORMS: Record<string, PlatformInfo> = {
   "darwin-x64": { uv: { target: "x86_64-apple-darwin", ext: "tar.gz" }, exe: "kimi", wrapper: "kimi" },
   "linux-arm64": { uv: { target: "aarch64-unknown-linux-gnu", ext: "tar.gz" }, exe: "kimi", wrapper: "kimi" },
   "linux-x64": { uv: { target: "x86_64-unknown-linux-gnu", ext: "tar.gz" }, exe: "kimi", wrapper: "kimi" },
+  "alpine-arm64": { uv: { target: "aarch64-unknown-linux-musl", ext: "tar.gz" }, exe: "kimi", wrapper: "kimi" },
+  "alpine-x64": { uv: { target: "x86_64-unknown-linux-musl", ext: "tar.gz" }, exe: "kimi", wrapper: "kimi" },
   "win32-x64": { uv: { target: "x86_64-pc-windows-msvc", ext: "zip" }, exe: "kimi.exe", wrapper: "kimi.bat" },
 };
+
+function isMusl(): boolean {
+  try {
+    // Alpine/musl: ldd --version writes to stderr and contains "musl"
+    const output = execSync("ldd --version 2>&1 || true", { encoding: "utf-8" });
+    return output.toLowerCase().includes("musl");
+  } catch {
+    return false;
+  }
+}
 
 export function getPlatformKey(): string {
   const { platform, arch } = process;
@@ -46,7 +58,8 @@ export function getPlatformKey(): string {
     return arch === "arm64" ? "darwin-arm64" : "darwin-x64";
   }
   if (platform === "linux") {
-    return arch === "arm64" ? "linux-arm64" : "linux-x64";
+    const prefix = isMusl() ? "alpine" : "linux";
+    return arch === "arm64" ? `${prefix}-arm64` : `${prefix}-x64`;
   }
   if (platform === "win32") {
     return "win32-x64";
