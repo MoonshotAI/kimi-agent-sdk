@@ -16,13 +16,15 @@ import {
   type ExternalTool,
   type ToolCallRequest,
   type ToolReturnValue,
+  type HookRequest,
+  type HookSubscription,
   SetPlanModeResultSchema,
   type SetPlanModeResult,
 } from "./schema";
 import { TransportError, ProtocolError, CliError } from "./errors";
 import { log } from "./logger";
 
-const PROTOCOL_VERSION = "1.5";
+const PROTOCOL_VERSION = "1.7";
 const SDK_NAME = "kimi-agent-sdk";
 
 declare const __SDK_VERSION__: string;
@@ -32,6 +34,9 @@ export interface ClientInfo {
   name: string;
   version: string;
 }
+
+/** Handler for wire hook requests from the server */
+export type HookRequestHandler = (request: HookRequest) => Promise<{ action: "allow" | "block"; reason?: string }>;
 
 export interface ClientOptions {
   sessionId?: string;
@@ -45,6 +50,10 @@ export interface ClientOptions {
   agentFile?: string;
   clientInfo?: ClientInfo;
   skillsDir?: string;
+  /** Hook event subscriptions — server sends HookRequest when these events fire (Wire 1.7) */
+  hooks?: HookSubscription[];
+  /** Handler called when server sends a HookRequest for a wire-subscribed hook */
+  onHookRequest?: HookRequestHandler;
 }
 
 // Prompt Stream
@@ -118,6 +127,7 @@ export class ProtocolClient {
   private pushEvent: ((event: StreamEvent) => void) | null = null;
   private finishEvents: (() => void) | null = null;
   private externalToolHandlers = new Map<string, ExternalTool["handler"]>();
+  private hookRequestHandler: HookRequestHandler | null = null;
 
   get isRunning(): boolean {
     return this.process !== null && this.process.exitCode === null;
@@ -168,8 +178,13 @@ export class ProtocolClient {
       }
     }
 
+    // Store hook request handler
+    if (options.onHookRequest) {
+      this.hookRequestHandler = options.onHookRequest;
+    }
+
     // Send initialize request
-    const initResult = await this.sendInitialize(options.externalTools, options.clientInfo);
+    const initResult = await this.sendInitialize(options.externalTools, options.clientInfo, options.hooks);
     return initResult;
   }
 
@@ -289,7 +304,7 @@ export class ProtocolClient {
     return this.sendRequest("steer", { user_input: content }).then(() => {});
   }
 
-  private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo): Promise<InitializeResult> {
+  private async sendInitialize(externalTools?: ExternalTool[], clientInfo?: ClientInfo, hooks?: HookSubscription[]): Promise<InitializeResult> {
     let clientName = `${SDK_NAME}/${SDK_VERSION}`;
     if (clientInfo?.name && clientInfo?.version) {
       clientName += ` ${clientInfo.name}/${clientInfo.version}`;
@@ -312,6 +327,14 @@ export class ProtocolClient {
         name: tool.name,
         description: tool.description,
         parameters: tool.parameters,
+      }));
+    }
+
+    if (hooks && hooks.length > 0) {
+      params.hooks = hooks.map((h) => ({
+        event: h.event,
+        matcher: h.matcher ?? "",
+        timeout: h.timeout ?? 30,
       }));
     }
 
@@ -453,7 +476,12 @@ export class ProtocolClient {
       return;
     }
 
-    // For other request types (ApprovalRequest), emit as event
+    if (p.type === "HookRequest") {
+      this.handleHookRequest(requestId, p.payload as HookRequest);
+      return;
+    }
+
+    // For other request types (ApprovalRequest, QuestionRequest), emit as event
     const result = parseRequestPayload(p.type, p.payload);
     if (result.ok) {
       this.pushEvent?.(result.value);
@@ -501,6 +529,40 @@ export class ProtocolClient {
       result: {
         tool_call_id: request.id,
         return_value: returnValue,
+      },
+    });
+  }
+
+  private async handleHookRequest(requestId: string, request: HookRequest): Promise<void> {
+    let action: "allow" | "block" = "allow";
+    let reason = "";
+
+    if (this.hookRequestHandler) {
+      try {
+        const result = await this.hookRequestHandler(request);
+        action = result.action;
+        reason = result.reason ?? "";
+      } catch (err) {
+        log.protocol("Hook request handler error: %O", err);
+        // Fail-open: allow on handler error
+        action = "allow";
+      }
+    }
+    // No handler registered → also emit as event so the Turn iterator can see it
+    else {
+      const parsed = parseRequestPayload("HookRequest", request);
+      if (parsed.ok) {
+        this.pushEvent?.(parsed.value);
+      }
+    }
+
+    this.writeLine({
+      jsonrpc: "2.0",
+      id: requestId,
+      result: {
+        request_id: request.id,
+        action,
+        reason,
       },
     });
   }

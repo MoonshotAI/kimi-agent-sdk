@@ -277,10 +277,32 @@ export const ServerCapabilitiesSchema = z.object({
 });
 export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 
+// Hook subscription (Wire 1.7) — client subscribes to hook events
+export const HookSubscriptionSchema = z.object({
+  /** Which lifecycle event to subscribe to, e.g. 'PreToolUse', 'Stop' */
+  event: z.string(),
+  /** Regex filter. Empty matches everything */
+  matcher: z.string().optional().default(""),
+  /** Seconds to wait for client response before fail-open */
+  timeout: z.number().optional().default(30),
+});
+export type HookSubscription = z.infer<typeof HookSubscriptionSchema>;
+
+// Hooks info returned in initialize result (Wire 1.7)
+export const HooksInfoSchema = z.object({
+  /** All hook event types the server supports */
+  supported_events: z.array(z.string()),
+  /** Event -> number of configured hooks (server + wire) */
+  configured: z.record(z.string(), z.number()),
+});
+export type HooksInfo = z.infer<typeof HooksInfoSchema>;
+
 export const InitializeParamsSchema = z.object({
   protocol_version: z.string(),
   client: ClientInfoSchema.optional(),
   external_tools: z.array(ExternalToolDefinitionSchema).optional(),
+  /** Hook event subscriptions — server sends HookRequest when these fire (Wire 1.7) */
+  hooks: z.array(HookSubscriptionSchema).optional(),
   capabilities: ClientCapabilitiesSchema.optional(),
 });
 export type InitializeParams = z.infer<typeof InitializeParamsSchema>;
@@ -290,6 +312,8 @@ export const InitializeResultSchema = z.object({
   server: ServerInfoSchema,
   slash_commands: z.array(SlashCommandInfoSchema),
   external_tools: ExternalToolsResultSchema.optional(),
+  /** Hooks metadata — supported events and configured counts (Wire 1.7) */
+  hooks: HooksInfoSchema.optional(),
   capabilities: ServerCapabilitiesSchema.optional(),
 });
 export type InitializeResult = z.infer<typeof InitializeResultSchema>;
@@ -412,6 +436,49 @@ export const StatusUpdateSchema = z.object({
 });
 export type StatusUpdate = z.infer<typeof StatusUpdateSchema>;
 
+// ============================================================================
+// Hook Events & Requests (Wire 1.7)
+// ============================================================================
+
+/** Fired when matched hooks start executing */
+export const HookTriggeredSchema = z.object({
+  /** Hook event type, e.g. 'PreToolUse', 'Stop' */
+  event: z.string(),
+  /** What triggered the hook: tool name, agent name, etc. */
+  target: z.string().default(""),
+  /** Number of matched hooks running in parallel */
+  hook_count: z.number().default(1),
+});
+export type HookTriggered = z.infer<typeof HookTriggeredSchema>;
+
+/** Fired when hook execution finishes */
+export const HookResolvedSchema = z.object({
+  /** Hook event type */
+  event: z.string(),
+  /** Same as HookTriggered.target */
+  target: z.string().default(""),
+  /** Aggregate decision: 'block' if any hook blocked, 'allow' otherwise */
+  action: z.enum(["allow", "block"]).default("allow"),
+  /** Reason for blocking. Empty if allowed */
+  reason: z.string().default(""),
+  /** Wall-clock time for the batch, in milliseconds */
+  duration_ms: z.number().default(0),
+});
+export type HookResolved = z.infer<typeof HookResolvedSchema>;
+
+/** Server requests client to handle a hook event (wire-subscribed hooks) */
+export const HookRequestSchema = z.object({
+  /** Unique request ID */
+  id: z.string(),
+  /** Hook event type */
+  event: z.string(),
+  /** What triggered the hook */
+  target: z.string().default(""),
+  /** Full event payload (same as what shell hooks get on stdin) */
+  input_data: z.record(z.string(), z.unknown()).default({}),
+});
+export type HookRequest = z.infer<typeof HookRequestSchema>;
+
 // Approval request payload
 export const ApprovalRequestPayloadSchema = z.object({
   // Request ID, referenced when responding
@@ -467,6 +534,8 @@ export type WireEvent =
   | { type: "CompactionBegin"; payload: CompactionBegin }
   | { type: "CompactionEnd"; payload: CompactionEnd }
   | { type: "StatusUpdate"; payload: StatusUpdate }
+  | { type: "HookTriggered"; payload: HookTriggered }
+  | { type: "HookResolved"; payload: HookResolved }
   | { type: "ContentPart"; payload: ContentPart }
   | { type: "ToolCall"; payload: ToolCall }
   | { type: "ToolCallPart"; payload: ToolCallPart }
@@ -479,7 +548,8 @@ export type WireEvent =
 export type WireRequest =
   | { type: "ApprovalRequest"; payload: ApprovalRequestPayload }
   | { type: "ToolCallRequest"; payload: ToolCallRequest }
-  | { type: "QuestionRequest"; payload: QuestionRequest };
+  | { type: "QuestionRequest"; payload: QuestionRequest }
+  | { type: "HookRequest"; payload: HookRequest };
 
 // Event type -> schema mapping
 export const EventSchemas: Record<string, z.ZodSchema> = {
@@ -490,6 +560,8 @@ export const EventSchemas: Record<string, z.ZodSchema> = {
   CompactionBegin: EmptyPayloadSchema,
   CompactionEnd: EmptyPayloadSchema,
   StatusUpdate: StatusUpdateSchema,
+  HookTriggered: HookTriggeredSchema,
+  HookResolved: HookResolvedSchema,
   ContentPart: ContentPartSchema,
   ToolCall: ToolCallSchema,
   ToolCallPart: ToolCallPartSchema,
@@ -503,6 +575,7 @@ export const RequestSchemas: Record<string, z.ZodSchema> = {
   ApprovalRequest: ApprovalRequestPayloadSchema,
   ToolCallRequest: ToolCallRequestSchema,
   QuestionRequest: QuestionRequestSchema,
+  HookRequest: HookRequestSchema,
 };
 
 type Result<T> = { ok: true; value: T } | { ok: false; error: string };

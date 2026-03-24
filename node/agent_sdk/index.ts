@@ -117,6 +117,12 @@ export type {
   ServerInfo,
   SteerInput,
   SetPlanModeResult,
+  // Hooks (Wire 1.7)
+  HookSubscription,
+  HooksInfo,
+  HookTriggered,
+  HookResolved,
+  HookRequest,
 } from "./schema";
 
 // Schemas
@@ -133,11 +139,17 @@ export {
   parseRequestPayload,
   SteerInputSchema,
   SetPlanModeResultSchema,
+  // Hooks (Wire 1.7)
+  HookSubscriptionSchema,
+  HooksInfoSchema,
+  HookTriggeredSchema,
+  HookResolvedSchema,
+  HookRequestSchema,
 } from "./schema";
 
 // Protocol
 export { ProtocolClient } from "./protocol";
-export type { PromptStream, ReplayStream } from "./protocol";
+export type { PromptStream, ReplayStream, HookRequestHandler } from "./protocol";
 
 // Logging
 export { enableLogs, disableLogs, setLogSink } from "./logger";
