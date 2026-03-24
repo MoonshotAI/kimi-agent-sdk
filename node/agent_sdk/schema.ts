@@ -279,6 +279,8 @@ export type ServerCapabilities = z.infer<typeof ServerCapabilitiesSchema>;
 
 // Hook subscription (Wire 1.7) — client subscribes to hook events
 export const HookSubscriptionSchema = z.object({
+  /** Unique subscription ID — referenced in HookRequest to route to the right handler */
+  id: z.string(),
   /** Which lifecycle event to subscribe to, e.g. 'PreToolUse', 'Stop' */
   event: z.string(),
   /** Regex filter. Empty matches everything */
@@ -470,6 +472,8 @@ export type HookResolved = z.infer<typeof HookResolvedSchema>;
 export const HookRequestSchema = z.object({
   /** Unique request ID */
   id: z.string(),
+  /** Which subscription triggered this request */
+  subscription_id: z.string(),
   /** Hook event type */
   event: z.string(),
   /** What triggered the hook */

@@ -149,7 +149,7 @@ export {
 
 // Protocol
 export { ProtocolClient } from "./protocol";
-export type { PromptStream, ReplayStream, HookRequestHandler } from "./protocol";
+export type { PromptStream, ReplayStream, HookHandler, HookRegistration } from "./protocol";
 
 // Logging
 export { enableLogs, disableLogs, setLogSink } from "./logger";

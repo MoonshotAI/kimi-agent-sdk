@@ -35,8 +35,22 @@ export interface ClientInfo {
   version: string;
 }
 
-/** Handler for wire hook requests from the server */
-export type HookRequestHandler = (request: HookRequest) => Promise<{ action: "allow" | "block"; reason?: string }>;
+/** Handler for a single wire hook — called when the matching subscription fires */
+export type HookHandler = (request: HookRequest) => Promise<{ action: "allow" | "block"; reason?: string }>;
+
+/** Hook registration: subscription config + handler */
+export interface HookRegistration {
+  /** Unique ID for this subscription */
+  id: string;
+  /** Which lifecycle event to subscribe to */
+  event: string;
+  /** Regex filter. Empty matches everything */
+  matcher?: string;
+  /** Timeout in seconds */
+  timeout?: number;
+  /** Handler called when this hook fires */
+  handler: HookHandler;
+}
 
 export interface ClientOptions {
   sessionId?: string;
@@ -50,10 +64,8 @@ export interface ClientOptions {
   agentFile?: string;
   clientInfo?: ClientInfo;
   skillsDir?: string;
-  /** Hook event subscriptions — server sends HookRequest when these events fire (Wire 1.7) */
-  hooks?: HookSubscription[];
-  /** Handler called when server sends a HookRequest for a wire-subscribed hook */
-  onHookRequest?: HookRequestHandler;
+  /** Hook registrations — each binds a subscription to a handler (Wire 1.7) */
+  hooks?: HookRegistration[];
 }
 
 // Prompt Stream
@@ -127,7 +139,7 @@ export class ProtocolClient {
   private pushEvent: ((event: StreamEvent) => void) | null = null;
   private finishEvents: (() => void) | null = null;
   private externalToolHandlers = new Map<string, ExternalTool["handler"]>();
-  private hookRequestHandler: HookRequestHandler | null = null;
+  private hookHandlers = new Map<string, HookHandler>();
 
   get isRunning(): boolean {
     return this.process !== null && this.process.exitCode === null;
@@ -178,13 +190,14 @@ export class ProtocolClient {
       }
     }
 
-    // Store hook request handler
-    if (options.onHookRequest) {
-      this.hookRequestHandler = options.onHookRequest;
-    }
+    // Register hook handlers
+    const hookSubscriptions: HookSubscription[] | undefined = options.hooks?.map((h) => {
+      this.hookHandlers.set(h.id, h.handler);
+      return { id: h.id, event: h.event, matcher: h.matcher ?? "", timeout: h.timeout ?? 30 };
+    });
 
     // Send initialize request
-    const initResult = await this.sendInitialize(options.externalTools, options.clientInfo, options.hooks);
+    const initResult = await this.sendInitialize(options.externalTools, options.clientInfo, hookSubscriptions);
     return initResult;
   }
 
@@ -332,6 +345,7 @@ export class ProtocolClient {
 
     if (hooks && hooks.length > 0) {
       params.hooks = hooks.map((h) => ({
+        id: h.id,
         event: h.event,
         matcher: h.matcher ?? "",
         timeout: h.timeout ?? 30,
@@ -537,19 +551,20 @@ export class ProtocolClient {
     let action: "allow" | "block" = "allow";
     let reason = "";
 
-    if (this.hookRequestHandler) {
+    // Dispatch by subscription_id to the registered handler
+    const handler = this.hookHandlers.get(request.subscription_id);
+    if (handler) {
       try {
-        const result = await this.hookRequestHandler(request);
+        const result = await handler(request);
         action = result.action;
         reason = result.reason ?? "";
       } catch (err) {
-        log.protocol("Hook request handler error: %O", err);
+        log.protocol("Hook handler error for subscription %s: %O", request.subscription_id, err);
         // Fail-open: allow on handler error
         action = "allow";
       }
-    }
-    // No handler registered → also emit as event so the Turn iterator can see it
-    else {
+    } else {
+      // No handler for this subscription — emit as event so Turn iterator can see it
       const parsed = parseRequestPayload("HookRequest", request);
       if (parsed.ok) {
         this.pushEvent?.(parsed.value);
