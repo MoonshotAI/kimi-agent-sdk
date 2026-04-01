@@ -103,7 +103,7 @@ class Session:
             yolo=yolo,
             agent_file=agent_file,
             mcp_configs=mcp_configs,
-            skills_dirs=[skills_dir],
+            skills_dirs=[skills_dir] if skills_dir else [],
             max_steps_per_turn=max_steps_per_turn,
             max_retries_per_step=max_retries_per_step,
             max_ralph_iterations=max_ralph_iterations,
