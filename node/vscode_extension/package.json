@@ -185,6 +185,12 @@
       ]
     },
     "menus": {
+      "editor/title": [
+        {
+          "group": "navigation",
+          "command": "kimi.openInSideBar"
+        }
+      ],
       "view/title": [
         {
           "command": "kimi.openInTab",
