@@ -90,7 +90,11 @@
         "kimi.editorContext": {
           "type": "string",
           "default": "never",
-          "enum": ["never", "onConversationStart", "onFileChange"],
+          "enum": [
+            "never",
+            "onConversationStart",
+            "onFileChange"
+          ],
           "enumDescriptions": [
             "Never share editor context",
             "Share once when conversation starts",
@@ -108,7 +112,10 @@
       {
         "command": "kimi.openInTab",
         "title": "Kimi Code: Open in New Tab",
-        "icon": "$(link-external)"
+        "icon": {
+          "light": "resources/kimi-icon-black.svg",
+          "dark": "resources/kimi-icon-white.svg"
+        }
       },
       {
         "command": "kimi.openInSideBar",
