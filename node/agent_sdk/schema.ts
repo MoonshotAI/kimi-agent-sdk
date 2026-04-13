@@ -518,7 +518,7 @@ export interface ParseErrorPayload {
 
 // Sub-agent event
 export interface SubagentEvent {
-  task_tool_call_id: string;
+  parent_tool_call_id: string;
   event: WireEvent;
 }
 
@@ -614,7 +614,7 @@ function parseWireEvent(raw: { type: string; payload?: unknown }): WireEvent {
 
 export const SubagentEventSchema = z.lazy(() =>
   z.object({
-    task_tool_call_id: z.string(),
+    parent_tool_call_id: z.string(),
     event: z.object({ type: z.string(), payload: z.unknown() }).transform(parseWireEvent),
   }),
 ) as z.ZodType<SubagentEvent, z.ZodTypeDef, unknown>;

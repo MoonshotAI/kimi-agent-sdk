@@ -608,7 +608,7 @@ describe("parseRequestPayload", () => {
 describe("SubagentEvent parsing", () => {
   it("parses nested SubagentEvent via parseEventPayload", () => {
     const result = parseEventPayload("SubagentEvent", {
-      task_tool_call_id: "task-1",
+      parent_tool_call_id: "task-1",
       event: {
         type: "ContentPart",
         payload: { type: "text", text: "from subagent" },
@@ -616,7 +616,7 @@ describe("SubagentEvent parsing", () => {
     });
     expect(result.ok).toBe(true);
     if (result.ok && result.value.type === "SubagentEvent") {
-      expect(result.value.payload.task_tool_call_id).toBe("task-1");
+      expect(result.value.payload.parent_tool_call_id).toBe("task-1");
       expect(result.value.payload.event.type).toBe("ContentPart");
     }
   });

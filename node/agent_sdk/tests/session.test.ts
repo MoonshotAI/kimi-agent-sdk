@@ -1325,7 +1325,7 @@ describe("Edge cases and error handling", () => {
       {
         type: "SubagentEvent",
         payload: {
-          task_tool_call_id: "task-1",
+          parent_tool_call_id: "task-1",
           event: {
             type: "ContentPart",
             payload: { type: "text", text: "From subagent" },

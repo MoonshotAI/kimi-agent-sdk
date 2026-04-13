@@ -452,8 +452,8 @@ for await (const event of turn) {
 ```typescript
 for await (const event of turn) {
   if (event.type === 'SubagentEvent') {
-    const { task_tool_call_id, event: subEvent } = event.payload;
-    console.log(`Subagent ${task_tool_call_id}: ${subEvent.type}`);
+    const { parent_tool_call_id, event: subEvent } = event.payload;
+    console.log(`Subagent ${parent_tool_call_id}: ${subEvent.type}`);
   }
 }
 ```
