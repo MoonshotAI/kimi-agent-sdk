@@ -324,7 +324,7 @@ function TaskTool({ call, result, subagentSteps }: ToolRendererProps) {
   const [showProcess, setShowProcess] = useState(false);
   const args = parseArgs(call.arguments);
   const description = (args.description as string) || "";
-  const subagentName = (args.subagent_name as string) || "coder";
+  const subagentName = (args.subagent_name as string) || (args.subagent_type as string) || "coder";
   const prompt = (args.prompt as string) || "";
   const hasSubagentSteps = subagentSteps && subagentSteps.length > 0;
 
@@ -422,6 +422,7 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
       case "Glob":
         return <GlobTool {...props} />;
       case "Task":
+      case "Agent":
         return <TaskTool {...props} />;
       case "SetTodoList":
         return <SetTodoListTool {...props} />;

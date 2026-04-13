@@ -238,7 +238,7 @@ function isTaskToolResult(steps: UIStep[] | undefined, toolCallId: string): bool
     return false;
   }
   const toolItem = findToolUseItem(steps, toolCallId);
-  return toolItem?.call.name === "Task";
+  return toolItem?.call.name === "Task" || toolItem?.call.name === "Agent";
 }
 
 function handlePreflightError(draft: ChatState, code: string, message: string): void {

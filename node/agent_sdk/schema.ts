@@ -616,7 +616,7 @@ export const SubagentEventSchema = z.lazy(() =>
   z.object({
     parent_tool_call_id: z.string(),
     event: z.object({ type: z.string(), payload: z.unknown() }).transform(parseWireEvent),
-  }),
+  }).passthrough(),
 ) as z.ZodType<SubagentEvent, z.ZodTypeDef, unknown>;
 
 EventSchemas.SubagentEvent = SubagentEventSchema;
