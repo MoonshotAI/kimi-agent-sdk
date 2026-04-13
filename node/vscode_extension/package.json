@@ -1,7 +1,7 @@
 {
   "name": "kimi-code",
   "publisher": "moonshot-ai",
-  "displayName": "Kimi Code (Technical Preview)",
+  "displayName": "Kimi Code",
   "description": "Official Kimi Code plugin for VS Code",
   "version": "0.4.6",
   "license": "Apache-2.0",
