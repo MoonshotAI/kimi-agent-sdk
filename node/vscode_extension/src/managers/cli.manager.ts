@@ -71,8 +71,13 @@ export class CLIManager {
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
     const resolved = { isCustomPath: this.isCustomPath(), path: this.getExecutablePath() };
 
-    if (!(await this.ensureCLI())) {
-      return { ok: false, resolved, error: { type: "extract_failed", message: "Failed to install CLI" } };
+    try {
+      if (!(await this.ensureCLI())) {
+        return { ok: false, resolved, error: { type: "extract_failed", message: "Failed to install CLI" } };
+      }
+    } catch (err) {
+      console.error("Error ensuring CLI:", err);
+      return { ok: false, resolved, error: { type: "extract_failed", message: String(err) } };
     }
 
     return this.verify(workDir, resolved);
@@ -106,7 +111,11 @@ export class CLIManager {
       if (manifest.bundledPlatform === platform) {
         console.log(`[Kimi Code] Extracting bundled CLI for ${platform}...`);
         const archiveExt = asset.filename.endsWith(".zip") ? "zip" : "tar.gz";
+
+        console.log(`[Kimi Code] Extracting bundled CLI for ${platform} from ${this.extensionBinPath} with archive type ${archiveExt}...`);
         extractBundledCLI(path.join(this.extensionBinPath, `archive.${archiveExt}`), this.kimiPath);
+        console.log(`[Kimi Code] Bundled CLI extracted for ${platform}`);
+
       } else {
         console.log(`[Kimi Code] Platform ${platform} not matched bundled, downloading CLI...`);
         vscode.window.showInformationMessage(`Downloading Kimi CLI for ${platform}...`);
@@ -134,13 +143,16 @@ export class CLIManager {
       cliVersion = info.kimi_cli_version;
       wireVersion = info.wire_protocol_version;
     } catch (err) {
+      console.error("Error getting CLI info:", err);
       return { ok: false, resolved, error: { type: "not_found", message: String(err) } };
     }
 
     if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
+      console.error(`CLI version too low: ${cliVersion} < ${MIN_CLI_VERSION}`);
       return { ok: false, resolved, error: { type: "version_low", message: `CLI ${cliVersion} < ${MIN_CLI_VERSION}` } };
     }
     if (compareVersion(wireVersion, MIN_WIRE_VERSION) < 0) {
+      console.error(`Wire protocol version too low: ${wireVersion} < ${MIN_WIRE_VERSION}`);
       return { ok: false, resolved, error: { type: "version_low", message: `Wire ${wireVersion} < ${MIN_WIRE_VERSION}` } };
     }
 
@@ -148,6 +160,7 @@ export class CLIManager {
       const initResult = await this.verifyWire(execPath, workDir);
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
+      console.error("Error verifying wire protocol:", err);
       return { ok: false, resolved, error: { type: "protocol_error", message: String(err) } };
     }
   }
