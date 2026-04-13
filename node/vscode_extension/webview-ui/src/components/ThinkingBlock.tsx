@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { IconChevronDown, IconLoader3, IconBulb } from "@tabler/icons-react";
 import { cn } from "@/lib/utils";
-import { Markdown } from "./Markdown";
 import { useSettingsStore } from "@/stores";
 
 interface ThinkingBlockProps {
@@ -34,12 +33,10 @@ export function ThinkingBlock({ content, finished, compact }: ThinkingBlockProps
         <IconChevronDown className={cn("text-zinc-400 ml-auto transition-transform", compact ? "size-3" : "size-3.5", expanded && "rotate-180")} />
       </button>
 
-      {expanded && content && (
-        <Markdown
-          content={content}
-          className={cn("border-t border-zinc-200/50 dark:border-zinc-700/50", compact ? "py-2 px-2 text-[0.75rem]" : "py-3 px-2 pl-3.5 text-xs")}
-          enableEnrichment={finished}
-        />
+      {expanded && (
+        <div className={cn("border-t border-zinc-200/50 dark:border-zinc-700/50 text-zinc-500 dark:text-zinc-400 italic", compact ? "py-2 px-2 text-[0.75rem]" : "py-3 px-2 pl-3.5 text-xs")}>
+          Content hidden
+        </div>
       )}
     </div>
   );
