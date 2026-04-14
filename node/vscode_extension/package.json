@@ -112,15 +112,15 @@
       {
         "command": "kimi.openInTab",
         "title": "Kimi Code: Open in New Tab",
-        "icon": {
-          "light": "resources/kimi-icon-black.svg",
-          "dark": "resources/kimi-icon-white.svg"
-        }
+        "icon": "$(link-external)"
       },
       {
         "command": "kimi.openInSideBar",
         "title": "Kimi Code: Open in Side Panel",
-        "icon": "$(layout-sidebar-left)"
+        "icon": {
+          "light": "resources/kimi-icon-black.svg",
+          "dark": "resources/kimi-icon-white.svg"
+        }
       },
       {
         "command": "kimi.focusInput",
