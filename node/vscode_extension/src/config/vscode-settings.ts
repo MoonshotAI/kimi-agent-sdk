@@ -33,8 +33,12 @@ export const VSCodeSettings = {
     return getConfig().get<Record<string, string>>("environmentVariables", {});
   },
 
-  get alwaysExpandThinking(): boolean {
-    return getConfig().get<boolean>("alwaysExpandThinking", false);
+  get showThinkingContent(): boolean {
+    return getConfig().get<boolean>("showThinkingContent", false);
+  },
+
+  get showThinkingExpanded(): boolean {
+    return getConfig().get<boolean>("showThinkingExpanded", false);
   },
 
   get editorContext(): "never" | "onConversationStart" | "onFileChange" {
@@ -49,7 +53,8 @@ export const VSCodeSettings = {
       useCtrlEnterToSend: this.useCtrlEnterToSend,
       enableNewConversationShortcut: this.enableNewConversationShortcut,
       environmentVariables: this.environmentVariables,
-      alwaysExpandThinking: this.alwaysExpandThinking,
+      showThinkingContent: this.showThinkingContent,
+      showThinkingExpanded: this.showThinkingExpanded,
       version: EXTENSION_VERSION,
     };
   },
@@ -60,7 +65,7 @@ export function onSettingsChange(callback: (changedKeys: string[]) => void): vsc
     if (!e.affectsConfiguration("kimi")) {
       return;
     }
-    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables", "alwaysExpandThinking", "editorContext"];
+    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables", "showThinkingContent", "showThinkingExpanded", "editorContext"];
     const changedKeys = keys.filter((key) => e.affectsConfiguration(`kimi.${key}`));
     if (changedKeys.length > 0) {
       callback(changedKeys);
