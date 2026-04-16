@@ -89,7 +89,7 @@
         },
         "kimi.showThinkingExpanded": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Auto-expand thinking/reasoning sections when shown (requires 'Show Thinking Content' to be enabled)"
         },
         "kimi.editorContext": {

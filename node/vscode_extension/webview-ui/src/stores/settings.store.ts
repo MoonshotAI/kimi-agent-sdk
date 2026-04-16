@@ -11,7 +11,7 @@ export const DEFAULT_EXTENSION_CONFIG: ExtensionConfig = {
   enableNewConversationShortcut: false,
   environmentVariables: {},
   showThinkingContent: false,
-  showThinkingExpanded: false,
+  showThinkingExpanded: true,
   version: "",
 };
 
