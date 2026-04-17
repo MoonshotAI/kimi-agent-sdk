@@ -3,7 +3,7 @@
   "publisher": "moonshot-ai",
   "displayName": "Kimi Code",
   "description": "Official Kimi Code plugin for VS Code",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -84,12 +84,12 @@
         },
         "kimi.showThinkingContent": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Show thinking/reasoning content in the chat UI"
         },
         "kimi.showThinkingExpanded": {
           "type": "boolean",
-          "default": false,
+          "default": true,
           "description": "Auto-expand thinking/reasoning sections when shown (requires 'Show Thinking Content' to be enabled)"
         },
         "kimi.editorContext": {
