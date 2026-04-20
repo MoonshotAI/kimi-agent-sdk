@@ -32,6 +32,7 @@ const LLMModelSchema = z.object({
   model: z.string(),
   max_context_size: z.number().int().positive(),
   capabilities: z.array(ModelCapabilitySchema).optional(),
+  display_name: z.string().optional(),
 });
 
 const LoopControlSchema = z.object({
@@ -124,7 +125,7 @@ export function parseConfig(shareDir?: string): KimiConfig {
 function toKimiConfig(config: Config): KimiConfig {
   const models: ModelConfig[] = Object.entries(config.models).map(([id, model]) => ({
     id,
-    name: id,
+    name: model.display_name || model.model || id,
     capabilities: model.capabilities ?? [],
   }));
 
