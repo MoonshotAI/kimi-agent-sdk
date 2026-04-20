@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -11,7 +12,7 @@ from kimi_cli.app import KimiCLI
 from kimi_cli.config import Config
 from kimi_cli.session import Session as CliSession
 from kimi_cli.soul import StatusSnapshot
-from kimi_cli.wire.types import ContentPart, WireMessage
+from kimi_cli.wire.types import ContentPart, StatusUpdate, TokenUsage, WireMessage
 
 from kimi_agent_sdk._exception import SessionStateError
 
@@ -22,6 +23,58 @@ if TYPE_CHECKING:
 def _ensure_type(name: str, value: object, expected: type) -> None:
     if not isinstance(value, expected):
         raise TypeError(f"{name} must be {expected.__name__}, got {type(value).__name__}")
+
+
+@dataclass
+class TokenStats:
+    """Cumulative token usage statistics for a session.
+
+    Accumulates token usage across multiple prompts in a session.
+    """
+
+    _input_other: int = field(default=0, init=False, repr=False)
+    _output: int = field(default=0, init=False, repr=False)
+    _input_cache_read: int = field(default=0, init=False, repr=False)
+    _input_cache_creation: int = field(default=0, init=False, repr=False)
+
+    @property
+    def input_other(self) -> int:
+        """Non-cached input tokens."""
+        return self._input_other
+
+    @property
+    def output(self) -> int:
+        """Output tokens."""
+        return self._output
+
+    @property
+    def input_cache_read(self) -> int:
+        """Cache read tokens."""
+        return self._input_cache_read
+
+    @property
+    def input_cache_creation(self) -> int:
+        """Cache creation tokens."""
+        return self._input_cache_creation
+
+    def add(self, usage: TokenUsage | None) -> None:
+        """Add a TokenUsage to the cumulative stats."""
+        if usage is None:
+            return
+        self._input_other += usage.input_other
+        self._output += usage.output
+        self._input_cache_read += usage.input_cache_read
+        self._input_cache_creation += usage.input_cache_creation
+
+    @property
+    def input(self) -> int:
+        """Total input tokens (including cache)."""
+        return self._input_other + self._input_cache_read + self._input_cache_creation
+
+    @property
+    def total(self) -> int:
+        """Total tokens (input + output)."""
+        return self.input + self._output
 
 
 class Session:
@@ -36,6 +89,7 @@ class Session:
         self._cli = cli
         self._cancel_event: asyncio.Event | None = None
         self._closed = False
+        self._token_stats = TokenStats()
 
     @staticmethod
     async def create(
@@ -198,6 +252,14 @@ class Session:
         """Current status snapshot (context usage, yolo state, etc.)."""
         return self._cli.soul.status
 
+    @property
+    def token_stats(self) -> TokenStats:
+        """Cumulative token usage statistics for this session.
+
+        Accumulates token usage across all prompts sent in this session.
+        """
+        return self._token_stats
+
     async def prompt(
         self,
         user_input: str | list[ContentPart],
@@ -237,6 +299,9 @@ class Session:
                 cancel_event,
                 merge_wire_messages=merge_wire_messages,
             ):
+                # Accumulate token usage from StatusUpdate messages
+                if isinstance(msg, StatusUpdate) and msg.token_usage is not None:
+                    self._token_stats.add(msg.token_usage)
                 yield msg
         finally:
             if self._cancel_event is cancel_event:
