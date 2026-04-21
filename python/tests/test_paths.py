@@ -5,6 +5,7 @@ from typing import Any, cast
 
 import pytest
 from kaos.path import KaosPath
+from kosong.message import Message
 
 from kimi_agent_sdk import Session, prompt
 from kimi_agent_sdk import _prompt as prompt_module
@@ -113,7 +114,7 @@ async def test_prompt_forwards_skills_dirs(monkeypatch: pytest.MonkeyPatch) -> N
 
     monkeypatch.setattr(prompt_module.Session, "create", _dummy_session_create)
 
-    results = []
+    results: list[Message] = []
     async for message in prompt(
         "hi",
         yolo=True,
