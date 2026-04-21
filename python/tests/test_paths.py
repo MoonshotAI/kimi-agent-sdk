@@ -96,7 +96,7 @@ async def test_prompt_forwards_skills_dirs(monkeypatch: pytest.MonkeyPatch) -> N
     captured_kwargs: dict[str, Any] = {}
 
     class _DummySessionContext:
-        async def __aenter__(self) -> "_DummySessionContext":
+        async def __aenter__(self) -> _DummySessionContext:
             return self
 
         async def __aexit__(self, *_args: Any) -> None:
