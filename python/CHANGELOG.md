@@ -3,6 +3,8 @@
 
 ## Unreleased
 
+- Dependencies: Update kimi-cli to version 1.37, kosong to version 0.50
+
 ## 0.0.5 (2026-02-11)
 - Dependencies: Update kimi-cli to version 1.12
 

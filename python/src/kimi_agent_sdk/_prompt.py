@@ -34,6 +34,7 @@ async def prompt(
     agent_file: Path | None = None,
     mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
     skills_dir: KaosPath | None = None,
+    skills_dirs: list[KaosPath] | None = None,
     # Loop control
     max_steps_per_turn: int | None = None,
     max_retries_per_step: int | None = None,
@@ -57,7 +58,8 @@ async def prompt(
         approval_handler_fn: Custom approval handler callback (sync or async).
         agent_file: Agent specification file path.
         mcp_configs: MCP server configurations.
-        skills_dir: Skills directory (KaosPath).
+        skills_dir: Single skills directory (KaosPath). Preserved for SDK compatibility.
+        skills_dirs: Multiple skills directories (KaosPath list) for newer kimi-cli.
         max_steps_per_turn: Maximum number of steps in one turn.
         max_retries_per_step: Maximum number of retries per step.
         max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
@@ -99,6 +101,7 @@ async def prompt(
         agent_file=agent_file,
         mcp_configs=mcp_configs,
         skills_dir=skills_dir,
+        skills_dirs=skills_dirs,
         max_steps_per_turn=max_steps_per_turn,
         max_retries_per_step=max_retries_per_step,
         max_ralph_iterations=max_ralph_iterations,

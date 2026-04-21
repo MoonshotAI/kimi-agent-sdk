@@ -24,6 +24,25 @@ def _ensure_type(name: str, value: object, expected: type) -> None:
         raise TypeError(f"{name} must be {expected.__name__}, got {type(value).__name__}")
 
 
+def _resolve_skills_dirs(
+    skills_dir: KaosPath | None,
+    skills_dirs: list[KaosPath] | None,
+) -> list[KaosPath] | None:
+    resolved: list[KaosPath] = []
+
+    if skills_dir is not None:
+        _ensure_type("skills_dir", skills_dir, KaosPath)
+        resolved.append(skills_dir)
+
+    if skills_dirs is not None:
+        _ensure_type("skills_dirs", skills_dirs, list)
+        for idx, item in enumerate(skills_dirs):
+            _ensure_type(f"skills_dirs[{idx}]", item, KaosPath)
+        resolved.extend(skills_dirs)
+
+    return resolved or None
+
+
 class Session:
     """
     Kimi Agent session with low-level control.
@@ -52,6 +71,7 @@ class Session:
         agent_file: Path | None = None,
         mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
         skills_dir: KaosPath | None = None,
+        skills_dirs: list[KaosPath] | None = None,
         # Loop control
         max_steps_per_turn: int | None = None,
         max_retries_per_step: int | None = None,
@@ -69,7 +89,8 @@ class Session:
             yolo: Automatically approve all approval requests.
             agent_file: Agent specification file path.
             mcp_configs: MCP server configurations.
-            skills_dir: Skills directory (KaosPath).
+            skills_dir: Single skills directory (KaosPath). Preserved for SDK compatibility.
+            skills_dirs: Multiple skills directories (KaosPath list) for newer kimi-cli.
             max_steps_per_turn: Maximum number of steps in one turn.
             max_retries_per_step: Maximum number of retries per step.
             max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
@@ -92,8 +113,7 @@ class Session:
             _ensure_type("work_dir", work_dir, KaosPath)
             work_dir_path = work_dir
 
-        if skills_dir is not None:
-            _ensure_type("skills_dir", skills_dir, KaosPath)
+        resolved_skills_dirs = _resolve_skills_dirs(skills_dir, skills_dirs)
         cli_session = await CliSession.create(work_dir_path, session_id)
         cli = await KimiCLI.create(
             cli_session,
@@ -103,7 +123,7 @@ class Session:
             yolo=yolo,
             agent_file=agent_file,
             mcp_configs=mcp_configs,
-            skills_dir=skills_dir,
+            skills_dirs=resolved_skills_dirs,
             max_steps_per_turn=max_steps_per_turn,
             max_retries_per_step=max_retries_per_step,
             max_ralph_iterations=max_ralph_iterations,
@@ -125,6 +145,7 @@ class Session:
         agent_file: Path | None = None,
         mcp_configs: list[MCPConfig] | list[dict[str, Any]] | None = None,
         skills_dir: KaosPath | None = None,
+        skills_dirs: list[KaosPath] | None = None,
         # Loop control
         max_steps_per_turn: int | None = None,
         max_retries_per_step: int | None = None,
@@ -142,7 +163,8 @@ class Session:
             yolo: Automatically approve all approval requests.
             agent_file: Agent specification file path.
             mcp_configs: MCP server configurations.
-            skills_dir: Skills directory (KaosPath).
+            skills_dir: Single skills directory (KaosPath). Preserved for SDK compatibility.
+            skills_dirs: Multiple skills directories (KaosPath list) for newer kimi-cli.
             max_steps_per_turn: Maximum number of steps in one turn.
             max_retries_per_step: Maximum number of retries per step.
             max_ralph_iterations: Extra iterations in Ralph mode (-1 for unlimited).
@@ -160,8 +182,7 @@ class Session:
                 connected.
         """
         _ensure_type("work_dir", work_dir, KaosPath)
-        if skills_dir is not None:
-            _ensure_type("skills_dir", skills_dir, KaosPath)
+        resolved_skills_dirs = _resolve_skills_dirs(skills_dir, skills_dirs)
         if session_id is None:
             cli_session = await CliSession.continue_(work_dir)
         else:
@@ -176,7 +197,7 @@ class Session:
             yolo=yolo,
             agent_file=agent_file,
             mcp_configs=mcp_configs,
-            skills_dir=skills_dir,
+            skills_dirs=resolved_skills_dirs,
             max_steps_per_turn=max_steps_per_turn,
             max_retries_per_step=max_retries_per_step,
             max_ralph_iterations=max_ralph_iterations,

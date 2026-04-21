@@ -41,11 +41,20 @@ async def test_prompt_requires_kaos_skills_dir() -> None:
 
 
 @pytest.mark.asyncio
+async def test_session_create_requires_kaos_skills_dirs() -> None:
+    with pytest.raises(TypeError, match=r"skills_dirs\[0\] must be KaosPath"):
+        await Session.create(work_dir=KaosPath.cwd(), skills_dirs=[cast(Any, Path("."))])
+
+
+@pytest.mark.asyncio
 async def test_session_create_accepts_kaos_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+    captured_kwargs: dict[str, Any] = {}
+
     async def _dummy_session_create(*_args: Any, **_kwargs: Any) -> Any:
         return object()
 
     async def _dummy_cli_create(*_args: Any, **_kwargs: Any) -> Any:
+        captured_kwargs.update(_kwargs)
         return cast(Any, object())
 
     monkeypatch.setattr(session_module.CliSession, "create", _dummy_session_create)
@@ -53,3 +62,4 @@ async def test_session_create_accepts_kaos_paths(monkeypatch: pytest.MonkeyPatch
 
     session = await Session.create(work_dir=KaosPath.cwd(), skills_dir=KaosPath.cwd())
     assert isinstance(session, Session)
+    assert captured_kwargs["skills_dirs"] == [KaosPath.cwd()]
