@@ -154,8 +154,21 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   });
 
   const handleSlashCommand = useMemoizedFn((name: string) => {
-    sendMessage(`/${name}`);
-    clearInput();
+    if (!activeToken) {
+      return;
+    }
+    const before = text.slice(0, activeToken.start);
+    const after = text.slice(cursorPos);
+    const newText = `${before}/${name} ${after}`;
+    const newCursorPos = activeToken.start + 1 + name.length + 1; // after the trailing space
+
+    setText(newText);
+    setCursorPos(newCursorPos);
+    setTimeout(() => {
+      textareaRef.current?.setSelectionRange(newCursorPos, newCursorPos);
+      textareaRef.current?.focus();
+      adjustHeight();
+    }, 0);
   });
 
   const applyMention = useMemoizedFn((filePath: string) => {
