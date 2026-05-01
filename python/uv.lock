@@ -1202,7 +1202,7 @@ wheels = [
 
 [[package]]
 name = "kimi-agent-sdk"
-version = "0.0.5"
+version = "0.0.6"
 source = { editable = "." }
 dependencies = [
     { name = "kimi-cli" },
@@ -1222,8 +1222,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "kimi-cli", specifier = ">=1.37.0,<1.38.0" },
-    { name = "kosong", specifier = ">=0.50.0,<0.51.0" },
+    { name = "kimi-cli", specifier = ">=1.41.0,<1.42.0" },
+    { name = "kosong", specifier = ">=0.53.0,<0.54.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1239,7 +1239,7 @@ dev = [
 
 [[package]]
 name = "kimi-cli"
-version = "1.37.0"
+version = "1.41.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "agent-client-protocol" },
@@ -1272,14 +1272,14 @@ dependencies = [
     { name = "uvicorn", extra = ["standard"] },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/72/2c0097cdaa809b08193bebb81a06ae578a7d21d8e64938755a5d08e68961/kimi_cli-1.37.0.tar.gz", hash = "sha256:ce3258cbb6086f5759b71b24ce035013644bdf4f68a3b7e0d83e6074718211fb", size = 5241322, upload-time = "2026-04-20T15:47:57.53Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3f/21/ee58a79d84c5b5b9a9750166d76a1346b62345c09453da25ad1913148ca6/kimi_cli-1.41.0.tar.gz", hash = "sha256:65fcbb86905d31f1be70c5e875b47d0e01652c33d9b0153ad328350260f696f0", size = 5270634, upload-time = "2026-04-30T13:51:28.841Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/02/c3/df9055f74e8c124683f667c8627b98c6a957fd120841bfbdbefb7dafe130/kimi_cli-1.37.0-py3-none-any.whl", hash = "sha256:dcae0d9aef5b2afc25ad8057ff06ea2445e56721534bf5e0b31f7b7e267db9a2", size = 5548753, upload-time = "2026-04-20T15:47:54.951Z" },
+    { url = "https://files.pythonhosted.org/packages/55/65/d1ef7fcdb19373133986b22972e7b3e7828f7327a546802882dafec54e19/kimi_cli-1.41.0-py3-none-any.whl", hash = "sha256:458bf7026846266ec856dc56e02aad6bf7574103cd0f41bc6dfaec345fb69689", size = 5580359, upload-time = "2026-04-30T13:51:26.308Z" },
 ]
 
 [[package]]
 name = "kosong"
-version = "0.50.0"
+version = "0.53.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anthropic" },
@@ -1292,9 +1292,9 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/99/95/7629f882b6ebb276531fc5c45a9f3a39d585b90818c33ebce9a5aee6132c/kosong-0.50.0.tar.gz", hash = "sha256:bf111ad817d93e55d57f42c89d63f6954516ce02190cf308a1a54c41ffef5618", size = 45531, upload-time = "2026-04-17T13:57:15.404Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/40/64/a6b4a926c23634d3841624d4c4ce896711f547e8d0c12213f217b059d189/kosong-0.53.0.tar.gz", hash = "sha256:00ff16decceec8ba16044d0b2727ae4812151619f8c0eebd49e2a937541e7fea", size = 48956, upload-time = "2026-04-28T13:37:03.827Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/60/1a76a252578bc7954a86588dd5776ed73061cd62f45378930773b3f1073f/kosong-0.50.0-py3-none-any.whl", hash = "sha256:ec6130600f13f194e934d98aa10ca7267116a405134c2905a356359ff5807d29", size = 65060, upload-time = "2026-04-17T13:57:14.111Z" },
+    { url = "https://files.pythonhosted.org/packages/9e/93/e614b7c2f8613c70f7d8752acd829f2abe563aef856fe458379ed24c5956/kosong-0.53.0-py3-none-any.whl", hash = "sha256:34b10925953d7dd045eb565def13bc656aea918ef6bfc2ab7e0ae1871dc919bc", size = 68617, upload-time = "2026-04-28T13:37:02.45Z" },
 ]
 
 [package.optional-dependencies]
