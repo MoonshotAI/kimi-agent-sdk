@@ -12,6 +12,7 @@ export const DEFAULT_EXTENSION_CONFIG: ExtensionConfig = {
   environmentVariables: {},
   showThinkingContent: true,
   showThinkingExpanded: true,
+  themeMode: "builtin",
   version: "",
 };
 

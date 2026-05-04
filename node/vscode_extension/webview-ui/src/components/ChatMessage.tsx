@@ -37,7 +37,7 @@ function SteerBubble({ content }: { content: string | import("@moonshot-ai/kimi-
   const text = typeof content === "string" ? content : Content.getText(content);
   return (
     <div className="flex justify-end my-1">
-      <div className="max-w-[85%] px-3 py-1 rounded-2xl rounded-br-md bg-zinc-100 dark:bg-zinc-800 text-foreground">
+      <div className="max-w-[85%] px-3 py-1 rounded-2xl rounded-br-md bg-muted text-foreground">
         <p className="text-xs leading-relaxed">{text}</p>
       </div>
     </div>
@@ -221,7 +221,7 @@ function UserMessage({ message }: { message: ChatMessageType }) {
 
   return (
     <div className="px-3 pt-3 pb-1 flex justify-end">
-      <div className={cn("max-w-[85%] px-3.5 py-1.5 rounded-2xl rounded-br-md", "bg-zinc-100 dark:bg-zinc-800", "text-foreground")}>
+      <div className={cn("max-w-[85%] px-3.5 py-1.5 rounded-2xl rounded-br-md", "bg-muted", "text-foreground")}>
         {displayContent && (
           // FIX: removed whitespace-pre-wrap — it conflicted with ReactMarkdown's
           // block-level elements (<p>, <ol>, <li>), doubling vertical spacing.
