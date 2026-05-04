@@ -137,17 +137,19 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
   }
   .vscode-theme [data-variant="ghost"]:hover,
   .vscode-theme [data-variant="outline"]:hover {
-    background-color: color-mix(in oklch, var(--foreground) 20%, var(--background)) !important;
+    background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)))) !important;
   }
   .vscode-theme [data-plan-mode="inactive"]:hover {
-    background-color: color-mix(in oklch, var(--foreground) 20%, var(--background)) !important;
+    background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)))) !important;
   }
   .vscode-theme [data-slot="dropdown-menu-item"]:hover,
   .vscode-theme [data-slot="command-item"]:hover,
   .vscode-theme [data-slot="context-menu-item"]:hover,
-  .vscode-theme [data-session-item]:hover,
+  .vscode-theme [data-session-item]:hover {
+    background-color: var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))) !important;
+  }
   .vscode-theme [data-block-header]:hover {
-    background-color: color-mix(in oklch, var(--foreground) 20%, var(--background)) !important;
+    background-color: var(--vscode-toolbar-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))) !important;
   }
   .vscode-theme .border-border {
     border-color: transparent !important;

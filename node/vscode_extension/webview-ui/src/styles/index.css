@@ -149,22 +149,29 @@ body {
    We target by data-variant directly in case data-slot is stripped by Radix Slot. */
 .vscode-theme [data-variant="ghost"]:hover,
 .vscode-theme [data-variant="outline"]:hover {
-  background-color: color-mix(in oklch, var(--foreground) 20%, var(--background));
+  background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))));
 }
 
 /* Plan mode button (custom component, not shadcn Button) */
 .vscode-theme [data-plan-mode="inactive"]:hover {
-  background-color: color-mix(in oklch, var(--foreground) 20%, var(--background));
+  background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))));
 }
 
-/* Menu items: use a solid hover tint instead of the accent color which often
-   clashes with dark VSCode themes. */
+/* Menu items, list items: use the exact VSCode list hover background that
+   native menus and trees use. */
 .vscode-theme [data-slot="dropdown-menu-item"]:hover,
 .vscode-theme [data-slot="command-item"]:hover,
 .vscode-theme [data-slot="context-menu-item"]:hover,
-.vscode-theme [data-session-item]:hover,
+.vscode-theme [data-session-item]:hover {
+  background-color: var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)));
+}
+
+/* Block headers (thinking, tool cards): use toolbar hover background.
+   list.hoverBackground is often transparent in minimal themes, which makes
+   custom interactive headers feel broken. Toolbar hover is consistently
+   visible because icon buttons need clear feedback. */
 .vscode-theme [data-block-header]:hover {
-  background-color: color-mix(in oklch, var(--foreground) 20%, var(--background));
+  background-color: var(--vscode-toolbar-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)));
 }
 
 /* Remove bright borders from common UI elements in VSCode theme mode when
@@ -178,12 +185,10 @@ body {
 
 .vscode-theme ::-webkit-scrollbar-thumb {
   background: var(--vscode-scrollbarSlider-background, var(--vscode-descriptionForeground, var(--muted-foreground)));
-  opacity: 0.4;
 }
 
 .vscode-theme ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-hoverBackground, var(--vscode-descriptionForeground, var(--muted-foreground)));
-  opacity: 0.6;
 }
 
 /* Component overrides for VSCode theme — revert-safe: these classes are
@@ -203,10 +208,6 @@ body {
 .vscode-theme .thinking-block .text-zinc-700,
 .vscode-theme .thinking-block .text-zinc-300 {
   color: var(--foreground);
-}
-
-.vscode-theme .thinking-block [data-block-header]:hover {
-  background-color: color-mix(in oklch, var(--foreground) 20%, var(--background));
 }
 
 .vscode-theme .thinking-block > .border-t {
@@ -229,15 +230,13 @@ body {
   border-color: transparent !important;
 }
 
-/* User message bubbles: muted background */
+/* User message bubbles: use the exact VSCode chat request bubble
+   colours that Copilot Chat uses.  These variables are injected by
+   VSCode into every webview when the theme defines them. */
 .vscode-theme .user-message-bubble,
 .vscode-theme .steer-bubble {
-  background-color: var(--muted) !important;
-}
-
-/* Chat status bar: use theme border */
-.vscode-theme .chat-status-bar {
-  border-color: color-mix(in oklch, var(--border) 40%, transparent) !important;
+  background-color: var(--vscode-chat-requestBubbleBackground, var(--vscode-chat-requestBackground, var(--vscode-input-background))) !important;
+  color: var(--vscode-chat-requestForeground, var(--vscode-foreground));
 }
 
 ::-webkit-scrollbar {
