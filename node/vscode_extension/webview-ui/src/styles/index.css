@@ -186,6 +186,60 @@ body {
   opacity: 0.6;
 }
 
+/* Component overrides for VSCode theme — revert-safe: these classes are
+   no-ops in built-in mode because no rules target them. */
+
+/* Thinking block: flat input background, no border */
+.vscode-theme .thinking-block {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+.vscode-theme .thinking-block .text-zinc-500,
+.vscode-theme .thinking-block .text-zinc-400 {
+  color: var(--muted-foreground);
+}
+
+.vscode-theme .thinking-block .text-zinc-700,
+.vscode-theme .thinking-block .text-zinc-300 {
+  color: var(--foreground);
+}
+
+.vscode-theme .thinking-block [data-block-header]:hover {
+  background-color: color-mix(in oklch, var(--foreground) 20%, var(--background));
+}
+
+.vscode-theme .thinking-block > .border-t {
+  border-color: var(--border);
+}
+
+/* Tool call card: flat input background, no border */
+.vscode-theme .tool-call-card {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+.vscode-theme .tool-call-card > .border-t {
+  border-color: var(--border);
+}
+
+/* Input area: flat input background, no border */
+.vscode-theme .input-area-wrapper {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+/* User message bubbles: muted background */
+.vscode-theme .user-message-bubble,
+.vscode-theme .steer-bubble {
+  background-color: var(--muted) !important;
+}
+
+/* Chat status bar: use theme border */
+.vscode-theme .chat-status-bar {
+  border-color: color-mix(in oklch, var(--border) 40%, transparent) !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

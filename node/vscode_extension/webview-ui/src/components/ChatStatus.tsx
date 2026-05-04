@@ -61,7 +61,7 @@ export function ChatStatus() {
   const contextPercent = context_usage ? Math.round(context_usage * 1000) / 10 : 0;
 
   return (
-    <div className="flex items-center gap-3 text-[10px] text-muted-foreground border border-[var(--border)] rounded-full px-2 py-0.5 select-none h-6 box-border mr-2 @max-[240px]:hidden">
+    <div className="flex items-center gap-3 text-[10px] text-muted-foreground border border-border/40 rounded-full px-2 py-0.5 select-none h-6 box-border mr-2 @max-[240px]:hidden chat-status-bar">
       <div className="flex items-center gap-1.5" title="Context Window Usage">
         <Tooltip>
           <TooltipTrigger asChild>

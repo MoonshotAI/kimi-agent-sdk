@@ -432,7 +432,7 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
   };
 
   return (
-    <div className="rounded-lg bg-input overflow-hidden">
+    <div className="rounded-lg border border-border overflow-hidden tool-call-card">
       <button onClick={() => setExpanded(!expanded)} data-block-header="tool" className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors">
         <StatusIndicator status={status} />
         <ToolIcon name={call.name} />
@@ -441,7 +441,7 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
         {subagentSteps && subagentSteps.length > 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">{subagentSteps.length} steps</span>}
         <IconChevronDown className={cn("size-3.5 text-muted-foreground transition-transform", expanded && "rotate-180")} />
       </button>
-      {expanded && <div className="@container px-3 py-0.5 border-t border-border/50">{renderContent()}</div>}
+      {expanded && <div className="@container px-3 py-0.5 border-t border-border">{renderContent()}</div>}
     </div>
   );
 }

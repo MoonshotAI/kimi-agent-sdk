@@ -337,7 +337,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
           </div>
         )}
 
-        <div className="bg-input rounded-md overflow-hidden">
+        <div className="border border-input rounded-md overflow-hidden input-area-wrapper">
           {draftMedia.length > 0 && (
             <div className="flex gap-2 p-2 overflow-x-auto">
               {draftMedia.map((item) => (
