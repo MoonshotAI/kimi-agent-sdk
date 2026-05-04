@@ -127,17 +127,6 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
 
     const themeMode = VSCodeSettings.themeMode;
 
-    // Cache-bust the webview script so changes are picked up immediately
-    // during development (mtime changes on every rebuild).
-    const webviewJsPath = vscode.Uri.joinPath(this.extensionUri, "dist", "webview.js");
-    let cacheKey = "";
-    try {
-      cacheKey = `?v=${fs.statSync(webviewJsPath.fsPath).mtimeMs}`;
-    } catch {
-      // ignore - fallback to no cache-busting
-    }
-    const scriptUriWithCache = `${scriptUri.toString()}${cacheKey}`;
-
     const vscodeThemeStyles = themeMode === "vscode"
       ? `<style>
   .vscode-theme [data-slot="button"] {
@@ -177,7 +166,7 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
 </head>
 <body data-baseuri="${baseUri}" data-webviewid="${webviewId}" data-thememode="${themeMode}">
   <div id="root"></div>
-  <script nonce="${nonce}" src="${scriptUriWithCache}"></script>
+  <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
   }
