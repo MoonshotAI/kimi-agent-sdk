@@ -67,15 +67,15 @@ function CodeBlock({ content, maxLines = 10 }: { content: string; maxLines?: num
   const displayContent = shouldCollapse && !expanded ? lines.slice(0, maxLines).join("\n") : content;
 
   return (
-    <div className="relative group/codeblock">
-      <pre className="text-[11px] bg-muted text-muted-foreground rounded px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">
+    <div className="relative group/codeblock tool-codeblock">
+      <pre className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">
         {displayContent}
-        {shouldCollapse && !expanded && <span className="text-muted-foreground">{"\n"}...</span>}
+        {shouldCollapse && !expanded && <span className="text-zinc-500">{"\n"}...</span>}
       </pre>
       {shouldCollapse && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="absolute bottom-1.5 right-1.5 text-[11px] px-1.5 py-0.5 rounded bg-popover border border-border text-muted-foreground hover:text-foreground opacity-0 group-hover/codeblock:opacity-100 transition-opacity cursor-pointer"
+          className="codeblock-expand absolute bottom-1.5 right-1.5 text-[11px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 opacity-0 group-hover/codeblock:opacity-100 transition-opacity cursor-pointer"
         >
           {expanded ? "Less" : `Expand +${lines.length - maxLines}`}
         </button>
@@ -130,15 +130,15 @@ function IORow({ label, children }: { label: "IN" | "OUT"; children: React.React
 function TodoStatusIcon({ status }: { status: string }) {
   if (status === "done") {
     return (
-      <div className="size-4 rounded flex items-center justify-center">
-        <IconSquareCheck className="size-3 text-muted-foreground" />
+      <div data-todo-status="done" className="size-4 rounded flex items-center justify-center">
+        <IconSquareCheck className="size-3 text-zinc-600 dark:text-zinc-400" />
       </div>
     );
   }
   if (status === "in_progress") {
     return <IconSquareChevronRight className="size-4 text-amber-500" />;
   }
-  return <IconSquare className="size-4 text-muted-foreground" />;
+  return <IconSquare data-todo-status="empty" className="size-4 text-zinc-300 dark:text-zinc-600" />;
 }
 
 function SetTodoListTool({ result }: ToolRendererProps) {

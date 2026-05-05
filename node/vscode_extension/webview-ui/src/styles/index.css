@@ -239,6 +239,32 @@ body {
   color: var(--vscode-chat-requestForeground, var(--vscode-foreground));
 }
 
+/* Tool code blocks: use VSCode's code-block background colour */
+.vscode-theme .tool-codeblock pre {
+  background-color: var(--vscode-textCodeBlock-background, var(--input)) !important;
+  color: var(--vscode-foreground, var(--foreground)) !important;
+}
+
+.vscode-theme .tool-codeblock .text-zinc-500 {
+  color: var(--muted-foreground);
+}
+
+.vscode-theme .codeblock-expand {
+  background-color: var(--vscode-button-secondaryBackground, var(--popover)) !important;
+  color: var(--vscode-button-secondaryForeground, var(--muted-foreground)) !important;
+  border: 1px solid var(--vscode-panel-border, var(--border)) !important;
+}
+
+.vscode-theme .codeblock-expand:hover {
+  color: var(--vscode-button-secondaryForeground, var(--foreground)) !important;
+}
+
+/* Todo list status icons (done / empty) */
+.vscode-theme [data-todo-status="done"] svg,
+.vscode-theme [data-todo-status="empty"] svg {
+  color: var(--muted-foreground) !important;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
