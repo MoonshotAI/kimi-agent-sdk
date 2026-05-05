@@ -49,10 +49,6 @@
   --ring: oklch(0.552 0.016 285.938);
 }
 
-* {
-  border-color: var(--border);
-}
-
 html,
 body {
   margin: 0;
@@ -106,9 +102,141 @@ body {
   * {
     @apply border-border;
   }
+  :where(.vscode-theme) * {
+    border-color: transparent;
+  }
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+}
+
+.vscode-theme {
+  --background: var(--vscode-panel-background, var(--vscode-editor-background, oklch(1 0 0)));
+  --foreground: var(--vscode-panel-foreground, var(--vscode-editor-foreground, oklch(0.141 0.005 285.823)));
+  --card: var(--vscode-input-background, var(--vscode-dropdown-background, var(--vscode-panel-background, oklch(1 0 0))));
+  --card-foreground: var(--vscode-input-foreground, var(--vscode-dropdown-foreground, var(--vscode-panel-foreground, oklch(0.141 0.005 285.823))));
+  --popover: var(--vscode-dropdown-background, var(--vscode-input-background, var(--vscode-panel-background, oklch(1 0 0))));
+  --popover-foreground: var(--vscode-dropdown-foreground, var(--vscode-input-foreground, var(--vscode-panel-foreground, oklch(0.141 0.005 285.823))));
+  --primary: var(--vscode-button-background, oklch(0.21 0.006 285.885));
+  --primary-foreground: var(--vscode-button-foreground, oklch(1 0 0));
+  --secondary: var(--vscode-button-secondaryBackground, var(--vscode-list-hoverBackground, var(--vscode-input-background, oklch(0.967 0.001 286.375))));
+  --secondary-foreground: var(--vscode-button-secondaryForeground, var(--vscode-editor-foreground, oklch(0.21 0.006 285.885)));
+  --muted: var(--vscode-list-hoverBackground, var(--vscode-input-background, var(--vscode-panel-background, oklch(0.967 0.001 286.375))));
+  --muted-foreground: var(--vscode-descriptionForeground, var(--vscode-panel-foreground, oklch(0.552 0.016 285.938)));
+  --accent: var(--vscode-list-hoverBackground, var(--vscode-input-background, var(--vscode-panel-background, oklch(0.967 0.001 286.375))));
+  --accent-foreground: var(--vscode-editor-foreground, oklch(0.21 0.006 285.885));
+  --destructive: var(--vscode-errorForeground, oklch(0.577 0.245 27.325));
+  --border: var(--vscode-panel-border, var(--vscode-input-border, oklch(0.92 0.004 286.32)));
+  --input: var(--vscode-input-background, var(--vscode-panel-background, oklch(0.92 0.004 286.32)));
+  --ring: var(--vscode-focusBorder, oklch(0.552 0.016 285.938));
+}
+
+/* VSCode-style flat buttons: no visible border, background changes on hover.
+   The built-in theme keeps its bordered / foreground-shifting behaviour. */
+.vscode-theme [data-slot="button"] {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  background-clip: border-box !important;
+}
+
+.vscode-theme [data-variant="ghost"]:hover,
+.vscode-theme [data-variant="outline"]:hover {
+  color: inherit;
+}
+
+/* Ensure ghost/outline buttons get a visible hover background in VSCode theme.
+   We target by data-variant directly in case data-slot is stripped by Radix Slot. */
+.vscode-theme [data-variant="ghost"]:hover,
+.vscode-theme [data-variant="outline"]:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))));
+}
+
+/* Plan mode button (custom component, not shadcn Button) */
+.vscode-theme [data-plan-mode="inactive"]:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))));
+}
+
+/* Menu items, list items: use the exact VSCode list hover background that
+   native menus and trees use. */
+.vscode-theme [data-slot="dropdown-menu-item"]:hover,
+.vscode-theme [data-slot="command-item"]:hover,
+.vscode-theme [data-slot="context-menu-item"]:hover,
+.vscode-theme [data-session-item]:hover {
+  background-color: var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)));
+}
+
+/* Block headers (thinking, tool cards): use toolbar hover background.
+   list.hoverBackground is often transparent in minimal themes, which makes
+   custom interactive headers feel broken. Toolbar hover is consistently
+   visible because icon buttons need clear feedback. */
+.vscode-theme [data-block-header]:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)));
+}
+
+/* Remove bright borders from common UI elements in VSCode theme mode when
+   using high-contrast themes. We keep .border-border transparent so section
+   separators stay flat, but allow opacity variants and .border-input so
+   specific components (token bar, input area, thinking block, etc.) can show
+   subtle borders. */
+.vscode-theme .border-border {
+  border-color: transparent !important;
+}
+
+.vscode-theme ::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background, var(--vscode-descriptionForeground, var(--muted-foreground)));
+}
+
+.vscode-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground, var(--vscode-descriptionForeground, var(--muted-foreground)));
+}
+
+/* Component overrides for VSCode theme — revert-safe: these classes are
+   no-ops in built-in mode because no rules target them. */
+
+/* Thinking block: flat input background, no border */
+.vscode-theme .thinking-block {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+.vscode-theme .thinking-block .text-zinc-500,
+.vscode-theme .thinking-block .text-zinc-400 {
+  color: var(--muted-foreground);
+}
+
+.vscode-theme .thinking-block .text-zinc-700,
+.vscode-theme .thinking-block .text-zinc-300 {
+  color: var(--foreground);
+}
+
+.vscode-theme .thinking-block > .border-t {
+  border-color: var(--border);
+}
+
+/* Tool call card: flat input background, no border */
+.vscode-theme .tool-call-card {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+.vscode-theme .tool-call-card > .border-t {
+  border-color: var(--border);
+}
+
+/* Input area: flat input background, no border */
+.vscode-theme .input-area-wrapper {
+  background-color: var(--input) !important;
+  border-color: transparent !important;
+}
+
+/* User message bubbles: use the exact VSCode chat request bubble
+   colours that Copilot Chat uses.  These variables are injected by
+   VSCode into every webview when the theme defines them. */
+.vscode-theme .user-message-bubble,
+.vscode-theme .steer-bubble {
+  background-color: var(--vscode-chat-requestBubbleBackground, var(--vscode-chat-requestBackground, var(--vscode-input-background))) !important;
+  color: var(--vscode-chat-requestForeground, var(--vscode-foreground));
 }
 
 ::-webkit-scrollbar {

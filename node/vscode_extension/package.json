@@ -102,6 +102,16 @@
             "Share when active file changes"
           ],
           "description": "Control when to share the active editor's file and cursor position with Kimi"
+        },
+        "kimi.themeMode": {
+          "type": "string",
+          "default": "builtin",
+          "enum": ["builtin", "vscode"],
+          "enumDescriptions": [
+            "Use the built-in Kimi Code theme",
+            "Inherit colors from the current VS Code theme"
+          ],
+          "description": "Select which theme to use for the Kimi Code UI"
         }
       }
     },

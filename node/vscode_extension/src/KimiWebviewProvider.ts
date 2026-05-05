@@ -1,5 +1,7 @@
 import * as vscode from "vscode";
+import * as fs from "fs";
 import { BridgeHandler } from "./bridge-handler";
+import { VSCodeSettings } from "./config/vscode-settings";
 
 interface RpcMessage {
   id: string;
@@ -123,6 +125,38 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
       `script-src 'nonce-${nonce}' ${webview.cspSource}`,
     ].join("; ");
 
+    const themeMode = VSCodeSettings.themeMode;
+
+    const vscodeThemeStyles = themeMode === "vscode"
+      ? `<style>
+  .vscode-theme [data-slot="button"] {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    background-clip: border-box !important;
+  }
+  .vscode-theme [data-variant="ghost"]:hover,
+  .vscode-theme [data-variant="outline"]:hover {
+    background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)))) !important;
+  }
+  .vscode-theme [data-plan-mode="inactive"]:hover {
+    background-color: var(--vscode-toolbar-hoverBackground, var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background)))) !important;
+  }
+  .vscode-theme [data-slot="dropdown-menu-item"]:hover,
+  .vscode-theme [data-slot="command-item"]:hover,
+  .vscode-theme [data-slot="context-menu-item"]:hover,
+  .vscode-theme [data-session-item]:hover {
+    background-color: var(--vscode-list-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))) !important;
+  }
+  .vscode-theme [data-block-header]:hover {
+    background-color: var(--vscode-toolbar-hoverBackground, color-mix(in oklch, var(--foreground) 20%, var(--background))) !important;
+  }
+  .vscode-theme .border-border {
+    border-color: transparent !important;
+  }
+</style>`
+      : "";
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -130,8 +164,9 @@ export class KimiWebviewProvider implements vscode.WebviewViewProvider {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
   <title>Kimi Code</title>
+  ${vscodeThemeStyles}
 </head>
-<body data-baseuri="${baseUri}" data-webviewid="${webviewId}">
+<body data-baseuri="${baseUri}" data-webviewid="${webviewId}" data-thememode="${themeMode}">
   <div id="root"></div>
   <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>

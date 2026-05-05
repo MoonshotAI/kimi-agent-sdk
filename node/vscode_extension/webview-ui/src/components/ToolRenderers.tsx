@@ -432,8 +432,8 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
   };
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors">
+    <div className="rounded-lg border border-border overflow-hidden tool-call-card">
+      <button onClick={() => setExpanded(!expanded)} data-block-header="tool" className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors">
         <StatusIndicator status={status} />
         <ToolIcon name={call.name} />
         <span className="text-xs font-medium">{call.name}</span>
