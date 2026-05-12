@@ -92,6 +92,9 @@ async function main() {
     console.log("Checksum verified ✓");
 
     fs.writeFileSync(path.join(binDir, `archive.${info.ext}`), data);
+  } else if (info.target) {
+    const filename = `kimi-${manifest.version}-${info.target}.${info.ext}`;
+    throw new Error(`Missing native CLI asset for ${platform}: expected ${filename} and ${filename}.sha256 in ${release.tag_name}`);
   } else {
     console.log(`No native CLI for ${platform}, will use UV fallback at runtime`);
   }
