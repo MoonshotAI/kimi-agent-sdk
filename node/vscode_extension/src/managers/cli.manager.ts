@@ -24,6 +24,21 @@ const MIN_WIRE_VERSION = "1.1";
 
 let instance: CLIManager;
 
+function errorText(err: unknown): string {
+  const stderr = textFromErrorField(err, "stderr");
+  const stdout = textFromErrorField(err, "stdout");
+  const message = err instanceof Error ? err.message : String(err);
+  return stderr || stdout || message;
+}
+
+function textFromErrorField(err: unknown, field: "stdout" | "stderr"): string {
+  const value = (err as { stdout?: unknown; stderr?: unknown } | null)?.[field];
+  if (!value) {
+    return "";
+  }
+  return Buffer.isBuffer(value) ? value.toString().trim() : String(value).trim();
+}
+
 export const initCLIManager = (ctx: vscode.ExtensionContext) => (instance = new CLIManager(ctx));
 export const getCLIManager = () => {
   if (!instance) {
@@ -77,7 +92,7 @@ export class CLIManager {
       }
     } catch (err) {
       console.error("Error ensuring CLI:", err);
-      return { ok: false, resolved, error: { type: "extract_failed", message: String(err) } };
+      return { ok: false, resolved, error: { type: "extract_failed", message: errorText(err) } };
     }
 
     return this.verify(workDir, resolved);
@@ -144,7 +159,7 @@ export class CLIManager {
       wireVersion = info.wire_protocol_version;
     } catch (err) {
       console.error("Error getting CLI info:", err);
-      return { ok: false, resolved, error: { type: "not_found", message: String(err) } };
+      return { ok: false, resolved, error: { type: "not_found", message: errorText(err) } };
     }
 
     if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
@@ -161,7 +176,7 @@ export class CLIManager {
       return { ok: true, resolved, slashCommands: initResult.slash_commands };
     } catch (err) {
       console.error("Error verifying wire protocol:", err);
-      return { ok: false, resolved, error: { type: "protocol_error", message: String(err) } };
+      return { ok: false, resolved, error: { type: "protocol_error", message: errorText(err) } };
     }
   }
 
