@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconChevronRight, IconArrowLeft, IconRefresh } from "@tabler/icons-react";
+import { IconAlertTriangle, IconTerminal2, IconLoader2, IconFolderOpen, IconSettings, IconExternalLink, IconChevronRight, IconArrowLeft, IconRefresh, IconCopy, IconCheck } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import { KimiMascot } from "./KimiMascot";
 import { bridge } from "@/services";
@@ -54,11 +54,42 @@ function ManualSetupHint() {
   );
 }
 
-function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
+function CLIErrorDetails({ message }: { message?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  if (!message) {
+    return null;
+  }
+
+  const copyError = async () => {
+    await navigator.clipboard.writeText(message);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="bg-muted/50 rounded-lg p-4 text-left space-y-2">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 min-w-0">
+          <IconTerminal2 className="size-4" />
+          <span>CLI error output:</span>
+        </div>
+        <Button onClick={copyError} variant="ghost" size="xs" className="h-6 px-1.5 gap-1 shrink-0">
+          {copied ? <IconCheck className="size-3" /> : <IconCopy className="size-3" />}
+          {copied ? "Copied" : "Copy to Ask AI"}
+        </Button>
+      </div>
+      <pre className="max-h-36 overflow-auto whitespace-pre-wrap break-words text-xs bg-background rounded px-3 py-2 font-mono text-foreground">{message}</pre>
+    </div>
+  );
+}
+
+function CLIErrorContent({ cliResult, errorMessage: fallbackErrorMessage }: { cliResult?: CLICheckResult | null; errorMessage?: string | null }) {
   const isCustomPath = cliResult?.resolved?.isCustomPath ?? false;
   const errorType = cliResult?.error?.type ?? "not_found";
   const title = CLI_ERROR_TITLES[errorType];
   const path = cliResult?.resolved?.path;
+  const errorMessage = cliResult?.error?.message ?? fallbackErrorMessage ?? undefined;
 
   if (isCustomPath) {
     return (
@@ -82,6 +113,8 @@ function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
           </p>
         </div>
 
+        <CLIErrorDetails message={errorMessage} />
+
         <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <IconTerminal2 className="size-4" />
@@ -104,6 +137,8 @@ function CLIErrorContent({ cliResult }: { cliResult?: CLICheckResult | null }) {
           {errorType === "extract_failed" ? "Failed to extract the bundled CLI. Please install manually." : "The bundled CLI is unavailable. Please install manually."}
         </p>
       </div>
+
+      <CLIErrorDetails message={errorMessage} />
 
       <div className="bg-muted/50 rounded-lg p-4 text-left space-y-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -176,7 +211,7 @@ function NoModelsContent({ onRefresh, onBackToLogin }: { onRefresh?: () => void;
   );
 }
 
-export function ConfigErrorScreen({ type, cliResult, onRefresh, onBackToLogin }: Props) {
+export function ConfigErrorScreen({ type, cliResult, errorMessage, onRefresh, onBackToLogin }: Props) {
   if (type === "loading") {
     return (
       <div className="h-full flex items-center justify-center p-6">
@@ -217,10 +252,10 @@ export function ConfigErrorScreen({ type, cliResult, onRefresh, onBackToLogin }:
 
   if (type === "cli-error") {
     return (
-      <div className="h-full flex items-center justify-center p-6">
-        <div className="max-w-sm text-center space-y-6">
+      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+        <div className="max-w-sm mx-auto text-center space-y-6">
           <KimiMascot className="h-10 mx-auto opacity-50" />
-          <CLIErrorContent cliResult={cliResult} />
+          <CLIErrorContent cliResult={cliResult} errorMessage={errorMessage} />
         </div>
       </div>
     );
