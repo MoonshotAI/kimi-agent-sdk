@@ -13,14 +13,6 @@ on:
       - ".github/workflows/vscode.yml"
   workflow_dispatch:
     inputs:
-      extension_version:
-        description: "Expected VS Code extension version, for example 0.5.9"
-        required: true
-        type: string
-      cli_version:
-        description: "Expected Kimi CLI version to bundle, for example 1.43.0"
-        required: true
-        type: string
       run_windows_smoke:
         description: "Run win32-x64 bundled CLI smoke"
         required: true
@@ -76,8 +68,8 @@ jobs:
     if: ${{ github.event_name == 'workflow_dispatch' }}
     outputs:
       extension_version: ${{ steps.meta.outputs.extension_version }}
-      expected_cli_version: ${{ steps.meta.outputs.expected_cli_version }}
-      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+      expected_cli_version: ${{ steps.verify.outputs.expected_cli_version }}
+      artifact_name: ${{ steps.verify.outputs.artifact_name }}
 
     steps:
       - name: Checkout code
@@ -103,37 +95,13 @@ jobs:
         id: meta
         shell: bash
         working-directory: node/vscode_extension
-        env:
-          EXPECTED_EXTENSION_VERSION: ${{ inputs.extension_version }}
-          EXPECTED_CLI_VERSION: ${{ inputs.cli_version }}
         run: |
           set -euo pipefail
 
-          expected_extension_version="${EXPECTED_EXTENSION_VERSION#v}"
-          expected_cli_version="${EXPECTED_CLI_VERSION#v}"
-          if [[ -z "$expected_extension_version" ]]; then
-            echo "extension_version input is required" >&2
-            exit 1
-          fi
-          if [[ -z "$expected_cli_version" ]]; then
-            echo "cli_version input is required" >&2
-            exit 1
-          fi
-
           extension_version="$(node -p "require('./package.json').version")"
-          if [[ "$extension_version" != "$expected_extension_version" ]]; then
-            echo "Extension version mismatch: package.json has ${extension_version}, expected ${expected_extension_version}" >&2
-            exit 1
-          fi
-
-          artifact_name="kimi-code-vsix-${extension_version}-cli-${expected_cli_version}"
 
           echo "extension_version=${extension_version}" >> "$GITHUB_OUTPUT"
-          echo "expected_cli_version=${expected_cli_version}" >> "$GITHUB_OUTPUT"
-          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
-
           echo "Extension version: ${extension_version}"
-          echo "Expected CLI version: ${expected_cli_version}"
 
       - name: Package 6 platform VSIX files
         run: |
@@ -144,10 +112,11 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Verify platform packages
+        id: verify
         shell: bash
         working-directory: node/vscode_extension
         env:
-          EXPECTED_CLI_VERSION: ${{ steps.meta.outputs.expected_cli_version }}
+          EXTENSION_VERSION: ${{ steps.meta.outputs.extension_version }}
         run: |
           set -euo pipefail
 
@@ -159,6 +128,7 @@ jobs:
             win32-arm64
             win32-x64
           )
+          expected_cli_version=""
 
           actual_count="$(find . -maxdepth 1 -name 'kimi-code-*.vsix' | wc -l | tr -d ' ')"
           if [[ "$actual_count" != "${#targets[@]}" ]]; then
@@ -185,11 +155,11 @@ jobs:
             unzip -p "$file" extension/bin/kimi/manifest.json > "$manifest"
             unzip -l "$file" "$archive" >/dev/null
 
-            python3 - "$target" "$EXPECTED_CLI_VERSION" "$manifest" <<'PY'
+            cli_version="$(python3 - "$target" "$manifest" <<'PY'
           import json
           import sys
 
-          target, expected_version, manifest_path = sys.argv[1:4]
+          target, manifest_path = sys.argv[1:3]
           with open(manifest_path, encoding="utf-8") as f:
               manifest = json.load(f)
 
@@ -200,10 +170,10 @@ jobs:
           asset = platforms.get(target)
 
           failures = []
-          if version != expected_version:
-              failures.append(f"version={version!r}, expected {expected_version!r}")
-          if tag.removeprefix("v") != expected_version:
-              failures.append(f"tag={tag!r}, expected {expected_version!r} or v{expected_version}")
+          if not version:
+              failures.append("version is missing")
+          if version and tag.removeprefix("v") != version:
+              failures.append(f"tag={tag!r}, expected {version!r} or v{version}")
           if bundled_platform != target:
               failures.append(f"bundledPlatform={bundled_platform!r}, expected {target!r}")
           if not asset:
@@ -216,14 +186,29 @@ jobs:
           if failures:
               raise SystemExit(f"{target} manifest check failed: " + "; ".join(failures))
 
-          print(f"{target}: CLI {version}, tag {tag}, archive manifest OK")
+          print(version)
           PY
+            )"
+
+            if [[ -z "$expected_cli_version" ]]; then
+              expected_cli_version="$cli_version"
+            elif [[ "$cli_version" != "$expected_cli_version" ]]; then
+              echo "CLI version mismatch: ${target} has ${cli_version}, expected ${expected_cli_version}" >&2
+              exit 1
+            fi
+
+            echo "${target}: CLI ${cli_version}, archive manifest OK"
           done
+
+          artifact_name="kimi-code-vsix-${EXTENSION_VERSION}-cli-${expected_cli_version}"
+          echo "expected_cli_version=${expected_cli_version}" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=${artifact_name}" >> "$GITHUB_OUTPUT"
+          echo "Bundled CLI version: ${expected_cli_version}"
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.meta.outputs.artifact_name }}
+          name: ${{ steps.verify.outputs.artifact_name }}
           path: node/vscode_extension/kimi-code-*.vsix
           retention-days: 14
 
