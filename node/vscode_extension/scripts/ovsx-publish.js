@@ -1,9 +1,17 @@
 #!/usr/bin/env node
-const { execFileSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 
 const rootDir = path.join(__dirname, "..");
+const VSIX_FILES = [
+  "kimi-code-darwin-arm64.vsix",
+  "kimi-code-darwin-x64.vsix",
+  "kimi-code-linux-arm64.vsix",
+  "kimi-code-linux-x64.vsix",
+  "kimi-code-win32-arm64.vsix",
+  "kimi-code-win32-x64.vsix",
+];
 
 if (!process.env.OVSX_PAT) {
   console.error("Error: OVSX_PAT environment variable not set");
@@ -11,33 +19,51 @@ if (!process.env.OVSX_PAT) {
   process.exit(1);
 }
 
-const vsixFiles = fs
-  .readdirSync(rootDir)
-  .filter((f) => f.endsWith(".vsix"))
-  .sort();
-
-if (vsixFiles.length === 0) {
-  console.error("No .vsix files found in", rootDir);
-  console.error("Run `pnpm run package:platform all` first.");
+const missing = VSIX_FILES.filter((f) => !fs.existsSync(path.join(rootDir, f)));
+if (missing.length > 0) {
+  console.error("Missing expected .vsix file(s):");
+  missing.forEach((f) => console.error(`  - ${f}`));
+  console.error("Run `pnpm run package:platform` first.");
   process.exit(1);
 }
 
-console.log(`Found ${vsixFiles.length} vsix file(s) to publish to OpenVSX:\n`);
-vsixFiles.forEach((f) => console.log(`  - ${f}`));
+console.log(`Found ${VSIX_FILES.length} vsix file(s) to publish to OpenVSX:\n`);
+VSIX_FILES.forEach((f) => console.log(`  - ${f}`));
 console.log();
 
-for (const file of vsixFiles) {
+let failed = false;
+
+for (const file of VSIX_FILES) {
   const filePath = path.join(rootDir, file);
   console.log(`\n========== Publishing ${file} to OpenVSX ==========\n`);
-  try {
-    execFileSync("npx", ["-y", "ovsx", "publish", filePath, "-p", process.env.OVSX_PAT], {
-      cwd: rootDir,
-      stdio: "inherit",
-    });
-    console.log(`✓ Published: ${file}\n`);
-  } catch (err) {
-    console.error(`✗ Failed to publish: ${file}, error:`, err);
+
+  const result = spawnSync("npx", ["-y", "ovsx", "publish", filePath], {
+    cwd: rootDir,
+    encoding: "utf8",
+    env: process.env,
+  });
+
+  const output = `${result.stdout || ""}${result.stderr || ""}`;
+  if (output) {
+    process.stdout.write(output);
   }
+
+  if (result.status !== 0) {
+    if (/already exists/i.test(output)) {
+      console.log(`Already published: ${file}`);
+      continue;
+    }
+
+    console.error(`✗ Failed to publish: ${file}`);
+    failed = true;
+    continue;
+  }
+
+  console.log(`✓ Published: ${file}\n`);
+}
+
+if (failed) {
+  process.exit(1);
 }
 
 console.log("\nAll done!");

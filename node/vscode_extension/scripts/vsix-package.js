@@ -1,4 +1,4 @@
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const { rmSync, existsSync } = require("fs");
 const { join } = require("path");
 
@@ -23,13 +23,13 @@ for (const target of targets) {
     }
 
     // 2. Download CLI binary for specific target
-    execSync(`node scripts/download-cli.js ${target}`, {
+    execFileSync("node", ["scripts/download-cli.js", target], {
       cwd: rootDir,
       stdio: "inherit",
     });
 
     // 3. Package extension
-    execSync(`npx vsce package --target ${target} --out kimi-code-${target}.vsix`, {
+    execFileSync("npx", ["-y", "@vscode/vsce", "package", "--no-dependencies", "--target", target, "--out", `kimi-code-${target}.vsix`], {
       cwd: rootDir,
       stdio: "inherit",
     });
