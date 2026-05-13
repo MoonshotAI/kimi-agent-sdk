@@ -179,8 +179,16 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     ctx.setTurn(turn);
 
     let result: RunResult = { status: "finished" };
+    let eventCount = 0;
 
     for await (const event of turn) {
+      // Yield to the event loop every 100 events so that I/O (e.g.
+      // readline consuming stdout from the CLI) does not starve when
+      // the createEventChannel queue is large.
+      if (++eventCount % 100 === 0) {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+
       const eventAny = event as any;
       const eventType = event.type;
       const payload = eventAny.payload;
