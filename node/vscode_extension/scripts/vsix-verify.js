@@ -119,3 +119,32 @@ module.exports = {
   getVsixFile,
   verifyVsixFiles,
 };
+
+if (require.main === module) {
+  const rootDir = path.join(__dirname, "..");
+  const args = process.argv.slice(2);
+  const targets = args.length === 0 || args.includes("all") ? TARGETS : args;
+
+  for (const target of targets) {
+    if (!TARGETS.includes(target)) {
+      console.error(`Unknown target: ${target}`);
+      console.error(`Expected one of: ${TARGETS.join(", ")}`);
+      process.exit(1);
+    }
+  }
+
+  try {
+    const { extensionVersion, cliVersion } = verifyVsixFiles(rootDir, targets);
+
+    if (process.env.GITHUB_OUTPUT) {
+      const artifactName = `kimi-code-vsix-${extensionVersion}-cli-${cliVersion}`;
+      fs.appendFileSync(
+        process.env.GITHUB_OUTPUT,
+        `expected_cli_version=${cliVersion}\nartifact_name=${artifactName}\n`,
+      );
+    }
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+}
