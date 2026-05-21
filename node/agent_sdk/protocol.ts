@@ -80,13 +80,53 @@ export interface ReplayStream {
   result: Promise<ReplayResult>;
 }
 
+// Simple linked-list node for O(1) enqueue/dequeue.
+class _QueueNode<T> {
+  value: T;
+  next: _QueueNode<T> | null = null;
+  constructor(value: T) {
+    this.value = value;
+  }
+}
+
+// O(1) enqueue / dequeue queue to avoid the O(n) cost of Array.prototype.shift().
+class _EventQueue<T> {
+  private head: _QueueNode<T> | null = null;
+  private tail: _QueueNode<T> | null = null;
+  private _size = 0;
+
+  get size(): number {
+    return this._size;
+  }
+
+  enqueue(value: T): void {
+    const node = new _QueueNode(value);
+    if (this.tail) {
+      this.tail.next = node;
+    } else {
+      this.head = node;
+    }
+    this.tail = node;
+    this._size++;
+  }
+
+  dequeue(): T | undefined {
+    if (!this.head) return undefined;
+    const value = this.head.value;
+    this.head = this.head.next;
+    if (!this.head) this.tail = null;
+    this._size--;
+    return value;
+  }
+}
+
 // Event Channel Helper
 export function createEventChannel<T>(): {
   iterable: AsyncIterable<T>;
   push: (value: T) => void;
   finish: () => void;
 } {
-  const queue: T[] = [];
+  const queue = new _EventQueue<T>();
   const resolvers: Array<(result: IteratorResult<T>) => void> = [];
   let finished = false;
 
@@ -94,7 +134,7 @@ export function createEventChannel<T>(): {
     iterable: {
       [Symbol.asyncIterator]: () => ({
         next: () => {
-          const queued = queue.shift();
+          const queued = queue.dequeue();
           if (queued !== undefined) {
             return Promise.resolve({ done: false as const, value: queued });
           }
@@ -113,7 +153,7 @@ export function createEventChannel<T>(): {
       if (resolver) {
         resolver({ done: false, value });
       } else {
-        queue.push(value);
+        queue.enqueue(value);
       }
     },
     finish: () => {

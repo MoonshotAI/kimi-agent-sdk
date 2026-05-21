@@ -174,13 +174,48 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   const pendingToolCalls = new Map<string, PendingToolCall>();
   let lastToolCallId: string | null = null;
 
+  let result: RunResult = { status: "finished" };
+  let eventCount = 0;
+
+  // Batch high-frequency streaming events (ContentPart / ToolCallPart) to
+  // reduce postMessage overhead and allow React to batch re-renders.
+  const BATCHABLE_TYPES = new Set(["ContentPart", "ToolCallPart"]);
+  const MAX_BATCH_SIZE = 50;
+  const MAX_BATCH_WAIT_MS = 16;
+  let eventBuffer: any[] = [];
+  let batchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function flushBuffer() {
+    batchTimer = null;
+    if (eventBuffer.length === 0) return;
+    const batch = eventBuffer;
+    eventBuffer = [];
+    ctx.broadcast(
+      Events.StreamEvent,
+      batch.map((e) => ({ ...e, _sessionId: sessionId })),
+      ctx.webviewId,
+    );
+  }
+
+  function clearBatchTimer() {
+    if (batchTimer) {
+      clearTimeout(batchTimer);
+      batchTimer = null;
+    }
+  }
+
   try {
     const turn = session.prompt(contentWithContext);
     ctx.setTurn(turn);
 
-    let result: RunResult = { status: "finished" };
-
     for await (const event of turn) {
+      // Yield to the event loop every 100 events so that I/O (e.g.
+      // readline consuming stdout from the CLI) does not starve when
+      // the createEventChannel queue is large.
+      if (++eventCount % 100 === 0) {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+      }
+
       const eventAny = event as any;
       const eventType = event.type;
       const payload = eventAny.payload;
@@ -225,8 +260,28 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
         }
       }
 
-      ctx.broadcast(Events.StreamEvent, { ...event, _sessionId: sessionId }, ctx.webviewId);
+      // Batching logic: flush existing buffer when a non-batchable event arrives
+      if (!BATCHABLE_TYPES.has(eventType) && eventBuffer.length > 0) {
+        clearBatchTimer();
+        flushBuffer();
+      }
+
+      if (BATCHABLE_TYPES.has(eventType)) {
+        eventBuffer.push(event);
+        if (eventBuffer.length >= MAX_BATCH_SIZE) {
+          clearBatchTimer();
+          flushBuffer();
+        } else if (!batchTimer) {
+          batchTimer = setTimeout(flushBuffer, MAX_BATCH_WAIT_MS);
+        }
+      } else {
+        ctx.broadcast(Events.StreamEvent, { ...event, _sessionId: sessionId }, ctx.webviewId);
+      }
     }
+
+    // Flush any remaining batched events
+    clearBatchTimer();
+    flushBuffer();
 
     result = await turn.result;
 
@@ -236,6 +291,8 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     return { done: true };
   } catch (err) {
     ctx.setTurn(null);
+    clearBatchTimer();
+    flushBuffer();
 
     const code = getErrorCode(err);
     const phase = classifyError(code);

@@ -102,6 +102,7 @@ export interface ChatState {
   sendMessage: (text: string) => void;
   retryLastMessage: () => void;
   processEvent: (event: UIStreamEvent) => void;
+  processEvents: (events: UIStreamEvent[]) => void;
   loadSession: (sessionId: string, events: UIStreamEvent[]) => Promise<void>;
   startNewConversation: () => Promise<void>;
   abort: () => void;
@@ -235,20 +236,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   processEvent: (event) => {
-    // Clear handshake timeout on receiving valid response
-    if (event.type === "TurnBegin" || event.type === "StepBegin" || event.type === "ContentPart") {
+    get().processEvents([event]);
+  },
+
+  processEvents: (events) => {
+    let needHandshake = false;
+    let needAutoSend = false;
+
+    for (const event of events) {
+      if (event.type === "TurnBegin" || event.type === "StepBegin" || event.type === "ContentPart") {
+        needHandshake = true;
+      }
+      if (event.type === "stream_complete" || event.type === "error") {
+        needAutoSend = true;
+      }
+    }
+
+    if (needHandshake) {
       clearHandshakeTimer();
-      set({ handshakeReceived: true });
     }
 
     set(
       produce((draft: ChatState) => {
-        processEvent(draft, event);
+        if (needHandshake) {
+          draft.handshakeReceived = true;
+        }
+        for (const event of events) {
+          processEvent(draft, event);
+        }
       }),
     );
 
     // Auto-send next queued item when streaming ends (complete or error)
-    if (event.type === "stream_complete" || event.type === "error") {
+    if (needAutoSend) {
       const { queue, isStreaming: stillStreaming } = get();
       if (!stillStreaming && queue.length > 0) {
         setTimeout(() => get().sendNextQueued(), 50);
