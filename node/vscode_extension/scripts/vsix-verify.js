@@ -36,17 +36,17 @@ function assertZipEntry(filePath, entry) {
   }
 }
 
-function findFile(rootDir, fileName) {
-  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
-    const entryPath = path.join(rootDir, entry.name);
-    if (entry.isDirectory()) {
-      const found = findFile(entryPath, fileName);
-      if (found) return found;
-    } else if (entry.isFile() && entry.name === fileName) {
-      return entryPath;
-    }
+function flattenSingleDir(dir) {
+  const entries = fs.readdirSync(dir);
+  if (entries.length !== 1) return;
+
+  const nested = path.join(dir, entries[0]);
+  if (!fs.statSync(nested).isDirectory()) return;
+
+  for (const entry of fs.readdirSync(nested)) {
+    fs.renameSync(path.join(nested, entry), path.join(dir, entry));
   }
-  return null;
+  fs.rmdirSync(nested);
 }
 
 function verifyCliArchive(filePath, target, archive) {
@@ -71,8 +71,9 @@ function verifyCliArchive(filePath, target, archive) {
         execFileSync("unzip", ["-q", archivePath, "-d", cliDir], {
           stdio: ["ignore", "ignore", "pipe"],
         });
+        flattenSingleDir(cliDir);
       } else {
-        execFileSync("tar", ["-xzf", archivePath, "-C", cliDir], {
+        execFileSync("tar", ["-xf", archivePath, "-C", cliDir, "--strip-components=1"], {
           stdio: ["ignore", "ignore", "pipe"],
         });
       }
@@ -81,9 +82,9 @@ function verifyCliArchive(filePath, target, archive) {
     }
 
     const executableName = target.startsWith("win32-") ? "kimi.exe" : "kimi";
-    const executablePath = findFile(cliDir, executableName);
-    if (!executablePath) {
-      throw new Error(`Bundled CLI archive is missing ${executableName}`);
+    const executablePath = path.join(cliDir, executableName);
+    if (!fs.existsSync(executablePath)) {
+      throw new Error(`Bundled CLI archive does not extract ${executableName} to the install root`);
     }
     if (!target.startsWith("win32-") && (fs.statSync(executablePath).mode & 0o111) === 0) {
       throw new Error(`Bundled CLI executable is not executable: ${executableName}`);
