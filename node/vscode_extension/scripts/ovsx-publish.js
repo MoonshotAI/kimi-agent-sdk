@@ -1,17 +1,11 @@
 #!/usr/bin/env node
 const { spawnSync } = require("child_process");
-const fs = require("fs");
 const path = require("path");
 
+const { TARGETS, getVsixFile, verifyVsixFiles } = require("./vsix-verify");
+
 const rootDir = path.join(__dirname, "..");
-const VSIX_FILES = [
-  "kimi-code-darwin-arm64.vsix",
-  "kimi-code-darwin-x64.vsix",
-  "kimi-code-linux-arm64.vsix",
-  "kimi-code-linux-x64.vsix",
-  "kimi-code-win32-arm64.vsix",
-  "kimi-code-win32-x64.vsix",
-];
+const VSIX_FILES = TARGETS.map(getVsixFile);
 
 if (!process.env.OVSX_PAT) {
   console.error("Error: OVSX_PAT environment variable not set");
@@ -19,11 +13,11 @@ if (!process.env.OVSX_PAT) {
   process.exit(1);
 }
 
-const missing = VSIX_FILES.filter((f) => !fs.existsSync(path.join(rootDir, f)));
-if (missing.length > 0) {
-  console.error("Missing expected .vsix file(s):");
-  missing.forEach((f) => console.error(`  - ${f}`));
-  console.error("Run `pnpm run package:platform` first.");
+try {
+  verifyVsixFiles(rootDir, TARGETS);
+} catch (error) {
+  console.error(error.message);
+  console.error("Run `rm -f *.vsix && pnpm run package:platform` first.");
   process.exit(1);
 }
 
