@@ -83,10 +83,16 @@ function verifyCliArchive(filePath, target, archive) {
 
     const executableName = target.startsWith("win32-") ? "kimi.exe" : "kimi";
     const executablePath = path.join(cliDir, executableName);
-    if (!fs.existsSync(executablePath)) {
+    let executableStat;
+    try {
+      executableStat = fs.statSync(executablePath);
+    } catch {
       throw new Error(`Bundled CLI archive does not extract ${executableName} to the install root`);
     }
-    if (!target.startsWith("win32-") && (fs.statSync(executablePath).mode & 0o111) === 0) {
+    if (!executableStat.isFile()) {
+      throw new Error(`Bundled CLI archive extracts ${executableName} as a non-file entry`);
+    }
+    if (!target.startsWith("win32-") && (executableStat.mode & 0o111) === 0) {
       throw new Error(`Bundled CLI executable is not executable: ${executableName}`);
     }
   } finally {
