@@ -1,8 +1,10 @@
 const { execFileSync } = require("child_process");
 const fs = require("fs");
+const { tmpdir } = require("os");
 const path = require("path");
 
 const TARGETS = ["darwin-arm64", "darwin-x64", "linux-arm64", "linux-x64", "win32-x64", "win32-arm64"];
+const REQUIRED_DIST_FILES = ["extension/dist/extension.js", "extension/dist/webview.js"];
 
 function getVsixFile(target) {
   return `kimi-code-${target}.vsix`;
@@ -31,6 +33,63 @@ function assertZipEntry(filePath, entry) {
     });
   } catch {
     throw new Error(`Missing ${entry}`);
+  }
+}
+
+function findFile(rootDir, fileName) {
+  for (const entry of fs.readdirSync(rootDir, { withFileTypes: true })) {
+    const entryPath = path.join(rootDir, entry.name);
+    if (entry.isDirectory()) {
+      const found = findFile(entryPath, fileName);
+      if (found) return found;
+    } else if (entry.isFile() && entry.name === fileName) {
+      return entryPath;
+    }
+  }
+  return null;
+}
+
+function verifyCliArchive(filePath, target, archive) {
+  const tempDir = fs.mkdtempSync(path.join(tmpdir(), "kimi-vsix-verify-"));
+  try {
+    const vsixDir = path.join(tempDir, "vsix");
+    const cliDir = path.join(tempDir, "cli");
+    fs.mkdirSync(vsixDir, { recursive: true });
+    fs.mkdirSync(cliDir, { recursive: true });
+
+    try {
+      execFileSync("unzip", ["-q", filePath, archive, "-d", vsixDir], {
+        stdio: ["ignore", "ignore", "pipe"],
+      });
+    } catch {
+      throw new Error(`Unable to extract ${archive} from VSIX`);
+    }
+
+    const archivePath = path.join(vsixDir, archive);
+    try {
+      if (target.startsWith("win32-")) {
+        execFileSync("unzip", ["-q", archivePath, "-d", cliDir], {
+          stdio: ["ignore", "ignore", "pipe"],
+        });
+      } else {
+        execFileSync("tar", ["-xzf", archivePath, "-C", cliDir], {
+          stdio: ["ignore", "ignore", "pipe"],
+        });
+      }
+    } catch {
+      throw new Error(`Unable to extract bundled CLI archive ${archive}`);
+    }
+
+    const executableName = target.startsWith("win32-") ? "kimi.exe" : "kimi";
+    const executablePath = findFile(cliDir, executableName);
+    if (!executablePath) {
+      throw new Error(`Bundled CLI archive is missing ${executableName}`);
+    }
+    if (!target.startsWith("win32-") && (fs.statSync(executablePath).mode & 0o111) === 0) {
+      throw new Error(`Bundled CLI executable is not executable: ${executableName}`);
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
   }
 }
 
@@ -91,6 +150,10 @@ function verifyVsixFiles(rootDir, targets = TARGETS) {
       }
 
       assertZipEntry(filePath, archive);
+      for (const entry of REQUIRED_DIST_FILES) {
+        assertZipEntry(filePath, entry);
+      }
+      verifyCliArchive(filePath, target, archive);
 
       if (!expectedCliVersion) {
         expectedCliVersion = cliVersion;
@@ -98,7 +161,7 @@ function verifyVsixFiles(rootDir, targets = TARGETS) {
         throw new Error(`CLI version is ${cliVersion}, expected ${expectedCliVersion}`);
       }
 
-      lines.push(`${file}: extension ${bundledPackage.version}, CLI ${cliVersion}, ${target}`);
+      lines.push(`${file}: extension ${bundledPackage.version}, CLI ${cliVersion}, ${target}, extension.js/webview.js OK, archive extracts OK`);
     } catch (error) {
       failures.push(`${file}: ${error.message}`);
     }
