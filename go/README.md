@@ -5,7 +5,7 @@ Go SDK for programmatically controlling Kimi Agent sessions via the [kimi-cli](h
 ## Installation
 
 ```bash
-go get github.com/MoonshotAI/kimi-agent-sdk/go
+go install github.com/MoonshotAI/kimi-agent-sdk/go@latest
 ```
 
 ## Prerequisites
