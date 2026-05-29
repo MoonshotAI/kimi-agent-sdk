@@ -103,7 +103,7 @@ async def test_prompt_forwards_skills_dirs(monkeypatch: pytest.MonkeyPatch) -> N
         async def __aexit__(self, *_args: Any) -> None:
             return None
 
-        async def prompt(self, *_args: Any, **_kwargs: Any):  # type: ignore[no-untyped-def]
+        async def prompt(self, *_args: Any, **_kwargs: Any):
             if False:
                 yield None
             return
