@@ -5,7 +5,7 @@
 
 ## 0.0.6 (2026-05-01)
 
-- Dependencies: Update kimi-cli to version 1.41, kosong to version 0.53
+- Dependencies: Update kimi-cli to version 1.45, kosong to version 0.53
 - API: Accept both `skills_dir` and `skills_dirs` when creating, resuming, or prompting sessions
 
 ## 0.0.5 (2026-02-11)
