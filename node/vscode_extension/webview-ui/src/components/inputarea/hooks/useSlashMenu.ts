@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useEffect } from "react";
 import { useSettingsStore } from "@/stores";
 import type { SlashCommandInfo } from "@moonshot-ai/kimi-agent-sdk";
 
@@ -21,6 +21,21 @@ function fuzzyMatch(text: string, query: string): boolean {
     }
   }
   return qi === lowerQuery.length;
+}
+
+function scoreMatch(cmd: SlashCommandInfo, query: string): number {
+  if (!query) return 0;
+  const lowerName = cmd.name.toLowerCase();
+  const lowerQuery = query.toLowerCase();
+
+  if (lowerName === lowerQuery) return 1000;
+  if (lowerName.startsWith(lowerQuery)) return 100;
+
+  const desc = (cmd.description || "").toLowerCase();
+  if (desc.startsWith(lowerQuery)) return 10;
+  if (desc.includes(lowerQuery)) return 1;
+
+  return 0;
 }
 
 export function findActiveToken(text: string, cursorPos: number): ActiveToken | null {
@@ -60,8 +75,14 @@ export function useSlashMenu(activeToken: ActiveToken | null, onSelectCommand: (
     if (!q) {
       return slashCommands;
     }
-    return slashCommands.filter((cmd) => fuzzyMatch(cmd.name, q) || fuzzyMatch(cmd.description, q));
+    return slashCommands
+      .filter((cmd) => fuzzyMatch(cmd.name, q) || fuzzyMatch(cmd.description, q))
+      .sort((a, b) => scoreMatch(b, q) - scoreMatch(a, q));
   }, [showSlashMenu, activeToken?.query, slashCommands]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [filteredCommands]);
 
   const resetSlashMenu = useCallback(() => {
     setSelectedIndex(0);
