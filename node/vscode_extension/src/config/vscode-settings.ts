@@ -45,6 +45,10 @@ export const VSCodeSettings = {
     return getConfig().get<"never" | "onConversationStart" | "onFileChange">("editorContext", "never");
   },
 
+  get themeMode(): "builtin" | "vscode" {
+    return getConfig().get<"builtin" | "vscode">("themeMode", "builtin");
+  },
+
   getExtensionConfig(): ExtensionConfig {
     return {
       executablePath: this.executablePath,
@@ -55,6 +59,7 @@ export const VSCodeSettings = {
       environmentVariables: this.environmentVariables,
       showThinkingContent: this.showThinkingContent,
       showThinkingExpanded: this.showThinkingExpanded,
+      themeMode: this.themeMode,
       version: EXTENSION_VERSION,
     };
   },
@@ -65,7 +70,7 @@ export function onSettingsChange(callback: (changedKeys: string[]) => void): vsc
     if (!e.affectsConfiguration("kimi")) {
       return;
     }
-    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables", "showThinkingContent", "showThinkingExpanded", "editorContext"];
+    const keys = ["yoloMode", "autosave", "executablePath", "enableNewConversationShortcut", "useCtrlEnterToSend", "environmentVariables", "showThinkingContent", "showThinkingExpanded", "editorContext", "themeMode"];
     const changedKeys = keys.filter((key) => e.affectsConfiguration(`kimi.${key}`));
     if (changedKeys.length > 0) {
       callback(changedKeys);

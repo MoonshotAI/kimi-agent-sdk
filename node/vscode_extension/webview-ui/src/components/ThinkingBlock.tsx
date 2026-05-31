@@ -20,7 +20,7 @@ export function ThinkingBlock({ content, finished, compact }: ThinkingBlockProps
   if (!showThinkingContent) {
     // Hidden mode: static label, no interaction
     return (
-      <div className="rounded-lg border border-zinc-200/50 bg-zinc-50/30 dark:border-zinc-800/50 dark:bg-zinc-900/10 overflow-hidden">
+      <div className="rounded-lg border border-zinc-200/50 bg-zinc-50/30 dark:border-zinc-800/50 dark:bg-zinc-900/10 overflow-hidden thinking-block">
         <div
           className={cn("w-full flex items-center gap-2", compact ? "px-2 py-1.5" : "px-3 py-2")}
         >
@@ -40,9 +40,10 @@ export function ThinkingBlock({ content, finished, compact }: ThinkingBlockProps
   }
 
   return (
-    <div className="rounded-lg border border-zinc-200/50 bg-zinc-50/30 dark:border-zinc-800/50 dark:bg-zinc-900/10 overflow-hidden">
+    <div className="rounded-lg border border-zinc-200/50 bg-zinc-50/30 dark:border-zinc-800/50 dark:bg-zinc-900/10 overflow-hidden thinking-block">
       <button
         onClick={() => setExpanded(!expanded)}
+        data-block-header="thinking"
         className={cn("w-full flex items-center gap-2 hover:bg-zinc-100/50 dark:hover:bg-zinc-800/20 transition-colors", compact ? "px-2 py-1.5" : "px-3 py-2")}
       >
         <div className="inline-flex items-center gap-2">

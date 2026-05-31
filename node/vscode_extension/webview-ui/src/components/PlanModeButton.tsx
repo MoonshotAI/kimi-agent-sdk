@@ -16,6 +16,7 @@ export function PlanModeButton({ active, onToggle }: PlanModeButtonProps) {
         <button
           type="button"
           onClick={onToggle}
+          data-plan-mode={active ? "active" : "inactive"}
           className={cn(
             "flex items-center justify-center size-6 rounded-md transition-all cursor-pointer",
             active

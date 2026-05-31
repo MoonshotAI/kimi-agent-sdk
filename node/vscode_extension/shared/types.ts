@@ -38,6 +38,7 @@ export interface ExtensionConfig {
   environmentVariables: Record<string, string>;
   showThinkingContent: boolean;
   showThinkingExpanded: boolean;
+  themeMode: "builtin" | "vscode";
   version: string;
 }
 

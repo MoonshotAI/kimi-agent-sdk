@@ -7,12 +7,21 @@ function syncTheme() {
   document.documentElement.classList.toggle("dark", isDark);
 }
 
-syncTheme();
+function syncThemeMode() {
+  const themeMode = document.body.getAttribute("data-thememode") ?? "builtin";
+  document.documentElement.classList.toggle("vscode-theme", themeMode === "vscode");
+}
 
-const observer = new MutationObserver(syncTheme);
+syncTheme();
+syncThemeMode();
+
+const observer = new MutationObserver(() => {
+  syncTheme();
+  syncThemeMode();
+});
 observer.observe(document.body, {
   attributes: true,
-  attributeFilter: ["class"],
+  attributeFilter: ["class", "data-thememode"],
 });
 
 const container = document.getElementById("root");

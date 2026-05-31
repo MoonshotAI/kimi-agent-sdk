@@ -39,6 +39,7 @@ function SessionItem({ session, isSelected, onSelect, onDelete, dirLabel }: Sess
 
   return (
     <div
+      data-session-item
       className={cn("group relative px-2 py-1 rounded-md cursor-pointer transition-colors", isSelected ? "bg-accent" : "hover:bg-accent/50")}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}

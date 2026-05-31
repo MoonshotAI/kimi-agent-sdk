@@ -58,6 +58,11 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
     return () => window.removeEventListener("keydown", handler);
   }, [extensionConfig.enableNewConversationShortcut, startNewConversation]);
 
+  useEffect(() => {
+    document.body.setAttribute("data-thememode", extensionConfig.themeMode ?? "builtin");
+    document.documentElement.classList.toggle("vscode-theme", extensionConfig.themeMode === "vscode");
+  }, [extensionConfig.themeMode]);
+
   return (
     <>
       <div className="flex-1 min-h-0 relative group/chat">

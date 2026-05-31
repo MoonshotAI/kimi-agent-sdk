@@ -67,7 +67,7 @@ function CodeBlock({ content, maxLines = 10 }: { content: string; maxLines?: num
   const displayContent = shouldCollapse && !expanded ? lines.slice(0, maxLines).join("\n") : content;
 
   return (
-    <div className="relative group/codeblock">
+    <div className="relative group/codeblock tool-codeblock">
       <pre className="text-[11px] bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 rounded px-3 py-2 overflow-x-auto whitespace-pre-wrap break-all">
         {displayContent}
         {shouldCollapse && !expanded && <span className="text-zinc-500">{"\n"}...</span>}
@@ -75,7 +75,7 @@ function CodeBlock({ content, maxLines = 10 }: { content: string; maxLines?: num
       {shouldCollapse && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="absolute bottom-1.5 right-1.5 text-[11px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 opacity-0 group-hover/codeblock:opacity-100 transition-opacity cursor-pointer"
+          className="codeblock-expand absolute bottom-1.5 right-1.5 text-[11px] px-1.5 py-0.5 rounded bg-zinc-200 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 opacity-0 group-hover/codeblock:opacity-100 transition-opacity cursor-pointer"
         >
           {expanded ? "Less" : `Expand +${lines.length - maxLines}`}
         </button>
@@ -130,7 +130,7 @@ function IORow({ label, children }: { label: "IN" | "OUT"; children: React.React
 function TodoStatusIcon({ status }: { status: string }) {
   if (status === "done") {
     return (
-      <div className="size-4 rounded flex items-center justify-center">
+      <div data-todo-status="done" className="size-4 rounded flex items-center justify-center">
         <IconSquareCheck className="size-3 text-zinc-600 dark:text-zinc-400" />
       </div>
     );
@@ -138,7 +138,7 @@ function TodoStatusIcon({ status }: { status: string }) {
   if (status === "in_progress") {
     return <IconSquareChevronRight className="size-4 text-amber-500" />;
   }
-  return <IconSquare className="size-4 text-zinc-300 dark:text-zinc-600" />;
+  return <IconSquare data-todo-status="empty" className="size-4 text-zinc-300 dark:text-zinc-600" />;
 }
 
 function SetTodoListTool({ result }: ToolRendererProps) {
@@ -432,8 +432,8 @@ export function ToolCallCard({ call, result, subagentSteps }: ToolRendererProps)
   };
 
   return (
-    <div className="rounded-lg border border-border overflow-hidden">
-      <button onClick={() => setExpanded(!expanded)} className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors">
+    <div className="rounded-lg border border-border overflow-hidden tool-call-card">
+      <button onClick={() => setExpanded(!expanded)} data-block-header="tool" className="w-full flex items-center gap-2 px-3 py-2 hover:bg-muted/50 transition-colors">
         <StatusIndicator status={status} />
         <ToolIcon name={call.name} />
         <span className="text-xs font-medium">{call.name}</span>
