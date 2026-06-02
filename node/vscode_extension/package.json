@@ -95,7 +95,11 @@
         "kimi.editorContext": {
           "type": "string",
           "default": "never",
-          "enum": ["never", "onConversationStart", "onFileChange"],
+          "enum": [
+            "never",
+            "onConversationStart",
+            "onFileChange"
+          ],
           "enumDescriptions": [
             "Never share editor context",
             "Share once when conversation starts",
@@ -118,7 +122,10 @@
       {
         "command": "kimi.openInSideBar",
         "title": "Kimi Code: Open in Side Panel",
-        "icon": "$(layout-sidebar-left)"
+        "icon": {
+          "light": "resources/kimi-icon-black.svg",
+          "dark": "resources/kimi-icon-white.svg"
+        }
       },
       {
         "command": "kimi.focusInput",
@@ -183,6 +190,12 @@
       ]
     },
     "menus": {
+      "editor/title": [
+        {
+          "group": "navigation",
+          "command": "kimi.openInSideBar"
+        }
+      ],
       "view/title": [
         {
           "command": "kimi.openInTab",
