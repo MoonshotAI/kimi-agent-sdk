@@ -324,7 +324,27 @@ func (c *Codec) recv() {
 					continue
 				}
 				if receiver == nil {
-					panic("receiver is nil")
+					// `c.receivers[id] = nil` is the placeholder set at the
+					// top of `recv()` (search for `c.receivers[payload.ID] =
+					// nil`) when a StreamOpen payload arrives. The real
+					// channel is only installed later, on a different
+					// goroutine, when the request handler runs
+					// `receiver.Receiver(...)`. Between those two points, any
+					// follow-up stream payload for the same id reaches this
+					// branch with `ok == true` and `receiver == nil`. The
+					// previous behaviour panicked the codec goroutine, which
+					// kills the entire session for what is in fact a benign
+					// in-flight initialisation race.
+					//
+					// Requeue with a small delay so consumependings picks the
+					// payload back up once the handler has installed the real
+					// channel — same recovery shape as the `<-time.After`
+					// timeout branch a few lines below, but gated on a fixed
+					// 10ms tick so we don't hot-spin if the handler is slow.
+					time.AfterFunc(10*time.Millisecond, func() {
+						go requeue(receiverid)
+					})
+					continue
 				}
 				if payload.Stream == StreamClose {
 					c.receiverlock.Lock()
