@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import ScrollToBottom, { useScrollToBottom, useSticky } from "react-scroll-to-bottom";
 import { IconArrowDown } from "@tabler/icons-react";
 import { ChatMessage } from "./ChatMessage";
@@ -24,16 +25,24 @@ function ScrollButton() {
 function MessageList() {
   const { messages, isStreaming } = useChatStore();
 
-  // Calculate turn index for each assistant message
-  // Turn index is 0-indexed, counting user messages
-  const getTurnIndex = (idx: number): number | undefined => {
-    if (messages[idx]?.role !== "assistant") return undefined;
-    let turnCount = 0;
-    for (let i = 0; i < idx; i++) {
-      if (messages[i].role === "user") turnCount++;
+  // Precompute turn indices in O(n) instead of O(n²) per render.
+  // turnIndices[i] is the turn index for messages[i] when it is an assistant
+  // message, otherwise undefined.
+  const turnIndices = useMemo<(number | undefined)[]>(() => {
+    const indices: (number | undefined)[] = [];
+    let userCount = 0;
+    for (let i = 0; i < messages.length; i++) {
+      if (messages[i].role === "assistant") {
+        indices.push(userCount - 1);
+      } else {
+        indices.push(undefined);
+      }
+      if (messages[i].role === "user") {
+        userCount++;
+      }
     }
-    return turnCount - 1; // 0-indexed (first turn = 0)
-  };
+    return indices;
+  }, [messages]);
 
   return (
     <>
@@ -42,7 +51,7 @@ function MessageList() {
           <ChatMessage
             key={message.id}
             message={message}
-            turnIndex={getTurnIndex(idx)}
+            turnIndex={turnIndices[idx]}
             isStreaming={isStreaming && idx === messages.length - 1 && message.role === "assistant"}
           />
         ))}

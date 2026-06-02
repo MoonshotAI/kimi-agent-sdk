@@ -16,25 +16,37 @@ import type { UIStreamEvent, StreamError, ExtensionConfig } from "shared/types";
 import "./styles/index.css";
 
 function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
-  const { processEvent, startNewConversation, sessionId } = useChatStore();
+  const { processEvent, processEvents, startNewConversation, sessionId } = useChatStore();
   const { setMCPServers, setExtensionConfig, extensionConfig } = useSettingsStore();
 
   useEffect(() => {
-    return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
-      // 只有当前已有 session 时才过滤，确保 session_start 能正常处理
-      if (sessionId && "_sessionId" in event && event._sessionId && event._sessionId !== sessionId) {
-        console.log("Ignored stream event from another session:", event._sessionId);
-        return;
+    return bridge.on(Events.StreamEvent, (data: UIStreamEvent | UIStreamEvent[]) => {
+      const events = Array.isArray(data) ? data : [data];
+      // Filter out events from other sessions
+      const validEvents = events.filter((event) => {
+        // 只有当前已有 session 时才过滤，确保 session_start 能正常处理
+        if (sessionId && "_sessionId" in event && event._sessionId && event._sessionId !== sessionId) {
+          console.log("Ignored stream event from another session:", event._sessionId);
+          return false;
+        }
+        return true;
+      });
+      if (validEvents.length === 0) return;
+      if (validEvents.length === 1) {
+        processEvent(validEvents[0]);
+      } else {
+        processEvents(validEvents);
       }
-      processEvent(event);
-      if (event.type === "error") {
-        const streamError = event as StreamError;
-        if (isPreflightError(streamError.code || "UNKNOWN")) {
-          toast.error(streamError.message);
+      for (const event of validEvents) {
+        if (event.type === "error") {
+          const streamError = event as StreamError;
+          if (isPreflightError(streamError.code || "UNKNOWN")) {
+            toast.error(streamError.message);
+          }
         }
       }
     });
-  }, [processEvent, sessionId]);
+  }, [processEvent, processEvents, sessionId]);
 
   useEffect(() => {
     const unsubs = [
