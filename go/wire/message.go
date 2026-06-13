@@ -304,6 +304,11 @@ func (c Content) MarshalJSON() ([]byte, error) {
 
 func (c *Content) UnmarshalJSON(data []byte) error {
 	data = bytes.TrimSpace(data)
+	// By convention a json.Unmarshaler treats the null literal as a no-op, and
+	// guarding against empty input avoids an index-out-of-range panic below.
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
 	switch data[0] {
 	case '"':
 		if err := json.Unmarshal(data, &c.Text); err != nil {
@@ -501,6 +506,11 @@ func (d DisplayBlockData) MarshalJSON() ([]byte, error) {
 
 func (d *DisplayBlockData) UnmarshalJSON(data []byte) error {
 	data = bytes.TrimSpace(data)
+	// By convention a json.Unmarshaler treats the null literal as a no-op, and
+	// guarding against empty input avoids an index-out-of-range panic below.
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
 	switch data[0] {
 	case '"':
 		if err := json.Unmarshal(data, &d.Text); err != nil {

@@ -133,6 +133,36 @@ func TestContent_UnmarshalJSON_InvalidToken(t *testing.T) {
 	}
 }
 
+func TestContent_UnmarshalJSON_Null(t *testing.T) {
+	// Per the json.Unmarshaler convention, unmarshalling null is a no-op.
+	c := NewStringContent("keep")
+	if err := json.Unmarshal([]byte(`null`), &c); err != nil {
+		t.Fatalf("Unmarshal(null): unexpected error: %v", err)
+	}
+
+	// A null content field on a surrounding struct must not fail the whole parse.
+	var wrap struct {
+		Output Content `json:"output"`
+	}
+	if err := json.Unmarshal([]byte(`{"output": null}`), &wrap); err != nil {
+		t.Fatalf("Unmarshal({output:null}): unexpected error: %v", err)
+	}
+}
+
+func TestContent_UnmarshalJSON_EmptyDoesNotPanic(t *testing.T) {
+	var c Content
+	if err := c.UnmarshalJSON([]byte("   ")); err != nil {
+		t.Fatalf("UnmarshalJSON(whitespace): unexpected error: %v", err)
+	}
+}
+
+func TestDisplayBlockData_UnmarshalJSON_Null(t *testing.T) {
+	var d DisplayBlockData
+	if err := json.Unmarshal([]byte(`null`), &d); err != nil {
+		t.Fatalf("Unmarshal(null): unexpected error: %v", err)
+	}
+}
+
 func TestOptional_JSON(t *testing.T) {
 	o := Optional[int]{}
 	b, err := json.Marshal(o)
