@@ -3,6 +3,7 @@ package kimi
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +40,35 @@ func TestCreateTool_Basic(t *testing.T) {
 	// Function name includes package path with '.' replaced by '_'
 	if tool.def.Name == "" {
 		t.Error("expected non-empty name")
+	}
+}
+
+type namedReceiver struct{}
+
+func (namedReceiver) Method(SearchParams) (string, error) { return "", nil }
+
+func TestCreateTool_AutoNamePreservesFunctionName(t *testing.T) {
+	// This module path (github.com/MoonshotAI/kimi-agent-sdk/go) contains
+	// hyphens; the auto-derived name must not be truncated at the first one.
+	tool, err := CreateTool(Search)
+	if err != nil {
+		t.Fatalf("CreateTool failed: %v", err)
+	}
+	if !strings.HasSuffix(tool.def.Name, "_Search") {
+		t.Errorf("auto name %q should end with _Search (truncated at a path hyphen?)", tool.def.Name)
+	}
+}
+
+func TestGetFunctionName_StripsMethodValueSuffix(t *testing.T) {
+	var r namedReceiver
+	// A method value's runtime name ends with "-fm"; that suffix (and only
+	// that suffix) should be stripped, leaving the path/name intact.
+	got := getFunctionName(r.Method)
+	if strings.HasSuffix(got, "-fm") || strings.HasSuffix(got, "_fm") {
+		t.Errorf("expected -fm suffix stripped, got %q", got)
+	}
+	if !strings.HasSuffix(got, "namedReceiver_Method") {
+		t.Errorf("expected name to end with namedReceiver_Method, got %q", got)
 	}
 }
 

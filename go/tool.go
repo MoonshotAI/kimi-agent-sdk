@@ -150,10 +150,11 @@ func getFunctionName[T any](fn T) string {
 		return ""
 	}
 	fullName := fnInfo.Name()
-	// Remove -fm suffix for method values
-	if dashIdx := strings.Index(fullName, "-"); dashIdx >= 0 {
-		fullName = fullName[:dashIdx]
-	}
+	// Remove the -fm suffix that the runtime appends to method values.
+	// Trim only that exact suffix: a plain strings.Index(fullName, "-")
+	// would also truncate at hyphens in the module path (e.g.
+	// "github.com/MoonshotAI/kimi-agent-sdk/go.Fn"), mangling the name.
+	fullName = strings.TrimSuffix(fullName, "-fm")
 	// Replace '.' with '_'
 	// e.g., "main.MyFunction" -> "main_MyFunction"
 	return replacer.Replace(fullName)
