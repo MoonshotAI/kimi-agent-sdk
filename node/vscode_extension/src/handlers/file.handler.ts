@@ -63,6 +63,17 @@ function isInsideWorkDir(workDir: string, absolutePath: string): boolean {
   return !!rel && !rel.startsWith("..") && !path.isAbsolute(rel);
 }
 
+// Parses a path with an optional line anchor: file.py#L123, file.py#123, file.py#L123-L125
+const LINE_FRAGMENT = /#L?(\d+)(?:-L?(\d+))?$/i;
+
+function parseFilePathAndLine(input: string): { filePath: string; line?: number } {
+  const match = input.match(LINE_FRAGMENT);
+  if (match) {
+    return { filePath: input.slice(0, -match[0].length), line: parseInt(match[1], 10) };
+  }
+  return { filePath: input };
+}
+
 function getMimeType(ext: string): string {
   const mimeTypes: Record<string, string> = {
     png: "image/png",
@@ -164,13 +175,20 @@ const pickMedia: Handler<PickMediaParams, string[]> = async (params) => {
 
 const openFile: Handler<FilePathParams, { ok: boolean }> = async (params, ctx) => {
   const workDir = ctx.requireWorkDir();
-  const absolutePath = toAbsolute(workDir, params.filePath);
+  const { filePath, line } = parseFilePathAndLine(params.filePath);
+  const absolutePath = toAbsolute(workDir, filePath);
   if (!isInsideWorkDir(workDir, absolutePath)) {
     return { ok: false };
   }
 
   const uri = vscode.Uri.file(absolutePath);
-  await vscode.commands.executeCommand("vscode.open", uri);
+  if (line !== undefined) {
+    // Open the file and position the cursor at the requested line
+    const selection = new vscode.Range(line - 1, 0, line - 1, 0);
+    await vscode.window.showTextDocument(uri, { selection });
+  } else {
+    await vscode.commands.executeCommand("vscode.open", uri);
+  }
 
   return { ok: true };
 };

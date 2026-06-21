@@ -5,8 +5,8 @@ const HEX_COLOR = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{
 const RGB_COLOR = /rgba?\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}(?:\s*,\s*[\d.]+)?\s*\)/;
 const HSL_COLOR = /hsla?\(\s*\d{1,3}\s*,\s*[\d.]+%\s*,\s*[\d.]+%(?:\s*,\s*[\d.]+)?\s*\)/;
 
-// File Path Regex
-const FILE_PATH = /(?:@|\.\/)?(?:[a-zA-Z_][\w-]*\/)*[a-zA-Z_][\w-]*\.[a-zA-Z0-9]+/;
+// File Path Regex (with optional line anchor: file.py#L123, file.py#123)
+const FILE_PATH = /(?:@|\.\/)?(?:[a-zA-Z_][\w-]*\/)*[a-zA-Z_][\w-]*\.[a-zA-Z0-9]+(?:#L?\d+)?/;
 
 // Combined Regex
 const ENRICHMENT_PATTERN = new RegExp(`(${HEX_COLOR.source}|${RGB_COLOR.source}|${HSL_COLOR.source})|(${FILE_PATH.source})`, "g");
@@ -14,7 +14,7 @@ const ENRICHMENT_PATTERN = new RegExp(`(${HEX_COLOR.source}|${RGB_COLOR.source}|
 // Color Regex for recognizing colors only within code tags
 const COLOR_ONLY_PATTERN = new RegExp(`(${HEX_COLOR.source}|${RGB_COLOR.source}|${HSL_COLOR.source})`, "g");
 
-export type Segment = { type: "text"; value: string } | { type: "color"; value: string } | { type: "file"; value: string; path: string };
+export type Segment = { type: "text"; value: string } | { type: "color"; value: string } | { type: "file"; value: string; path: string; line?: number };
 
 function normalizePath(raw: string): string {
   let p = raw;
@@ -24,7 +24,8 @@ function normalizePath(raw: string): string {
   if (p.startsWith("./")) {
     p = p.slice(2);
   }
-  return p;
+  // Strip the line anchor (#L123) before checking file existence
+  return p.replace(/#L?\d+$/i, "");
 }
 
 export function extractPaths(text: string): string[] {
@@ -61,7 +62,9 @@ export function parseSegments(text: string, fileExistsMap: Record<string, boolea
       segments.push({ type: "color", value: colorMatch });
     } else if (fileMatch) {
       const path = normalizePath(fileMatch);
-      segments.push(fileExistsMap[path] ? { type: "file", value: fileMatch, path } : { type: "text", value: fileMatch });
+      const lineMatch = fileMatch.match(/#L?(\d+)$/i);
+      const line = lineMatch ? parseInt(lineMatch[1], 10) : undefined;
+      segments.push(fileExistsMap[path] ? { type: "file", value: fileMatch, path, line } : { type: "text", value: fileMatch });
     }
 
     lastIndex = m.index + full.length;
