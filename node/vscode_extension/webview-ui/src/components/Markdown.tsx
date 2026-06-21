@@ -37,17 +37,21 @@ function ColorSwatch({ color }: { color: string }) {
   return <span className="inline-block size-2.75 rounded-sm align-middle mr-0.5 mb-0.5" style={{ backgroundColor: color }} />;
 }
 
-export function FileLink({ path, display }: { path: string; display: string }) {
+export function FileLink({ path, children, line }: { path: string; children: React.ReactNode; line?: number }) {
   const onClick = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
-      bridge.openFile(path);
+      bridge.openFile(line !== undefined ? `${path}#L${line}` : path);
     },
-    [path],
+    [path, line],
   );
   return (
-    <button type="button" className="hover:text-zinc-900 dark:hover:text-white hover:underline cursor-pointer break-all text-left" onClick={onClick}>
-      {display}
+    <button
+      type="button"
+      className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline hover:no-underline cursor-pointer break-all text-left bg-transparent border-0 p-0"
+      onClick={onClick}
+    >
+      {children}
     </button>
   );
 }
@@ -80,7 +84,7 @@ function EnrichedText({ text, fileMap }: { text: string; fileMap: Record<string,
           );
         }
         if (seg.type === "file") {
-          return <FileLink key={i} path={seg.path} display={seg.value} />;
+          return <FileLink key={i} path={seg.path} line={seg.line}>{seg.value}</FileLink>;
         }
         return <span key={i}>{seg.value}</span>;
       })}
@@ -176,6 +180,18 @@ function unwrapParagraphs(children: React.ReactNode): React.ReactNode {
   });
 }
 
+// Parses a local link with a line anchor: file.py#L123 → { path: "file.py", line: 123 }
+function parseLocalFileHref(href?: string): { path: string; line?: number; isLocal: boolean } | null {
+  if (!href || href.startsWith("http://") || href.startsWith("https://") || href.startsWith("data:") || href.startsWith("blob:") || href.startsWith("mailto:")) {
+    return null;
+  }
+  const lineMatch = href.match(/#L?(\d+)$/i);
+  if (lineMatch) {
+    return { path: href.slice(0, -lineMatch[0].length), line: parseInt(lineMatch[1], 10), isLocal: true };
+  }
+  return null;
+}
+
 export const Markdown = memo(function Markdown({ content, className, enableEnrichment = true, enableLocalImageRender = true }: MarkdownProps) {
   const isDark = useIsDark();
   const [fileMap, setFileMap] = useState<Record<string, boolean>>({});
@@ -215,11 +231,17 @@ export const Markdown = memo(function Markdown({ content, className, enableEnric
       h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
       ul: ({ children }) => <ul className="list-disc list-outside pl-5 mb-2 space-y-1">{children}</ul>,
       ol: ({ children }) => <ol className="list-decimal list-outside pl-5 mb-2 space-y-1">{children}</ol>,
-      a: ({ href, children }) => (
-        <a href={href} className="text-blue-600 dark:text-blue-400 underline hover:no-underline" target="_blank" rel="noopener noreferrer">
-          {children}
-        </a>
-      ),
+      a: ({ href, children }) => {
+        const local = parseLocalFileHref(href);
+        if (local?.line !== undefined) {
+          return <FileLink path={local.path} line={local.line}>{children}</FileLink>;
+        }
+        return (
+          <a href={href} className="text-blue-600 dark:text-blue-400 underline hover:no-underline" target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        );
+      },
       blockquote: ({ children }) => <blockquote className="border-l-2 border-primary/50 pl-3 my-2 text-muted-foreground italic">{children}</blockquote>,
       table: ({ children }) => (
         <div className="overflow-x-auto my-2">
