@@ -273,7 +273,8 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   };
 
   const handleAddButtonClick = useMemoizedFn(() => {
-    const newText = text + "@";
+    const separator = text && !/\s$/.test(text) ? " " : "";
+    const newText = text + separator + "@";
     setText(newText);
     setCursorPos(newText.length);
     setTimeout(() => {
