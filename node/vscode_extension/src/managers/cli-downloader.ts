@@ -168,7 +168,7 @@ export function copyUVWrapper(extensionPath: string, wrapperDir: string): void {
 
 function prepareDir(dir: string): void {
   if (fs.existsSync(dir)) {
-    fs.rmSync(dir, { recursive: true, force: true });
+    fs.rmSync(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 });
   }
   fs.mkdirSync(dir, { recursive: true });
 }
