@@ -95,7 +95,11 @@
         "kimi.editorContext": {
           "type": "string",
           "default": "never",
-          "enum": ["never", "onConversationStart", "onFileChange"],
+          "enum": [
+            "never",
+            "onConversationStart",
+            "onFileChange"
+          ],
           "enumDescriptions": [
             "Never share editor context",
             "Share once when conversation starts",
@@ -244,7 +248,7 @@
   },
   "scripts": {
     "vscode:prepublish": "pnpm run build",
-    "dev": "DEBUG=kimi-sdk:* node dev.js",
+    "dev": "node dev.js",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
     "build": "pnpm run build:webview && pnpm run build:extension",

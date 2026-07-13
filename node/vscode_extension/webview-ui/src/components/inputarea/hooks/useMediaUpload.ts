@@ -108,13 +108,20 @@ export function useMediaUpload(): UseMediaUploadResult {
 
   useEffect(() => {
     const isMediaFile = (file: File) => getMediaType(file) !== null;
+    const hasFiles = (event: DragEvent) => event.dataTransfer?.types.includes("Files") ?? false;
 
     const handleDocDragEnter = (e: DragEvent) => {
+      if (!hasFiles(e)) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
     };
 
     const handleDocDragOver = (e: DragEvent) => {
+      if (!hasFiles(e)) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       if (e.dataTransfer) {
@@ -123,6 +130,9 @@ export function useMediaUpload(): UseMediaUploadResult {
     };
 
     const handleDocDrop = (e: DragEvent) => {
+      if (!hasFiles(e)) {
+        return;
+      }
       e.preventDefault();
       e.stopPropagation();
       if (hasProcessing) {
