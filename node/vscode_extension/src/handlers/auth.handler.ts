@@ -18,7 +18,7 @@ export const authHandlers: Record<string, Handler<any, any>> = {
   [Methods.CheckLoginStatus]: async (): Promise<LoginStatus> => {
     // Sync context on check
     await updateLoginContext();
-    return { loggedIn: isLoggedIn() };
+    return { loggedIn: getCLIManager().isAcpAuthenticated() || isLoggedIn() };
   },
 
   [Methods.Login]: async (_, ctx): Promise<LoginResult> => {

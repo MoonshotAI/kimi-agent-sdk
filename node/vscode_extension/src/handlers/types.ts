@@ -23,7 +23,7 @@ export interface HandlerContext {
   getSessionId: () => string | null;
   getTurn: () => Turn | undefined;
   setTurn: (turn: Turn | null) => void;
-  getOrCreateSession: (model: string, thinking: boolean, sessionId?: string) => Session;
+  getOrCreateSession: (model: string, thinking: boolean, sessionId?: string) => Promise<Session>;
   closeSession: () => Promise<void>;
   saveAllDirty: () => Promise<void>;
   setCustomWorkDir: (workDir: string | null) => void;

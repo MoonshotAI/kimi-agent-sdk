@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from "vite
 import { EventEmitter } from "node:events";
 import { Readable } from "node:stream";
 import { createEventChannel } from "../protocol";
+import { AcpProtocolClient, mapAcpUpdate } from "../acp-protocol";
 import { TransportError } from "../errors";
 
 // ============================================================================
@@ -107,12 +108,48 @@ describe("createEventChannel", () => {
   });
 });
 
+describe("mapAcpUpdate", () => {
+  it("maps ACP message and thought chunks to content parts", () => {
+    expect(mapAcpUpdate({ sessionUpdate: "agent_message_chunk", content: { text: "hello" } })).toEqual([
+      { type: "ContentPart", payload: { type: "text", text: "hello" } },
+    ]);
+    expect(mapAcpUpdate({ sessionUpdate: "agent_thought_chunk", content: { text: "reasoning" } })).toEqual([
+      { type: "ContentPart", payload: { type: "think", think: "reasoning" } },
+    ]);
+  });
+
+  it("maps ACP tool lifecycle updates to Wire-compatible events", () => {
+    const tools = new Map();
+    expect(mapAcpUpdate({ sessionUpdate: "tool_call", toolCallId: "call-1", title: "Read", rawInput: { path: "a.ts" } }, tools)).toEqual([
+      {
+        type: "ToolCall",
+        payload: {
+          type: "function",
+          id: "call-1",
+          function: { name: "Read", arguments: '{"path":"a.ts"}' },
+          extras: { title: "Read", kind: undefined, status: undefined },
+        },
+      },
+    ]);
+    expect(mapAcpUpdate({ sessionUpdate: "tool_call_update", toolCallId: "call-1", status: "completed", content: "done" }, tools)).toEqual([
+      {
+        type: "ToolResult",
+        payload: {
+          tool_call_id: "call-1",
+          return_value: { is_error: false, output: "done", message: "Tool call completed", display: [] },
+        },
+      },
+    ]);
+  });
+});
+
 // ============================================================================
 // ProtocolClient Tests
 // ============================================================================
 const mockSpawn = vi.fn();
 vi.mock("node:child_process", () => ({
   spawn: (...args: unknown[]) => mockSpawn(...args),
+  spawnSync: () => ({ status: 1 }),
 }));
 
 let ProtocolClient: (typeof import("../protocol"))["ProtocolClient"];
@@ -300,6 +337,257 @@ describe("ProtocolClient", () => {
       const client = new ProtocolClient();
       await expect(client.start({ sessionId: "test", workDir: "/tmp" })).rejects.toThrow(TransportError);
     });
+  });
+
+  describe("ACP prompts", () => {
+    it("loads a persisted session when asked to resume", async () => {
+      const proc = createMockProcess();
+      const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        requests.push(request);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/load") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi", sessionId: "12345678-1234-1234-1234-123456789abc", resumeSession: true });
+
+      expect(requests).toContainEqual(expect.objectContaining({
+        method: "session/load",
+        params: { sessionId: "session_12345678-1234-1234-1234-123456789abc", cwd: "/tmp", mcpServers: [] },
+      }));
+      expect(client.sessionConfig?.sessionId).toBe("12345678-1234-1234-1234-123456789abc");
+    });
+
+    it("parses slash commands from the ACP initialize response", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: {
+              agentInfo: { name: "Kimi", version: "test" },
+              slashCommands: [
+                { name: "commit", description: "Generate a commit message", aliases: ["c"] },
+                { name: "test", description: "Run tests", aliases: [] },
+                { name: "invalid", aliases: [] },
+              ],
+            },
+          })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      const initResult = await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      expect(initResult.slash_commands).toEqual([
+        { name: "commit", description: "Generate a commit message", aliases: ["c"] },
+        { name: "test", description: "Run tests", aliases: [] },
+      ]);
+    });
+
+    it("falls back to snake_case slash_commands in the ACP initialize response", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({
+            jsonrpc: "2.0",
+            id: request.id,
+            result: {
+              agentInfo: { name: "Kimi", version: "test" },
+              slash_commands: [{ name: "fix", description: "Fix code issues", aliases: [] }],
+            },
+          })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      const initResult = await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      expect(initResult.slash_commands).toEqual([{ name: "fix", description: "Fix code issues", aliases: [] }]);
+    });
+
+    it("emits a step before ACP content updates", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { agentInfo: { name: "Kimi", version: "test" } } })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", method: "session/update", params: { update: { sessionUpdate: "agent_message_chunk", content: { text: "hello" } } } })}\n`);
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+
+      const stream = client.sendPrompt("Hi");
+      const events = [];
+      for await (const event of stream.events) {
+        events.push(event);
+      }
+
+      expect(events).toEqual([
+        { type: "TurnBegin", payload: { user_input: "Hi" } },
+        { type: "StepBegin", payload: { n: 1 } },
+        { type: "ContentPart", payload: { type: "text", text: "hello" } },
+        { type: "TurnEnd", payload: {} },
+      ]);
+    });
+
+    it("preserves a cancelled ACP prompt result", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { stopReason: "cancelled" } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).resolves.toEqual({ status: "cancelled" });
+    });
+
+    it("does not confuse a reverse permission request with a prompt response sharing its ID", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      const promptRequest = JSON.parse(proc.stdin.write.mock.calls.at(-1)![0]);
+
+      proc.stdout.push(`${JSON.stringify({
+        jsonrpc: "2.0",
+        id: promptRequest.id,
+        method: "session/request_permission",
+        params: { toolCall: { toolCallId: "tool-1", title: "Bash" }, options: [] },
+      })}\n`);
+      proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: promptRequest.id, result: { stopReason: "end_turn" } })}\n`);
+
+      const events = await Array.fromAsync(stream.events);
+      expect(events).toContainEqual(expect.objectContaining({ type: "ApprovalRequest" }));
+      await expect(stream.result).resolves.toEqual({ status: "finished" });
+    });
+
+    it("tolerates an ACP prompt response with no result payload", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).resolves.toEqual({ status: "finished" });
+    });
+
+    it("rejects a completed ACP prompt with unresolved tool calls", async () => {
+      const proc = createMockProcess();
+      proc.stdin.write.mockImplementation((line: string) => {
+        const request = JSON.parse(line);
+        if (request.method === "initialize") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: {} })}\n`);
+        } else if (request.method === "session/new") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { sessionId: "session-1", configOptions: [] } })}\n`);
+        } else if (request.method === "session/prompt") {
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", method: "session/update", params: { update: { sessionUpdate: "tool_call", toolCallId: "tool-1", title: "Read" } } })}\n`);
+          proc.stdout.push(`${JSON.stringify({ jsonrpc: "2.0", id: request.id, result: { stopReason: "end_turn" } })}\n`);
+        }
+        return true;
+      });
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new AcpProtocolClient();
+      await client.start({ workDir: "/tmp", executablePath: "kimi" });
+      const stream = client.sendPrompt("Hi");
+      await Array.fromAsync(stream.events);
+
+      await expect(stream.result).rejects.toMatchObject({ code: "INCOMPLETE_TURN" });
+    });
+  });
+
+  it("uses ACP content for streamed tool arguments and results", () => {
+    const tools = new Map();
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call",
+      toolCallId: "call-1",
+      title: "Read",
+      content: [{ type: "content", content: { type: "text", text: '{"path":"a.ts"}' } }],
+    }, tools)).toMatchObject([{
+      type: "ToolCall",
+      payload: { function: { arguments: '{"path":"a.ts"}' } },
+    }]);
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call-1",
+      status: "in_progress",
+      rawInput: { path: "src/a.ts" },
+    }, tools)).toContainEqual({
+      type: "ToolCallPart",
+      payload: { tool_call_id: "call-1", arguments_part: '{"path":"src/a.ts"}', replace_arguments: true },
+    });
+    expect(mapAcpUpdate({
+      sessionUpdate: "tool_call_update",
+      toolCallId: "call-1",
+      status: "completed",
+      content: [{ type: "content", content: { type: "text", text: "file contents" } }],
+    }, tools)).toMatchObject([{
+      type: "ToolResult",
+      payload: { return_value: { output: "file contents" } },
+    }]);
   });
 
   describe("stop", () => {

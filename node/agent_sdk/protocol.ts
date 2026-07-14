@@ -1,5 +1,5 @@
 // agent_sdk/protocol.ts
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { createInterface, type Interface as ReadlineInterface } from "node:readline";
 import {
   parseEventPayload,
@@ -23,6 +23,7 @@ import {
 } from "./schema";
 import { TransportError, ProtocolError, CliError } from "./errors";
 import { log } from "./logger";
+import { AcpProtocolClient, type AcpSessionConfig } from "./acp-protocol";
 
 const PROTOCOL_VERSION = "1.7";
 const SDK_NAME = "kimi-agent-sdk";
@@ -54,6 +55,8 @@ export interface HookRegistration {
 
 export interface ClientOptions {
   sessionId?: string;
+  /** Resume an existing session instead of creating a new one when ACP is used. */
+  resumeSession?: boolean;
   workDir: string;
   model?: string;
   thinking?: boolean;
@@ -130,6 +133,7 @@ export function createEventChannel<T>(): {
 }
 
 export class ProtocolClient {
+  private acpClient: AcpProtocolClient | null = null;
   private process: ChildProcess | null = null;
   private readline: ReadlineInterface | null = null;
   private requestId = 0;
@@ -142,16 +146,26 @@ export class ProtocolClient {
   private hookHandlers = new Map<string, HookHandler>();
 
   get isRunning(): boolean {
-    return this.process !== null && this.process.exitCode === null;
+    return this.acpClient?.isRunning ?? (this.process !== null && this.process.exitCode === null);
+  }
+
+  get acpSessionConfig(): AcpSessionConfig | null {
+    return this.acpClient?.sessionConfig ?? null;
   }
 
   async start(options: ClientOptions): Promise<InitializeResult> {
-    if (this.process) {
+    if (this.process || this.acpClient) {
       throw new TransportError("ALREADY_STARTED", "Client already started");
     }
 
-    const args = this.buildArgs(options);
     const executable = options.executablePath ?? "kimi";
+
+    if (supportsAcp(executable, options.workDir, options.environmentVariables)) {
+      this.acpClient = new AcpProtocolClient();
+      return this.acpClient.start(options);
+    }
+
+    const args = this.buildArgs(options);
 
     log.protocol("Spawning CLI: %s %o", executable, args);
 
@@ -202,6 +216,11 @@ export class ProtocolClient {
   }
 
   async stop(): Promise<void> {
+    if (this.acpClient) {
+      await this.acpClient.stop();
+      this.acpClient = null;
+      return;
+    }
     if (!this.process) {
       return;
     }
@@ -230,6 +249,9 @@ export class ProtocolClient {
   }
 
   sendPrompt(content: string | ContentPart[]): PromptStream {
+    if (this.acpClient) {
+      return this.acpClient.sendPrompt(content);
+    }
     const { iterable, push, finish } = createEventChannel<StreamEvent>();
 
     this.pushEvent = push;
@@ -254,6 +276,9 @@ export class ProtocolClient {
   }
 
   sendCancel(): Promise<void> {
+    if (this.acpClient) {
+      return this.acpClient.sendCancel();
+    }
     return this.sendRequest("cancel").then(() => {});
   }
 
@@ -285,6 +310,9 @@ export class ProtocolClient {
   }
 
   sendApproval(requestId: string, response: ApprovalResponse): Promise<void> {
+    if (this.acpClient) {
+      return this.acpClient.sendApproval(requestId, response);
+    }
     this.writeLine({
       jsonrpc: "2.0",
       id: requestId,
@@ -627,5 +655,28 @@ export class ProtocolClient {
     this.finishEvents = null;
     this.pendingRequests.clear();
     this.externalToolHandlers.clear();
+  }
+}
+
+const acpSupportCache = new Map<string, boolean>();
+
+function supportsAcp(executable: string, cwd: string, environmentVariables?: Record<string, string>): boolean {
+  const cacheKey = executable;
+  const cached = acpSupportCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
+  try {
+    const result = spawnSync(executable, ["acp", "--help"], {
+      cwd,
+      env: { ...process.env, ...environmentVariables },
+      stdio: "ignore",
+      timeout: 5000,
+    });
+    const supported = result.status === 0;
+    acpSupportCache.set(cacheKey, supported);
+    return supported;
+  } catch {
+    acpSupportCache.set(cacheKey, false);
+    return false;
   }
 }

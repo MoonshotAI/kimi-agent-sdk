@@ -35,7 +35,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const [cursorPos, setCursorPos] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
 
-  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue, planMode } = useChatStore();
+  const { isStreaming, isAborting, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue, planMode } = useChatStore();
   const { currentModel, thinkingEnabled, updateModel, toggleThinking, models, extensionConfig, getCurrentThinkingMode } = useSettingsStore();
 
   const isProcessing = hasProcessingMedia();
@@ -375,7 +375,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
                     variant="ghost"
                     size="xs"
                     className="gap-0.5 text-accent-foreground border-0! h-6 px-1.5 min-w-0 max-w-[calc(100%-4rem)]"
-                    disabled={isStreaming || !hasModels}
+                    disabled={isStreaming || isAborting || !hasModels}
                   >
                     <span className="text-xs truncate block">{currentModelConfig?.name || "No models available"}</span>
                     {hasModels && <IconChevronDown className="size-3.5 shrink-0" />}
@@ -394,7 +394,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <ThinkingButton mode={thinkingMode} enabled={thinkingEnabled} disabled={isStreaming} onToggle={toggleThinking} />
+              <ThinkingButton mode={thinkingMode} enabled={thinkingEnabled} disabled={isStreaming || isAborting} onToggle={toggleThinking} />
               <PlanModeButton active={planMode} onToggle={handleTogglePlanMode} />
             </div>
 

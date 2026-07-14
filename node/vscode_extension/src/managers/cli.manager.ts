@@ -3,7 +3,7 @@ import * as path from "path";
 import * as fs from "fs";
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { ProtocolClient, type InitializeResult } from "@moonshot-ai/kimi-agent-sdk";
+import { ProtocolClient, type InitializeResult, type KimiConfig } from "@moonshot-ai/kimi-agent-sdk";
 import {
   getPlatformKey,
   getPlatformInfo,
@@ -63,6 +63,8 @@ export class CLIManager {
   private extensionBinPath: string;
   private kimiPath: string;
   private uvPath: string;
+  private acpConfig: KimiConfig | null = null;
+  private acpAuthenticated = false;
 
   constructor(private ctx: vscode.ExtensionContext) {
     const globalBin = path.join(ctx.globalStorageUri.fsPath, "bin");
@@ -81,6 +83,14 @@ export class CLIManager {
     const info = getPlatformInfo();
     const filename = installed?.type === "uv" ? info.wrapper : info.exe;
     return path.join(this.kimiPath, filename);
+  }
+
+  getAcpConfig(): KimiConfig | null {
+    return this.acpConfig;
+  }
+
+  isAcpAuthenticated(): boolean {
+    return this.acpAuthenticated;
   }
 
   async checkInstalled(workDir: string): Promise<CLICheckResult> {
@@ -151,24 +161,18 @@ export class CLIManager {
   private async verify(workDir: string, resolved: { isCustomPath: boolean; path: string }): Promise<CLICheckResult> {
     const execPath = this.getExecutablePath();
 
-    let cliVersion: string;
-    let wireVersion: string;
     try {
       const info = await this.getInfo(execPath);
-      cliVersion = info.kimi_cli_version;
-      wireVersion = info.wire_protocol_version;
+      if (compareVersion(info.kimi_cli_version, MIN_CLI_VERSION) < 0) {
+        console.error(`CLI version too low: ${info.kimi_cli_version} < ${MIN_CLI_VERSION}`);
+        return { ok: false, resolved, error: { type: "version_low", message: `CLI ${info.kimi_cli_version} < ${MIN_CLI_VERSION}` } };
+      }
+      if (compareVersion(info.wire_protocol_version, MIN_WIRE_VERSION) < 0) {
+        console.error(`Wire protocol version too low: ${info.wire_protocol_version} < ${MIN_WIRE_VERSION}`);
+        return { ok: false, resolved, error: { type: "version_low", message: `Wire ${info.wire_protocol_version} < ${MIN_WIRE_VERSION}` } };
+      }
     } catch (err) {
-      console.error("Error getting CLI info:", err);
-      return { ok: false, resolved, error: { type: "not_found", message: errorText(err) } };
-    }
-
-    if (compareVersion(cliVersion, MIN_CLI_VERSION) < 0) {
-      console.error(`CLI version too low: ${cliVersion} < ${MIN_CLI_VERSION}`);
-      return { ok: false, resolved, error: { type: "version_low", message: `CLI ${cliVersion} < ${MIN_CLI_VERSION}` } };
-    }
-    if (compareVersion(wireVersion, MIN_WIRE_VERSION) < 0) {
-      console.error(`Wire protocol version too low: ${wireVersion} < ${MIN_WIRE_VERSION}`);
-      return { ok: false, resolved, error: { type: "version_low", message: `Wire ${wireVersion} < ${MIN_WIRE_VERSION}` } };
+      console.log("CLI does not support the legacy info command; trying ACP handshake", err);
     }
 
     try {
@@ -188,9 +192,32 @@ export class CLIManager {
   private async verifyWire(execPath: string, workDir: string): Promise<InitializeResult> {
     const client = new ProtocolClient();
     try {
-      return await client.start({ sessionId: undefined, workDir, executablePath: execPath });
+      const initialized = await client.start({ sessionId: undefined, workDir, executablePath: execPath });
+      const acpConfig = client.acpSessionConfig;
+      if (acpConfig) {
+        this.acpAuthenticated = true;
+        this.acpConfig = toKimiConfig(acpConfig);
+      } else {
+        this.acpAuthenticated = false;
+        this.acpConfig = null;
+      }
+      return initialized;
     } finally {
       await client.stop();
     }
   }
+}
+
+function toKimiConfig(config: NonNullable<ProtocolClient["acpSessionConfig"]>): KimiConfig {
+  const model = config.configOptions.find((option) => option.id === "model");
+  const thinking = config.configOptions.find((option) => option.id === "thinking");
+  return {
+    defaultModel: model?.currentValue ?? null,
+    defaultThinking: thinking?.currentValue === "on",
+    models: (model?.options ?? []).map((option) => ({
+      id: option.value,
+      name: option.name,
+      capabilities: thinking ? ["thinking"] : [],
+    })),
+  };
 }

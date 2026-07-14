@@ -206,14 +206,14 @@ function applyEventToSteps(steps: UIStep[], event: { type: string; payload: any 
     }
 
     case "ToolCallPart": {
-      const { arguments_part } = event.payload;
+      const { arguments_part, tool_call_id, replace_arguments } = event.payload;
       if (!arguments_part) {
         break;
       }
-      const tool = findLastToolUse();
+      const tool = tool_call_id ? findToolUseItem(steps, tool_call_id) : findLastToolUse();
 
       if (tool) {
-        tool.call.arguments = (tool.call.arguments || "") + arguments_part;
+        tool.call.arguments = replace_arguments ? arguments_part : (tool.call.arguments || "") + arguments_part;
       }
 
       break;

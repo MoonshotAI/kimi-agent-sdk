@@ -21,6 +21,7 @@ export const ProtocolErrorCodes = {
   UNKNOWN_REQUEST_TYPE: "UNKNOWN_REQUEST_TYPE",
   REQUEST_TIMEOUT: "REQUEST_TIMEOUT",
   REQUEST_CANCELLED: "REQUEST_CANCELLED",
+  INCOMPLETE_TURN: "INCOMPLETE_TURN",
 } as const;
 
 export const SessionErrorCodes = {

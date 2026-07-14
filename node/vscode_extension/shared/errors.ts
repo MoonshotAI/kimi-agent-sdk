@@ -40,6 +40,7 @@ export const ERROR_MESSAGES: Record<string, string> = {
   [ProtocolErrorCodes.INVALID_REQUEST]: "Invalid request.",
   [ProtocolErrorCodes.INVALID_PARAMS]: "Invalid parameters.",
   [ProtocolErrorCodes.INTERNAL_ERROR]: "Internal error occurred.",
+  [ProtocolErrorCodes.INCOMPLETE_TURN]: "Kimi Code stopped before completing its pending tool calls. Check the Kimi Code output for the ACP stop reason.",
 };
 
 export function classifyError(code: string): ErrorPhase {

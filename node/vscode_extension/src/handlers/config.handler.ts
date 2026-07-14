@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { Methods } from "../../shared/bridge";
 import { VSCodeSettings } from "../config/vscode-settings";
 import { parseConfig, saveDefaultModel } from "@moonshot-ai/kimi-agent-sdk";
+import { getCLIManager } from "../managers";
 import type { SessionConfig, ExtensionConfig } from "../../shared/types";
 import type { KimiConfig } from "@moonshot-ai/kimi-agent-sdk";
 import type { Handler } from "./types";
@@ -21,7 +22,7 @@ const openSettings: Handler<void, { ok: boolean }> = async () => {
 };
 
 const getModels: Handler<void, KimiConfig> = async () => {
-  return parseConfig();
+  return getCLIManager().getAcpConfig() ?? parseConfig();
 };
 
 const showLogs: Handler<void, { ok: boolean }> = async (_, ctx) => {

@@ -88,6 +88,7 @@ export interface ChatState {
   sessionId: string | null;
   messages: ChatMessage[];
   isStreaming: boolean;
+  isAborting: boolean;
   isCompacting: boolean;
   handshakeReceived: boolean;
   draftMedia: DraftMediaItem[];
@@ -163,6 +164,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sessionId: null,
   messages: [],
   isStreaming: false,
+  isAborting: false,
   isCompacting: false,
   handshakeReceived: false,
   draftMedia: [],
@@ -175,7 +177,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   planMode: false,
 
   sendMessage: (text) => {
-    const { draftMedia, isStreaming } = get();
+    const { draftMedia, isStreaming, isAborting } = get();
     const { currentModel } = useSettingsStore.getState();
 
     const readyMedia = draftMedia.filter((m) => m.dataUri).map((m) => m.dataUri!);
@@ -185,8 +187,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return;
     }
 
-    // If streaming, enqueue instead of sending
-    if (isStreaming) {
+    // If streaming or still aborting the previous turn, enqueue instead of sending
+    if (isStreaming || isAborting) {
       get().enqueue(content, currentModel);
       set({ draftMedia: [] });
       return;
@@ -208,9 +210,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   retryLastMessage: () => {
-    const { pendingInput, isStreaming } = get();
+    const { pendingInput, isStreaming, isAborting } = get();
 
-    if (isStreaming || !pendingInput) {
+    if (isStreaming || isAborting || !pendingInput) {
       return;
     }
 
@@ -247,8 +249,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
       }),
     );
 
-    // Auto-send next queued item when streaming ends (complete or error)
-    if (event.type === "stream_complete" || event.type === "error") {
+    // Auto-send next queued item when streaming ends (complete, error, or interrupted)
+    if (event.type === "stream_complete" || event.type === "error" || event.type === "StepInterrupted") {
+      set({ isAborting: false });
       const { queue, isStreaming: stillStreaming } = get();
       if (!stillStreaming && queue.length > 0) {
         setTimeout(() => get().sendNextQueued(), 50);
@@ -269,6 +272,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       sessionId,
       messages: [],
       isStreaming: false,
+      isAborting: false,
       isCompacting: false,
       handshakeReceived: false,
       draftMedia: [],
@@ -324,6 +328,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       sessionId: null,
       messages: [],
       isStreaming: false,
+      isAborting: false,
       isCompacting: false,
       handshakeReceived: false,
       draftMedia: [],
@@ -340,7 +345,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   abort: () => {
     clearHandshakeTimer();
-    bridge.abortChat();
+
+    // Optimistically end the streaming UI so the stop button feels responsive.
+    // isAborting stays true until the backend confirms the turn ended, preventing
+    // a new message from starting a conflicting turn while the old one winds down.
+    set(
+      produce((draft: ChatState) => {
+        draft.isStreaming = false;
+        draft.isAborting = true;
+        draft.isCompacting = false;
+        draft.handshakeReceived = false;
+        const lastAssistant = draft.messages.at(-1);
+        if (lastAssistant?.role === "assistant" && lastAssistant.steps) {
+          for (const step of lastAssistant.steps) {
+            for (const item of step.items) {
+              if (item.type === "text" || item.type === "thinking") {
+                item.finished = true;
+              }
+            }
+          }
+        }
+      }),
+    );
+
+    bridge.abortChat().catch((err) => {
+      console.error("Failed to abort chat:", err);
+    });
+
     set({ pendingQuestion: null });
     useApprovalStore.getState().clearRequests();
   },
@@ -440,8 +471,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   sendNextQueued: () => {
-    const { queue, isStreaming } = get();
-    if (isStreaming || queue.length === 0) {
+    const { queue, isStreaming, isAborting } = get();
+    if (isStreaming || isAborting || queue.length === 0) {
       return;
     }
 

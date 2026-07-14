@@ -203,8 +203,12 @@ export type ToolCall = z.infer<typeof ToolCallSchema>;
 
 // Tool call argument chunk (streaming)
 export const ToolCallPartSchema = z.object({
-  // Argument chunk, appended to the last ToolCall's arguments
+  // Argument chunk, appended to the associated ToolCall's arguments
   arguments_part: z.string().nullable().optional(),
+  // Optional tool ID for protocols that stream multiple calls concurrently
+  tool_call_id: z.string().optional(),
+  // Replaces the accumulated arguments instead of appending a delta
+  replace_arguments: z.boolean().optional(),
 });
 export type ToolCallPart = z.infer<typeof ToolCallPartSchema>;
 

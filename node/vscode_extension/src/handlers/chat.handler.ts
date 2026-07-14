@@ -159,7 +159,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     await ctx.saveAllDirty();
   }
 
-  const session = ctx.getOrCreateSession(params.model, params.thinking, params.sessionId);
+  const session = await ctx.getOrCreateSession(params.model, params.thinking, params.sessionId);
   const workDir = ctx.workDir;
   const sessionId = session.sessionId;
 

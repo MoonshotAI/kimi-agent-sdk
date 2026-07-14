@@ -59,6 +59,8 @@ export interface Session {
   readonly planMode: boolean;
   /** Toggle plan mode on/off */
   setPlanMode(enabled: boolean): Promise<boolean>;
+  /** Initialize the backing protocol and resolve the persistent session ID. */
+  initialize(): Promise<void>;
   /** Send a message, returns a Turn object */
   prompt(content: string | ContentPart[]): Turn;
   /** Close the session, release resources */
@@ -152,7 +154,8 @@ class TurnImpl implements Turn {
 }
 
 class SessionImpl implements Session {
-  private readonly _sessionId: string;
+  private _sessionId: string;
+  private resumeSession: boolean;
   private readonly _workDir: string;
   private readonly _clientInfo?: ClientInfo;
 
@@ -177,6 +180,7 @@ class SessionImpl implements Session {
 
   constructor(options: SessionOptions) {
     this._sessionId = options.sessionId ?? crypto.randomUUID();
+    this.resumeSession = options.sessionId !== undefined;
     this._workDir = options.workDir;
     this._model = options.model;
     this._thinking = options.thinking ?? false;
@@ -256,6 +260,13 @@ class SessionImpl implements Session {
     return this._planMode;
   }
 
+  async initialize(): Promise<void> {
+    if (this._state === "closed") {
+      throw new SessionError("SESSION_CLOSED", "Cannot initialize a closed session");
+    }
+    await this.getClientWithConfigCheck();
+  }
+
   prompt(content: string | ContentPart[]): Turn {
     if (this._state === "closed") {
       throw new SessionError("SESSION_CLOSED", "Session is closed");
@@ -331,6 +342,7 @@ class SessionImpl implements Session {
     const envVars = this._shareDir ? { KIMI_SHARE_DIR: this._shareDir, ...this._env } : this._env;
     const initResult = await this.client.start({
       sessionId: this._sessionId,
+      resumeSession: this.resumeSession,
       workDir: this._workDir,
       model: this._model,
       thinking: this._thinking,
@@ -342,6 +354,12 @@ class SessionImpl implements Session {
       skillsDir: this._skillsDir,
       clientInfo: this._clientInfo,
     });
+
+    const acpSessionId = this.client.acpSessionConfig?.sessionId;
+    if (acpSessionId) {
+      this._sessionId = acpSessionId;
+      this.resumeSession = true;
+    }
 
     this._slashCommands = initResult.slash_commands;
     this.activeConfig = currentConfig;
