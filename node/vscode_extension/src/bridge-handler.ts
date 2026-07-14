@@ -17,8 +17,8 @@ interface RpcResult {
 }
 
 export class BridgeHandler {
-  private sessions = new Map<string, Session>();
-  private turns = new Map<string, Turn>();
+  private sessions = new Map<string, Map<string, Session>>();
+  private turns = new Map<string, Map<string, Turn>>();
   private customWorkDirs = new Map<string, string>(); // webviewId -> custom workDir
   private fileManager: FileManager;
 
@@ -59,10 +59,7 @@ export class BridgeHandler {
     } else {
       this.customWorkDirs.delete(webviewId);
     }
-    // Close session when workDir changes
-    this.sessions.get(webviewId)?.close();
-    this.sessions.delete(webviewId);
-    this.turns.delete(webviewId);
+    // Existing sessions keep their own working directory and may continue in the background.
   }
 
   private requireWorkDir(webviewId: string): string {
@@ -92,25 +89,19 @@ export class BridgeHandler {
       fileManager: this.fileManager,
       reloadWebview: () => this.reloadWebview(webviewId),
       showLogs: this.showLogs,
-      getSession: () => this.sessions.get(webviewId),
+      getSession: (sessionId?: string) => this.getSession(webviewId, sessionId),
       getSessionId: () => this.fileManager.getSessionId(webviewId),
-      getTurn: () => this.turns.get(webviewId),
-      setTurn: (turn: Turn | null) => {
+      getTurn: (sessionId?: string) => this.getTurn(webviewId, sessionId),
+      setTurn: (sessionId: string, turn: Turn | null) => {
+        const turns = this.getTurns(webviewId);
         if (turn) {
-          this.turns.set(webviewId, turn);
+          turns.set(sessionId, turn);
         } else {
-          this.turns.delete(webviewId);
+          turns.delete(sessionId);
         }
       },
       getOrCreateSession: (model, thinking, sessionId) => this.getOrCreateSession(webviewId, model, thinking, sessionId),
-      closeSession: async () => {
-        const session = this.sessions.get(webviewId);
-        if (session) {
-          await session.close();
-          this.sessions.delete(webviewId);
-        }
-        this.turns.delete(webviewId);
-      },
+      closeSession: (sessionId?: string) => this.closeSession(webviewId, sessionId),
       saveAllDirty: () => this.saveAllDirty(),
       setCustomWorkDir: (workDir: string | null) => this.setCustomWorkDir(webviewId, workDir),
     };
@@ -143,7 +134,8 @@ export class BridgeHandler {
     const env = VSCodeSettings.environmentVariables;
     const yoloMode = VSCodeSettings.yoloMode;
 
-    const existing = this.sessions.get(webviewId);
+    const sessions = this.getSessions(webviewId);
+    const existing = sessionId ? sessions.get(sessionId) : undefined;
 
     // Check if we need to restart the session
     if (existing) {
@@ -157,14 +149,13 @@ export class BridgeHandler {
 
       if (needsRestart) {
         existing.close();
-        this.sessions.delete(webviewId);
-        this.turns.delete(webviewId);
+        sessions.delete(existing.sessionId);
+        this.getTurns(webviewId).delete(existing.sessionId);
       }
     }
 
-    const current = this.sessions.get(webviewId);
-    if (current) {
-      return current;
+    if (existing && sessions.has(existing.sessionId)) {
+      return existing;
     }
 
     const session = createSession({
@@ -178,13 +169,13 @@ export class BridgeHandler {
       clientInfo: { name: "kimi-code-for-vs-code", version: VSCodeSettings.getExtensionConfig().version },
     });
 
-    this.sessions.set(webviewId, session);
+    sessions.set(session.sessionId, session);
     this.fileManager.setSessionId(webviewId, session.sessionId);
     return session;
   }
 
   disposeView(webviewId: string): void {
-    this.sessions.get(webviewId)?.close();
+    void this.closeSessions(webviewId);
     this.sessions.delete(webviewId);
     this.turns.delete(webviewId);
     this.fileManager.disposeView(webviewId);
@@ -192,10 +183,58 @@ export class BridgeHandler {
 
   async dispose(): Promise<void> {
     this.fileManager.dispose();
-    for (const s of this.sessions.values()) {
-      await s.close();
+    for (const sessions of this.sessions.values()) {
+      for (const session of sessions.values()) {
+        await session.close();
+      }
     }
     this.sessions.clear();
     this.turns.clear();
+  }
+
+  private getSessions(webviewId: string): Map<string, Session> {
+    let sessions = this.sessions.get(webviewId);
+    if (!sessions) {
+      sessions = new Map();
+      this.sessions.set(webviewId, sessions);
+    }
+    return sessions;
+  }
+
+  private getTurns(webviewId: string): Map<string, Turn> {
+    let turns = this.turns.get(webviewId);
+    if (!turns) {
+      turns = new Map();
+      this.turns.set(webviewId, turns);
+    }
+    return turns;
+  }
+
+  private getSession(webviewId: string, sessionId?: string): Session | undefined {
+    const id = sessionId ?? this.fileManager.getSessionId(webviewId);
+    return id ? this.sessions.get(webviewId)?.get(id) : undefined;
+  }
+
+  private getTurn(webviewId: string, sessionId?: string): Turn | undefined {
+    const id = sessionId ?? this.fileManager.getSessionId(webviewId);
+    return id ? this.turns.get(webviewId)?.get(id) : undefined;
+  }
+
+  private async closeSession(webviewId: string, sessionId?: string): Promise<void> {
+    const id = sessionId ?? this.fileManager.getSessionId(webviewId);
+    if (!id) return;
+    const sessions = this.sessions.get(webviewId);
+    const session = sessions?.get(id);
+    if (session) {
+      await session.close();
+      sessions?.delete(id);
+    }
+    this.turns.get(webviewId)?.delete(id);
+  }
+
+  private async closeSessions(webviewId: string): Promise<void> {
+    const sessions = this.sessions.get(webviewId);
+    if (!sessions) return;
+    await Promise.all([...sessions.values()].map((session) => session.close()));
   }
 }

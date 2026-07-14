@@ -35,7 +35,7 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
   const [cursorPos, setCursorPos] = useState(0);
   const [previewMedia, setPreviewMedia] = useState<string | null>(null);
 
-  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue, planMode } = useChatStore();
+  const { isStreaming, sendMessage, abort, draftMedia, removeDraftMedia, hasProcessingMedia, getMediaInConversation, pendingInput, queue, planMode, sessionId } = useChatStore();
   const { currentModel, thinkingEnabled, updateModel, toggleThinking, models, extensionConfig, getCurrentThinkingMode } = useSettingsStore();
 
   const isProcessing = hasProcessingMedia();
@@ -51,12 +51,12 @@ export function InputArea({ onAuthAction }: InputAreaProps) {
     }
     const newState = !planMode;
     useChatStore.setState({ planMode: newState }); // optimistic
-    bridge.setPlanMode(newState);
+    bridge.setPlanMode(newState, sessionId ?? undefined);
   };
 
   const handleConfirmExitPlanMode = () => {
     useChatStore.setState({ planMode: false });
-    bridge.setPlanMode(false);
+    bridge.setPlanMode(false, sessionId ?? undefined);
     setShowPlanModeConfirm(false);
   };
 

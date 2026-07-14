@@ -17,6 +17,10 @@ interface StreamChatParams {
   sessionId?: string;
 }
 
+interface SessionTarget {
+  sessionId?: string;
+}
+
 interface RespondApprovalParams {
   requestId: string;
   response: ApprovalResponse;
@@ -176,7 +180,7 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
 
   try {
     const turn = session.prompt(contentWithContext);
-    ctx.setTurn(turn);
+    ctx.setTurn(sessionId, turn);
 
     let result: RunResult = { status: "finished" };
 
@@ -231,11 +235,11 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
     result = await turn.result;
 
     ctx.broadcast(Events.StreamEvent, { type: "stream_complete", result, _sessionId: sessionId }, ctx.webviewId);
-    ctx.setTurn(null);
+    ctx.setTurn(sessionId, null);
 
     return { done: true };
   } catch (err) {
-    ctx.setTurn(null);
+    ctx.setTurn(sessionId, null);
 
     const code = getErrorCode(err);
     const phase = classifyError(code);
@@ -260,23 +264,26 @@ const streamChat: Handler<StreamChatParams, { done: boolean }> = async (params, 
   }
 };
 
-const abortChat: Handler<void, { aborted: boolean }> = async (_, ctx) => {
-  const turn = ctx.getTurn();
+const abortChat: Handler<SessionTarget, { aborted: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn(params.sessionId);
   if (turn) {
     await turn.interrupt();
-    ctx.setTurn(null);
+    const sessionId = params.sessionId ?? ctx.getSessionId();
+    if (sessionId) {
+      ctx.setTurn(sessionId, null);
+    }
   }
   return { aborted: true };
 };
 
-const respondApproval: Handler<RespondApprovalParams, { ok: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn();
+const respondApproval: Handler<RespondApprovalParams & SessionTarget, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn(params.sessionId);
   turn?.approve(params.requestId, params.response);
   return { ok: true };
 };
 
-const respondQuestion: Handler<RespondQuestionParams, { ok: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn();
+const respondQuestion: Handler<RespondQuestionParams & SessionTarget, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn(params.sessionId);
   if (turn) {
     await turn.respondQuestion(params.rpcRequestId, params.questionRequestId, params.answers);
   }
@@ -287,8 +294,8 @@ interface SetPlanModeParams {
   enabled: boolean;
 }
 
-const setPlanMode: Handler<SetPlanModeParams, { ok: boolean; planMode: boolean }> = async (params, ctx) => {
-  const session = ctx.getSession();
+const setPlanMode: Handler<SetPlanModeParams & SessionTarget, { ok: boolean; planMode: boolean }> = async (params, ctx) => {
+  const session = ctx.getSession(params.sessionId);
   if (!session) {
     return { ok: false, planMode: false };
   }
@@ -300,8 +307,8 @@ interface SteerChatParams {
   content: string | ContentPart[];
 }
 
-const steerChat: Handler<SteerChatParams, { ok: boolean }> = async (params, ctx) => {
-  const turn = ctx.getTurn();
+const steerChat: Handler<SteerChatParams & SessionTarget, { ok: boolean }> = async (params, ctx) => {
+  const turn = ctx.getTurn(params.sessionId);
   if (!turn) {
     return { ok: false };
   }
@@ -309,12 +316,12 @@ const steerChat: Handler<SteerChatParams, { ok: boolean }> = async (params, ctx)
   return { ok: true };
 };
 
-const resetSession: Handler<void, { ok: boolean }> = async (_, ctx) => {
-  const session = ctx.getSession();
+const resetSession: Handler<SessionTarget, { ok: boolean }> = async (params, ctx) => {
+  const session = ctx.getSession(params.sessionId);
   if (session) {
     injectedEditorContextSessions.delete(session.sessionId);
   }
-  await ctx.closeSession();
+  await ctx.closeSession(params.sessionId);
   ctx.fileManager.clearTracked(ctx.webviewId);
   return { ok: true };
 };

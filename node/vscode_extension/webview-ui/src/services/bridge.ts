@@ -172,12 +172,12 @@ class Bridge {
     return this.call<{ done: boolean }>(Methods.StreamChat, { content, model, thinking, sessionId });
   }
 
-  abortChat() {
-    return this.call<{ aborted: boolean }>(Methods.AbortChat);
+  abortChat(sessionId?: string) {
+    return this.call<{ aborted: boolean }>(Methods.AbortChat, { sessionId });
   }
 
-  resetSession() {
-    return this.call<{ ok: boolean }>(Methods.ResetSession);
+  resetSession(sessionId?: string) {
+    return this.call<{ ok: boolean }>(Methods.ResetSession, { sessionId });
   }
 
   getProjectFiles(params?: { query?: string; directory?: string }) {
@@ -192,12 +192,12 @@ class Bridge {
     return this.call<void>(Methods.InsertText, { text });
   }
 
-  respondApproval(requestId: string, response: ApprovalResponse) {
-    return this.call<{ ok: boolean }>(Methods.RespondApproval, { requestId, response });
+  respondApproval(requestId: string, response: ApprovalResponse, sessionId?: string) {
+    return this.call<{ ok: boolean }>(Methods.RespondApproval, { requestId, response, sessionId });
   }
 
-  respondQuestion(rpcRequestId: string, questionRequestId: string, answers: Record<string, string>) {
-    return this.call<{ ok: boolean }>(Methods.RespondQuestion, { rpcRequestId, questionRequestId, answers });
+  respondQuestion(rpcRequestId: string, questionRequestId: string, answers: Record<string, string>, sessionId?: string) {
+    return this.call<{ ok: boolean }>(Methods.RespondQuestion, { rpcRequestId, questionRequestId, answers, sessionId });
   }
 
   getKimiSessions() {
@@ -276,12 +276,12 @@ class Bridge {
     return this.call<string | null>(Methods.GetImageDataUri, { filePath });
   }
 
-  setPlanMode(enabled: boolean) {
-    return this.call<{ ok: boolean; planMode: boolean }>(Methods.SetPlanMode, { enabled });
+  setPlanMode(enabled: boolean, sessionId?: string) {
+    return this.call<{ ok: boolean; planMode: boolean }>(Methods.SetPlanMode, { enabled, sessionId });
   }
 
-  steerChat(content: string | ContentPart[]) {
-    return this.call<{ ok: boolean }>(Methods.SteerChat, { content });
+  steerChat(content: string | ContentPart[], sessionId?: string) {
+    return this.call<{ ok: boolean }>(Methods.SteerChat, { content, sessionId });
   }
 
   showLogs() {

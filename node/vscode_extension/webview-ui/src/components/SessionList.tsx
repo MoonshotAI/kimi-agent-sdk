@@ -78,12 +78,11 @@ function SessionItem({ session, isSelected, onSelect, onDelete, dirLabel }: Sess
 }
 
 export function SessionList({ onClose }: SessionListProps) {
-  const { loadSession, sessionId, startNewConversation, isStreaming } = useChatStore();
+  const { loadSession, sessionId, startNewConversation } = useChatStore();
   const { workspaceRoot, currentWorkDir, setCurrentWorkDir } = useSettingsStore();
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<SessionInfo | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [pendingSession, setPendingSession] = useState<SessionInfo | null>(null);
 
   const { data: kimiSessions = [], loading, mutate } = useRequest(() => bridge.getAllKimiSessions());
 
@@ -110,12 +109,6 @@ export function SessionList({ onClose }: SessionListProps) {
   const handleSelect = async (session: SessionInfo) => {
     console.log("[SessionList] Loading session:", session.id);
     
-    // If streaming, show confirmation dialog
-    if (isStreaming) {
-      setPendingSession(session);
-      return;
-    }
-    
     await doLoadSession(session);
   };
 
@@ -136,12 +129,6 @@ export function SessionList({ onClose }: SessionListProps) {
     } catch (error) {
       console.error("[SessionList] Failed to load session:", error);
     }
-  };
-
-  const handleConfirmSwitch = async () => {
-    if (!pendingSession) return;
-    await doLoadSession(pendingSession);
-    setPendingSession(null);
   };
 
   const handleDelete = async () => {
@@ -205,15 +192,6 @@ export function SessionList({ onClose }: SessionListProps) {
         confirmDisabled={isDeleting}
         cancelDisabled={isDeleting}
         confirmLoading={isDeleting}
-      />
-
-      <StreamingConfirmDialog
-        open={pendingSession !== null}
-        onOpenChange={(open) => !open && setPendingSession(null)}
-        title="Switch Conversation?"
-        description="The current conversation is still generating a response. Switching will truncate the output. Are you sure you want to continue?"
-        confirmLabel="Switch"
-        onConfirm={handleConfirmSwitch}
       />
     </>
   );

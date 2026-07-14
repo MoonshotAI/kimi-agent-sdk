@@ -146,7 +146,7 @@ function doSend(state: ChatState, content: string | ContentPart[], model: string
   handshakeTimer = setTimeout(() => {
     const s = useChatStore.getState();
     if (s.isStreaming && !s.handshakeReceived) {
-      bridge.abortChat();
+      bridge.abortChat(s.sessionId ?? undefined);
       s.processEvent({
         type: "error",
         code: "HANDSHAKE_TIMEOUT",
@@ -259,12 +259,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
   loadSession: async (sessionId, events) => {
     clearHandshakeTimer();
     
-    // Abort any ongoing stream when switching sessions
-    const { isStreaming: wasStreaming } = get();
-    if (wasStreaming) {
-      await bridge.abortChat();
-    }
-    
     set({
       sessionId,
       messages: [],
@@ -312,13 +306,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
   startNewConversation: async () => {
     clearHandshakeTimer();
     
-    // Abort any ongoing stream before starting new conversation
-    const { isStreaming: wasStreaming } = get();
-    if (wasStreaming) {
-      bridge.abortChat();
-    }
-    
-    await bridge.resetSession();
     await bridge.clearTrackedFiles();
     set({
       sessionId: null,
@@ -340,7 +327,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
   abort: () => {
     clearHandshakeTimer();
-    bridge.abortChat();
+    bridge.abortChat(get().sessionId ?? undefined);
     set({ pendingQuestion: null });
     useApprovalStore.getState().clearRequests();
   },
@@ -407,7 +394,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   respondQuestion: async (answers) => {
     const { pendingQuestion } = get();
     if (!pendingQuestion) return;
-    await bridge.respondQuestion(pendingQuestion.id, pendingQuestion.id, answers);
+    await bridge.respondQuestion(pendingQuestion.id, pendingQuestion.id, answers, get().sessionId ?? undefined);
     set({ pendingQuestion: null });
   },
 

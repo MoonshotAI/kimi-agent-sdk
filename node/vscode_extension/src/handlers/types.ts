@@ -19,12 +19,12 @@ export interface HandlerContext {
   reloadWebview: () => void;
   showLogs: () => void;
 
-  getSession: () => Session | undefined;
+  getSession: (sessionId?: string) => Session | undefined;
   getSessionId: () => string | null;
-  getTurn: () => Turn | undefined;
-  setTurn: (turn: Turn | null) => void;
+  getTurn: (sessionId?: string) => Turn | undefined;
+  setTurn: (sessionId: string, turn: Turn | null) => void;
   getOrCreateSession: (model: string, thinking: boolean, sessionId?: string) => Session;
-  closeSession: () => Promise<void>;
+  closeSession: (sessionId?: string) => Promise<void>;
   saveAllDirty: () => Promise<void>;
   setCustomWorkDir: (workDir: string | null) => void;
 }

@@ -6,13 +6,13 @@ import { bridge } from "@/services";
 import { Content } from "@/lib/content";
 
 function QueueItem({ id, content, isStreaming, onEdit }: { id: string; content: string | import("@moonshot-ai/kimi-agent-sdk/schema").ContentPart[]; isStreaming: boolean; onEdit: (id: string) => void }) {
-  const { removeFromQueue, moveQueueItemUp, queue } = useChatStore();
+  const { removeFromQueue, moveQueueItemUp, queue, sessionId } = useChatStore();
   const text = Content.getText(content);
   const hasMedia = Content.hasMedia(content);
   const isFirst = queue[0]?.id === id;
 
   const handleSteer = async () => {
-    const result = await bridge.steerChat(content);
+    const result = await bridge.steerChat(content, sessionId ?? undefined);
     if (result.ok) {
       removeFromQueue(id);
     }

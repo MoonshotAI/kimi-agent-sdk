@@ -83,7 +83,7 @@ export class FileManager {
     return state;
   }
 
-  setSessionId(webviewId: string, sessionId: string): void {
+  setSessionId(webviewId: string, sessionId: string | null): void {
     this.getViewState(webviewId).sessionId = sessionId;
   }
 

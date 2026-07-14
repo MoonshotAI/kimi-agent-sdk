@@ -21,10 +21,16 @@ function MainContent({ onAuthAction }: { onAuthAction: () => void }) {
 
   useEffect(() => {
     return bridge.on(Events.StreamEvent, (event: UIStreamEvent) => {
-      // 只有当前已有 session 时才过滤，确保 session_start 能正常处理
-      if (sessionId && "_sessionId" in event && event._sessionId && event._sessionId !== sessionId) {
-        console.log("Ignored stream event from another session:", event._sessionId);
-        return;
+      if ("_sessionId" in event && event._sessionId) {
+        if (sessionId && event._sessionId !== sessionId) {
+          console.log("Ignored stream event from another session:", event._sessionId);
+          return;
+        }
+        // A blank conversation may only adopt the session that it starts itself.
+        if (!sessionId && event.type !== "session_start") {
+          console.log("Ignored background stream event while starting a conversation:", event._sessionId);
+          return;
+        }
       }
       processEvent(event);
       if (event.type === "error") {
