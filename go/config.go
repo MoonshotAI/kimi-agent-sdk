@@ -4,8 +4,8 @@ type ProviderType string
 
 const (
 	ProviderTypeKimi            ProviderType = "kimi"
-	ProviderTypeOpenAILegacy    ProviderType = "openai_legacy"
-	ProviderTypeOpenAIResponses ProviderType = "openai_responses"
+	ProviderTypeOpenAILegacy    ProviderType = "openai_legacy"   // legacy OpenAI-compatible API endpoint
+	ProviderTypeOpenAIResponses ProviderType = "openai_responses" // OpenAI Responses API endpoint
 	ProviderTypeAnthropic       ProviderType = "anthropic"
 	ProviderTypeGoogleGenAI     ProviderType = "google_genai" // for backward-compatibility, equals to `gemini`
 	ProviderTypeGemini          ProviderType = "gemini"

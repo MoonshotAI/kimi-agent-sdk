@@ -253,7 +253,7 @@ func roundtrip[T any, R any, I interface {
 		s.rwlock.Unlock()
 		select {
 		case <-s.ctx.Done():
-			if state := s.cmd.ProcessState; state.ExitCode() > 0 {
+			if state := s.cmd.ProcessState; state != nil && state.ExitCode() > 0 {
 				return errors.New(state.String())
 			}
 		default:
