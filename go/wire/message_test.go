@@ -14,6 +14,8 @@ var (
 	_ Message = StepInterrupted{}
 	_ Message = CompactionBegin{}
 	_ Message = CompactionEnd{}
+	_ Message = MCPLoadingBegin{}
+	_ Message = MCPLoadingEnd{}
 	_ Message = StatusUpdate{}
 	_ Message = ContentPart{}
 	_ Message = ToolCallRequest{}
@@ -30,6 +32,8 @@ var (
 	_ Event = StepInterrupted{}
 	_ Event = CompactionBegin{}
 	_ Event = CompactionEnd{}
+	_ Event = MCPLoadingBegin{}
+	_ Event = MCPLoadingEnd{}
 	_ Event = StatusUpdate{}
 	_ Event = ContentPart{}
 	_ Event = ToolCall{}
@@ -55,6 +59,8 @@ func TestEvent_EventTypeConstants(t *testing.T) {
 		{"StepInterrupted", StepInterrupted{}, EventTypeStepInterrupted},
 		{"CompactionBegin", CompactionBegin{}, EventTypeCompactionBegin},
 		{"CompactionEnd", CompactionEnd{}, EventTypeCompactionEnd},
+		{"MCPLoadingBegin", MCPLoadingBegin{}, EventTypeMCPLoadingBegin},
+		{"MCPLoadingEnd", MCPLoadingEnd{}, EventTypeMCPLoadingEnd},
 		{"StatusUpdate", StatusUpdate{}, EventTypeStatusUpdate},
 		{"ContentPart", ContentPart{}, EventTypeContentPart},
 		{"ToolCall", ToolCall{}, EventTypeToolCall},
@@ -241,6 +247,8 @@ func TestEventParams_UnmarshalJSON_AllEventTypes(t *testing.T) {
 		{"StepInterrupted", EventTypeStepInterrupted, StepInterrupted{}},
 		{"CompactionBegin", EventTypeCompactionBegin, CompactionBegin{}},
 		{"CompactionEnd", EventTypeCompactionEnd, CompactionEnd{}},
+		{"MCPLoadingBegin", EventTypeMCPLoadingBegin, MCPLoadingBegin{}},
+		{"MCPLoadingEnd", EventTypeMCPLoadingEnd, MCPLoadingEnd{}},
 		{"StatusUpdate", EventTypeStatusUpdate, StatusUpdate{ContextUsage: Optional[float64]{Value: 0.5, Valid: true}}},
 		{"ContentPart", EventTypeContentPart, NewTextContentPart("hello")},
 		{"ToolCall", EventTypeToolCall, ToolCall{Type: "function", ID: "1", Function: ToolCallFunction{Name: "f"}}},
