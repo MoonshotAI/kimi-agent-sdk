@@ -71,6 +71,8 @@ func (StepBegin) message()               {}
 func (StepInterrupted) message()         {}
 func (CompactionBegin) message()         {}
 func (CompactionEnd) message()           {}
+func (MCPLoadingBegin) message()         {}
+func (MCPLoadingEnd) message()           {}
 func (StatusUpdate) message()            {}
 func (ContentPart) message()             {}
 func (ToolCall) message()                {}
@@ -96,6 +98,8 @@ const (
 	EventTypeStepInterrupted         EventType = "StepInterrupted"
 	EventTypeCompactionBegin         EventType = "CompactionBegin"
 	EventTypeCompactionEnd           EventType = "CompactionEnd"
+	EventTypeMCPLoadingBegin         EventType = "MCPLoadingBegin"
+	EventTypeMCPLoadingEnd           EventType = "MCPLoadingEnd"
 	EventTypeStatusUpdate            EventType = "StatusUpdate"
 	EventTypeContentPart             EventType = "ContentPart"
 	EventTypeToolCall                EventType = "ToolCall"
@@ -112,6 +116,8 @@ func (StepBegin) EventType() EventType               { return EventTypeStepBegin
 func (StepInterrupted) EventType() EventType         { return EventTypeStepInterrupted }
 func (CompactionBegin) EventType() EventType         { return EventTypeCompactionBegin }
 func (CompactionEnd) EventType() EventType           { return EventTypeCompactionEnd }
+func (MCPLoadingBegin) EventType() EventType         { return EventTypeMCPLoadingBegin }
+func (MCPLoadingEnd) EventType() EventType           { return EventTypeMCPLoadingEnd }
 func (StatusUpdate) EventType() EventType            { return EventTypeStatusUpdate }
 func (ContentPart) EventType() EventType             { return EventTypeContentPart }
 func (ToolCall) EventType() EventType                { return EventTypeToolCall }
@@ -136,6 +142,8 @@ var eventUnmarshaler = map[EventType]func(data []byte) (Event, error){
 	EventTypeStepInterrupted:         unmarshalEvent[StepInterrupted],
 	EventTypeCompactionBegin:         unmarshalEvent[CompactionBegin],
 	EventTypeCompactionEnd:           unmarshalEvent[CompactionEnd],
+	EventTypeMCPLoadingBegin:         unmarshalEvent[MCPLoadingBegin],
+	EventTypeMCPLoadingEnd:           unmarshalEvent[MCPLoadingEnd],
 	EventTypeStatusUpdate:            unmarshalEvent[StatusUpdate],
 	EventTypeContentPart:             unmarshalEvent[ContentPart],
 	EventTypeToolCall:                unmarshalEvent[ToolCall],
@@ -335,6 +343,8 @@ type (
 	StepInterrupted struct{}
 	CompactionBegin struct{}
 	CompactionEnd   struct{}
+	MCPLoadingBegin struct{}
+	MCPLoadingEnd   struct{}
 )
 
 type StatusUpdate struct {
