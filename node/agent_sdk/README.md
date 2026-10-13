@@ -325,6 +325,8 @@ const KimiPaths = {
 
 All errors extend `AgentSdkError`:
 
+If the CLI exits while a request is pending, that request rejects with `TransportError` (`PROCESS_CRASHED`), including a zero exit code or signal termination. Results already received by the SDK remain valid.
+
 ```typescript
 abstract class AgentSdkError extends Error {
   abstract readonly code: string;

@@ -181,7 +181,7 @@ export class ProtocolClient {
       log.protocol("stderr: %s", chunk.trim());
     });
     this.process.on("error", (err) => this.handleProcessError(err));
-    this.process.on("exit", (code) => this.handleProcessExit(code));
+    this.process.on("exit", (code, signal) => this.handleProcessExit(code, signal));
 
     // Register external tool handlers
     if (options.externalTools) {
@@ -599,10 +599,11 @@ export class ProtocolClient {
     this.cleanup();
   }
 
-  private handleProcessExit(code: number | null): void {
-    log.protocol("Process exited with code: %d", code);
-    if (code !== 0 && code !== null) {
-      const errorMsg = this.stderrBuffer.trim() ? `CLI exited with code ${code}: ${this.stderrBuffer.trim()}` : `CLI exited with code ${code}`;
+  private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
+    log.protocol("Process exited with code: %s, signal: %s", code, signal);
+    if (this.pendingRequests.size > 0) {
+      const exitReason = signal ? `signal ${signal}` : `code ${code}`;
+      const errorMsg = this.stderrBuffer.trim() ? `CLI exited with ${exitReason}: ${this.stderrBuffer.trim()}` : `CLI exited with ${exitReason}`;
       const error = new TransportError("PROCESS_CRASHED", errorMsg);
 
       for (const pending of this.pendingRequests.values()) {

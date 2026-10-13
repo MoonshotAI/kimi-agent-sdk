@@ -313,7 +313,7 @@ describe("ProtocolClient", () => {
       mockSpawn.mockReturnValue(proc);
 
       const client = new ProtocolClient();
-      client.start({ sessionId: "test", workDir: "/tmp" });
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
 
       const stopPromise = client.stop();
 
@@ -616,6 +616,66 @@ describe("ProtocolClient", () => {
   });
 
   describe("process lifecycle", () => {
+    it.each([
+      { code: 0, signal: null },
+      { code: null, signal: "SIGTERM" },
+    ])("rejects initialization after exit $code/$signal without a response", async ({ code, signal }) => {
+      const proc = createMockProcess();
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new ProtocolClient();
+      const start = client.start({ sessionId: "test", workDir: "/tmp" });
+      const rejected = expect(start).rejects.toMatchObject({ code: "PROCESS_CRASHED" });
+
+      proc.exitCode = code;
+      proc.emit("exit", code, signal);
+
+      await rejected;
+      expect(client.isRunning).toBe(false);
+    });
+
+    it.each([
+      { code: 0, signal: null },
+      { code: null, signal: "SIGTERM" },
+    ])("rejects pending prompt and cancel requests after exit $code/$signal", async ({ code, signal }) => {
+      const proc = createMockProcess();
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new ProtocolClient();
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
+      const stream = client.sendPrompt("Hello");
+      const cancelled = client.sendCancel();
+      const rejected = Promise.all([
+        expect(stream.result).rejects.toMatchObject({ code: "PROCESS_CRASHED" }),
+        expect(cancelled).rejects.toMatchObject({ code: "PROCESS_CRASHED" }),
+      ]);
+
+      proc.exitCode = code;
+      proc.emit("exit", code, signal);
+
+      await rejected;
+      await expect(stream.events[Symbol.asyncIterator]().next()).resolves.toEqual({ done: true, value: undefined });
+      expect(client.isRunning).toBe(false);
+    });
+
+    it("preserves a completed result when the process exits successfully", async () => {
+      const proc = createMockProcess();
+      mockSpawn.mockReturnValue(proc);
+
+      const client = new ProtocolClient();
+      await startClientWithInit(client, proc, { sessionId: "test", workDir: "/tmp" });
+      const stream = client.sendPrompt("Hello");
+      const requestId = JSON.parse(proc.stdin.write.mock.calls[1][0]).id;
+      pushLine(proc, JSON.stringify({ jsonrpc: "2.0", id: requestId, result: { status: "finished", steps: 1 } }));
+      await expect(stream.result).resolves.toEqual({ status: "finished", steps: 1 });
+
+      proc.exitCode = 0;
+      proc.emit("exit", 0, null);
+
+      await expect(stream.result).resolves.toEqual({ status: "finished", steps: 1 });
+      expect(client.isRunning).toBe(false);
+    });
+
     it("handles process error", async () => {
       const proc = createMockProcess();
       mockSpawn.mockReturnValue(proc);
