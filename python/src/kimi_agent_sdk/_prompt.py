@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import AsyncGenerator
+from contextlib import aclosing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -107,17 +108,18 @@ async def prompt(
         max_ralph_iterations=max_ralph_iterations,
     ) as session:
         aggregator = MessageAggregator(final_message_only=final_message_only)
-        async for wire_msg in session.prompt(user_input, merge_wire_messages=True):
-            if isinstance(wire_msg, ApprovalRequest):
-                result = approval_handler(wire_msg)
-                if inspect.isawaitable(result):
-                    await result
-                if not wire_msg.resolved:
-                    wire_msg.resolve("reject")
-                continue
+        async with aclosing(session.prompt(user_input, merge_wire_messages=True)) as stream:
+            async for wire_msg in stream:
+                if isinstance(wire_msg, ApprovalRequest):
+                    result = approval_handler(wire_msg)
+                    if inspect.isawaitable(result):
+                        await result
+                    if not wire_msg.resolved:
+                        wire_msg.resolve("reject")
+                    continue
 
-            for message in aggregator.feed(wire_msg):
-                yield message
+                for message in aggregator.feed(wire_msg):
+                    yield message
 
         for message in aggregator.flush():
             yield message

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import inspect
 from collections.abc import AsyncGenerator
+from contextlib import aclosing
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -253,12 +254,15 @@ class Session:
         cancel_event = asyncio.Event()
         self._cancel_event = cancel_event
         try:
-            async for msg in self._cli.run(
-                user_input,
-                cancel_event,
-                merge_wire_messages=merge_wire_messages,
-            ):
-                yield msg
+            async with aclosing(
+                self._cli.run(
+                    user_input,
+                    cancel_event,
+                    merge_wire_messages=merge_wire_messages,
+                )
+            ) as stream:
+                async for msg in stream:
+                    yield msg
         finally:
             if self._cancel_event is cancel_event:
                 self._cancel_event = None
