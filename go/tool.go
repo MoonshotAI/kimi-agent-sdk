@@ -60,6 +60,7 @@ func WithFieldDescription(fieldName, description string) ToolOption {
 // CreateTool creates a Tool from a function.
 // The function must have signature func(T) (U, error) where T is a struct type.
 // The result U can be: string (returned directly), fmt.Stringer (calls .String()), or any other type (JSON serialized).
+// Recursive parameter types require an explicit schema supplied with WithSchema.
 func CreateTool[T any, U any](function func(T) (U, error), options ...ToolOption) (Tool, error) {
 	opt := &toolOption{}
 	for _, o := range options {
@@ -168,6 +169,16 @@ type jsonSchema struct {
 }
 
 func generateSchema(t reflect.Type, fieldDescs map[string]string) (*jsonSchema, error) {
+	return generateSchemaWithPath(t, fieldDescs, make(map[reflect.Type]bool))
+}
+
+func generateSchemaWithPath(t reflect.Type, fieldDescs map[string]string, path map[reflect.Type]bool) (*jsonSchema, error) {
+	if path[t] {
+		return nil, fmt.Errorf("recursive type %s is not supported; use WithSchema to provide an explicit schema", t)
+	}
+	path[t] = true
+	defer delete(path, t)
+
 	schema := &jsonSchema{}
 
 	switch t.Kind() {
@@ -187,7 +198,7 @@ func generateSchema(t reflect.Type, fieldDescs map[string]string) (*jsonSchema, 
 				continue
 			}
 
-			fieldSchema, err := generateSchema(field.Type, nil)
+			fieldSchema, err := generateSchemaWithPath(field.Type, nil, path)
 			if err != nil {
 				return nil, fmt.Errorf("field %s: %w", field.Name, err)
 			}
@@ -211,11 +222,11 @@ func generateSchema(t reflect.Type, fieldDescs map[string]string) (*jsonSchema, 
 		}
 
 	case reflect.Ptr:
-		return generateSchema(t.Elem(), fieldDescs)
+		return generateSchemaWithPath(t.Elem(), fieldDescs, path)
 
 	case reflect.Slice, reflect.Array:
 		schema.Type = "array"
-		items, err := generateSchema(t.Elem(), nil)
+		items, err := generateSchemaWithPath(t.Elem(), nil, path)
 		if err != nil {
 			return nil, fmt.Errorf("array element: %w", err)
 		}
