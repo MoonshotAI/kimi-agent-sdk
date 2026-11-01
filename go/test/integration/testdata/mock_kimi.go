@@ -146,6 +146,9 @@ func handlePrompt(encoder *json.Encoder, reqID string) {
 		"text": "Hello from mock kimi!",
 	})
 
+	// Context and token usage can arrive as separate partial updates.
+	sendEvent(encoder, "StatusUpdate", map[string]any{"context_usage": 0.75})
+
 	// Send StatusUpdate event
 	sendEvent(encoder, "StatusUpdate", map[string]any{
 		"token_usage": map[string]any{
@@ -155,6 +158,8 @@ func handlePrompt(encoder *json.Encoder, reqID string) {
 			"input_cache_creation": 5,
 		},
 	})
+
+	sendEvent(encoder, "StatusUpdate", map[string]any{})
 
 	// Send TurnEnd event to properly end the turn
 	sendEvent(encoder, "TurnEnd", map[string]any{})
@@ -354,4 +359,3 @@ func handlePromptToolCall(encoder *json.Encoder, scanner *bufio.Scanner, reqID s
 		Result:  json.RawMessage(`{"status":"finished","steps":1}`),
 	})
 }
-

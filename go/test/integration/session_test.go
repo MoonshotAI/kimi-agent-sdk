@@ -167,6 +167,9 @@ func TestIntegration_StatusUpdate_Usage(t *testing.T) {
 
 	// Check usage was updated
 	usage := turn.Usage()
+	if usage.Context != 0.75 {
+		t.Errorf("expected Context=0.75 after token-only update, got %v", usage.Context)
+	}
 	if usage.Tokens.InputOther != 100 {
 		t.Errorf("expected InputOther=100, got %d", usage.Tokens.InputOther)
 	}
