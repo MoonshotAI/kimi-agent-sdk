@@ -136,7 +136,7 @@ func (t *Turn) traverse(incoming <-chan wire.Message, steps chan<- *Step) {
 			CAS:
 				for {
 					oldUsage := t.usage.Load()
-					newUsage := &Usage{Tokens: oldUsage.Tokens}
+					newUsage := &Usage{Context: oldUsage.Context, Tokens: oldUsage.Tokens}
 					if update.ContextUsage.Valid {
 						newUsage.Context = update.ContextUsage.Value
 					}

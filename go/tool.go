@@ -210,7 +210,7 @@ func generateSchema(t reflect.Type, fieldDescs map[string]string) (*jsonSchema, 
 			schema.Required = required
 		}
 
-	case reflect.Ptr:
+	case reflect.Pointer:
 		return generateSchema(t.Elem(), fieldDescs)
 
 	case reflect.Slice, reflect.Array:
@@ -268,7 +268,7 @@ func parseFieldTags(field reflect.StructField) (jsonName, description string, re
 	}
 
 	// Pointer types are always optional
-	if field.Type.Kind() == reflect.Ptr {
+	if field.Type.Kind() == reflect.Pointer {
 		required = false
 	}
 

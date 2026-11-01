@@ -2,6 +2,7 @@ package kimi
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -465,5 +466,68 @@ func TestTurn_traverse_NoUnexpectedEOF_WireVersion11(t *testing.T) {
 	result := turn.Result()
 	if result.Status == wire.PromptResultStatusUnexpectedEOF {
 		t.Error("expected status to NOT be UnexpectedEOF for wire version < 1.2")
+	}
+}
+
+func TestTurn_StatusUpdate_PreservesUnspecifiedUsage(t *testing.T) {
+	turn, _, messages, _, _, cleanup := setupTurnWithVersion(t, "1.2")
+	defer cleanup()
+	messages <- wire.TurnBegin{}
+	for i, test := range []struct {
+		name        string
+		payload     string
+		wantContext float64
+		wantTokens  wire.TokenUsage
+	}{
+		{name: "context only", payload: `{"context_usage":0.75}`, wantContext: 0.75},
+		{
+			name: "token only", payload: `{"token_usage":{"input_other":20,"output":8}}`,
+			wantContext: 0.75, wantTokens: wire.TokenUsage{InputOther: 20, Output: 8},
+		},
+		{
+			name: "empty update", payload: `{}`,
+			wantContext: 0.75, wantTokens: wire.TokenUsage{InputOther: 20, Output: 8},
+		},
+		{
+			name: "explicit zero context", payload: `{"context_usage":0}`,
+			wantTokens: wire.TokenUsage{InputOther: 20, Output: 8},
+		},
+		{
+			name: "tokens after zero", payload: `{"token_usage":{"input_other":30,"output":2}}`,
+			wantTokens: wire.TokenUsage{InputOther: 50, Output: 10},
+		},
+		{
+			name: "replacement context", payload: `{"context_usage":0.25}`,
+			wantContext: 0.25, wantTokens: wire.TokenUsage{InputOther: 50, Output: 10},
+		},
+	} {
+		var update wire.StatusUpdate
+		if err := json.Unmarshal([]byte(test.payload), &update); err != nil {
+			t.Fatal(err)
+		}
+		messages <- update
+		// StepBegin is a barrier: traverse has processed the preceding update.
+		messages <- wire.StepBegin{N: i + 1}
+		select {
+		case step := <-turn.Steps:
+			if step == nil || step.n != i+1 {
+				t.Fatal("expected step after status update")
+			}
+		case <-time.After(time.Second):
+			t.Fatal("status update was not processed")
+		}
+		usage := turn.Usage()
+		if usage.Context != test.wantContext || usage.Tokens != test.wantTokens {
+			t.Errorf("%s: usage = %+v, want context %v and tokens %+v", test.name, usage, test.wantContext, test.wantTokens)
+		}
+	}
+	messages <- wire.TurnEnd{}
+	select {
+	case _, ok := <-turn.Steps:
+		if ok {
+			t.Fatal("expected turn completion")
+		}
+	case <-time.After(time.Second):
+		t.Fatal("turn did not finish")
 	}
 }

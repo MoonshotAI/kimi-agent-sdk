@@ -55,6 +55,10 @@ if usage != nil {
 
 Context usage indicates how much of the model's context window is being used:
 
+Status updates may include context usage, token usage, or both. `turn.Usage()`
+retains the last reported context value when an update omits it. An explicit
+context usage of `0.0` replaces that value.
+
 - `0.0` = Empty context
 - `0.5` = 50% utilized
 - `1.0` = Context window is full
